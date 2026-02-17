@@ -1,5 +1,5 @@
-import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { AlertCircle, BookOpen, Calendar, ChartBar, Clock10Icon, Folder, Home, Layers, LayoutGrid, PlusCircle, Users } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -22,22 +22,173 @@ const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
-];
 
-const footerNavItems: NavItem[] = [
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
+        title: 'Analytics',
+        href: '/analytics',
+        icon: ChartBar,
+    },
+    {
+        title: 'Rooms',
+        href: '/room',
         icon: Folder,
     },
     {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
+        title: 'Faculty',
+        href: '/faculty',
+        icon: Users,
+    },
+    {
+        title: 'Subject',
+        href: '/subject',
         icon: BookOpen,
+    },
+    {
+        title: 'Section',
+        href: '/subject',
+        icon: Layers,
+    },
+    {
+        title: 'Department',
+        href: '/department',
+        icon: Layers,
+    },
+    {
+        title: 'Records',
+        href: '/records',
+        icon: Layers,
+    },
+    {
+        title: 'View Schedule',
+        href: '/view-schedule',
+        icon: Calendar,
+    },
+    {
+        title: 'Generate Schedule',
+        href: '/generate-schedule',
+        icon: PlusCircle,
+    },
+    {
+        title: 'Conflict Detection',
+        href: '/conflict Detection',
+        icon: AlertCircle,
+    },
+    {
+        title: 'History Version',
+        href: '/history-version',
+        icon: Clock10Icon,
     },
 ];
 
+
+const hrNavItems: NavItem[] = [
+    {
+        title: 'Dashboard',
+        href: dashboard(),
+        icon: LayoutGrid,
+    },
+    {
+        title: 'Faculty',
+        href: '/faculty',
+        icon: Users,
+    },
+    {
+        title: 'View Schedule',
+        href: '/view-schedule',
+        icon: Calendar,
+    },
+    {
+        title: 'Resource',
+        href: '/Resource',
+        icon: Folder,
+    },
+];
+
+const registrarNavItems: NavItem[] = [
+    {
+        title: 'Dashboard',
+        href: dashboard(),
+        icon: LayoutGrid,
+    },
+    {
+        title: 'Subject',
+        href: '/subject',
+        icon: BookOpen,
+    },
+    {
+        title: 'Section',
+        href: '/subject',
+        icon: Layers,
+    },
+    {
+        title: 'Department',
+        href: '/department',
+        icon: Layers,
+    },
+    {
+        title: 'Records',
+        href: '/records',
+        icon: Layers,
+    },
+]
+const staffNavItems: NavItem[] = [
+    {
+        title: 'Dashboard',
+        href: dashboard(),
+        icon: LayoutGrid,
+    },
+    {
+        title: 'Rooms',
+        href: '/room',
+        icon: Folder,
+    },
+    {
+        title: 'View Schedule',
+        href: '/view-schedule',
+        icon: Calendar,
+    },
+    {
+        title: 'Generate Schedule',
+        href: '/generate-schedule',
+        icon: PlusCircle,
+    },
+    {
+        title: 'Conflict Detection',
+        href: '/conflict Detection',
+        icon: AlertCircle,
+    },
+    {
+        title: 'History Version',
+        href: '/history-version',
+        icon: Clock10Icon,
+    },
+]
+
+const footerNavItems: NavItem[] = [
+];
+
 export function AppSidebar() {
+    const { auth } = usePage<any>().props;
+    const user = auth?.user;
+
+    let roleNavItems: NavItem[] = [];
+
+    switch (user?.role) {
+        case 'super admin':
+            roleNavItems = mainNavItems;
+            break;
+        case 'hr':
+            roleNavItems = hrNavItems;
+            break;
+        case 'registrar':
+            roleNavItems = registrarNavItems;
+            break;
+        case 'staff':
+            roleNavItems = staffNavItems;
+            break;
+        default:
+            roleNavItems = [];
+    }
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -53,7 +204,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={roleNavItems} />
             </SidebarContent>
 
             <SidebarFooter>
