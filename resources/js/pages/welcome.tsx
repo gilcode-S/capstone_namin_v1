@@ -8,14 +8,14 @@ export default function Welcome() {
             <div className="relative min-h-screen text-white ">
 
                 {/* Background Image */}
-                <div
+                {/* <div
                     className="absolute inset-0 bg-center bg-no-repeat bg-cover"
                     style={{
                         backgroundImage: "url('/image/image 2.png')",
                         backgroundSize: "cover",
                         imageRendering: "auto"
                     }}
-                ></div>
+                ></div> */}
 
                 {/* Gradient + Dark Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/70 to-blue-900/80"></div>
