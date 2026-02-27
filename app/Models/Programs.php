@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Department;
+use App\Models\Section;
 class Programs extends Model
 {
     //
@@ -16,5 +17,10 @@ class Programs extends Model
     public function department()
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function sections()
+    {
+        return $this->hasMany(Section::class);
     }
 }

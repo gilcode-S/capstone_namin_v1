@@ -5,7 +5,7 @@ export default function Welcome() {
         <>
             <Head title="AISAT Scheduling System" />
 
-            <div className="relative min-h-screen text-white ">
+            <div className="relative min-h-screen text-black dark:text-white ">
 
                 {/* Background Image */}
                 {/* <div
@@ -15,10 +15,10 @@ export default function Welcome() {
                         backgroundSize: "cover",
                         imageRendering: "auto"
                     }}
-                ></div> */}
+                ></div> 
 
                 {/* Gradient + Dark Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/70 to-blue-900/80"></div>
+                <div className="absolute"></div>
 
                 {/* Content */}
                 <div className="relative z-10">
@@ -45,7 +45,7 @@ export default function Welcome() {
                                 Expertise-Aware Class Scheduling System
                             </h2>
 
-                            <p className="mt-6 text-lg md:text-xl text-gray-200">
+                            <p className="mt-6 text-lg md:text-xl text-gray-700  dark:text-gray-200">
                                 A smart academic scheduling solution with automatic
                                 conflict detection, expertise-based faculty assignment,
                                 and optimized timetable generation for

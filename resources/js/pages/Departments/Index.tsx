@@ -118,9 +118,9 @@ const Index = () => {
                     <table className='min-w-full bg-white dark:bg-gray-800'>
                         <thead>
                             <tr className='bg-gray-100 dark:bg-gray-800'>
-                                <th className='px-4 text-left'>Department_code</th>
-                                <th className='px-4 text-left'>Department_name</th>
-                                <th className='px-4 text-center'>Actions</th>
+                                <th className='px-4 py-2 text-left'>Department_code</th>
+                                <th className='px-4 py-2 text-left'>Department_name</th>
+                                <th className='px-4 py-2 text-center'>Actions</th>
                             </tr>
                         </thead>
 

@@ -117,7 +117,7 @@ const registrarNavItems: NavItem[] = [
     },
     {
         title: 'Section',
-        href: '/subject',
+        href: '/section',
         icon: Layers,
     },
     {
