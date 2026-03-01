@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\FacultyController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\SectionController;
@@ -23,6 +24,11 @@ Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('section', SectionController::class);
 Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('subject', SubjectController::class);
+
+
+
+Route::middleware(['auth', 'role:hr,super admin'])
+    ->resource('faculty', FacultyController::class);
 
 
 

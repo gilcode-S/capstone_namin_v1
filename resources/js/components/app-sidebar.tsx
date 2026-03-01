@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { AlertCircle, BookOpen, Calendar, ChartBar, Clock10Icon, Folder, Home, Layers, LayoutGrid, PilcrowRight, PlusCircle, ReceiptEuro, Users } from 'lucide-react';
+import { AlertCircle, BookOpen, Calendar, ChartBar, Clock10Icon, Folder, Home, Layers, LayoutGrid, PanelsRightBottom, PilcrowRight, PilcrowRightIcon, PlusCircle, ReceiptEuro, Users } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -45,13 +45,18 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Section',
-        href: '/subject',
-        icon: Layers,
+        href: '/section',
+        icon: PanelsRightBottom,
     },
     {
         title: 'Department',
         href: '/department',
         icon: Layers,
+    },
+    {
+        title: 'Program',
+        href: '/program',
+        icon: PilcrowRightIcon,
     },
     {
         title: 'Records',
