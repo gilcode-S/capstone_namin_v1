@@ -27,8 +27,8 @@ Route::middleware(['auth', 'role:super admin,registrar'])
 
 
 
-Route::middleware(['auth', 'role:hr,super admin'])
-    ->resource('faculty', FacultyController::class);
+    Route::middleware(['auth', 'role:hr,super admin'])
+        ->resource('faculty', FacultyController::class);
 
 
 

@@ -1,120 +1,126 @@
-import { Form, Head } from '@inertiajs/react';
-import InputError from '@/components/input-error';
-import TextLink from '@/components/text-link';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
-import AuthLayout from '@/layouts/auth-layout';
-import { register } from '@/routes';
-import { store } from '@/routes/login';
-import { request } from '@/routes/password';
+import { Head, useForm } from '@inertiajs/react'
+import { Loader2 } from 'lucide-react'
+import { useState } from 'react'
 
-type Props = {
-    status?: string;
-    canResetPassword: boolean;
-    canRegister: boolean;
-};
 
-export default function Login({
-    status,
-    canResetPassword,
-    canRegister,
-}: Props) {
+export default function Login() {
+    const { data, setData, post, processing, errors } = useForm({
+        email: '',
+        password: '',
+        remember: false,
+    })
+
+    const [showPassword, setShowPassword] = useState(false)
+
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault()
+        post('/login')
+    }
+
     return (
-        <AuthLayout
-            title="Log in to your account"
-            description="Enter your email and password below to log in"
-        >
-            <Head title="Log in" />
+        <>
+            <Head title="Login" />
 
-            <Form
-                {...store.form()}
-                resetOnSuccess={['password']}
-                className="flex flex-col gap-6"
-            >
-                {({ processing, errors }) => (
-                    <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    required
-                                    autoFocus
-                                    tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
-                                />
-                                <InputError message={errors.email} />
-                            </div>
+            <div className="min-h-screen grid md:grid-cols-2">
 
-                            <div className="grid gap-2">
-                                <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="ml-auto text-sm"
-                                            tabIndex={5}
-                                        >
-                                            Forgot password?
-                                        </TextLink>
-                                    )}
-                                </div>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    name="password"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="current-password"
-                                    placeholder="Password"
-                                />
-                                <InputError message={errors.password} />
-                            </div>
+                {/* LEFT PANEL */}
+                <div className="hidden md:flex flex-col justify-center items-center  text-white p-10">
 
-                            <div className="flex items-center space-x-3">
-                                <Checkbox
-                                    id="remember"
-                                    name="remember"
-                                    tabIndex={3}
-                                />
-                                <Label htmlFor="remember">Remember me</Label>
-                            </div>
+                    <h1 className="text-5xl font-extrabold mb-4 text-black dark:text-gray-200"> Expertise-Aware </h1>
 
-                            <Button
-                                type="submit"
-                                className="mt-4 w-full"
-                                tabIndex={4}
-                                disabled={processing}
-                                data-test="login-button"
-                            >
-                                {processing && <Spinner />}
-                                Log in
-                            </Button>
-                        </div>
+                    <p className="text-lg text-center max-w-md text-gray-600 dark:text-gray-200">
+                        Class Scheduling System
+                    </p>
 
-                        {canRegister && (
-                            <div className="text-center text-sm text-muted-foreground">
-                                Don't have an account?{' '}
-                                <TextLink href={register()} tabIndex={5}>
-                                    Sign up
-                                </TextLink>
-                            </div>
-                        )}
-                    </>
-                )}
-            </Form>
-
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
                 </div>
-            )}
-        </AuthLayout>
-    );
+
+                {/* RIGHT PANEL */}
+                <div className="flex items-center justify-center bg-gray-100 p-6">
+
+                    <div className="w-full max-w-md backdrop-blur-xl bg-white/80 shadow-2xl rounded-2xl p-8">
+
+                        <h2 className="text-2xl font-bold text-center mb-2">
+                            Welcome Back 👋
+                        </h2>
+
+                        <p className="text-center text-gray-500 mb-6">
+                            Login to continue
+                        </p>
+
+                        <form onSubmit={submit} className="space-y-4">
+
+                            {/* EMAIL */}
+                            <div>
+                                <input
+                                    type="email"
+                                    placeholder="AISAT-Email"
+                                    value={data.email}
+                                    onChange={e => setData('email', e.target.value)}
+                                    className="w-full border p-3 rounded-xl"
+                                />
+                                {errors.email && (
+                                    <p className="text-red-500 text-sm">{errors.email}</p>
+                                )}
+                            </div>
+
+                            {/* PASSWORD */}
+                            <div>
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    placeholder="Password"
+                                    value={data.password}
+                                    onChange={e => setData('password', e.target.value)}
+                                    className="w-full border p-3 rounded-xl"
+                                />
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="text-xs text-indigo-600 mt-1"
+                                >
+                                    {showPassword ? 'Hide Password' : 'Show Password'}
+                                </button>
+
+                                {errors.password && (
+                                    <p className="text-red-500 text-sm">{errors.password}</p>
+                                )}
+                            </div>
+
+                            {/* REMEMBER ME */}
+                            <div className="flex items-center justify-between text-sm">
+                                <label className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={data.remember}
+                                        onChange={e => setData('remember', e.target.checked)}
+                                    />
+                                    Remember me
+                                </label>
+
+                                <a href="/forgot-password" className="text-indigo-600">
+                                    Forgot password?
+                                </a>
+                            </div>
+
+                            {/* BUTTON */}
+                            <button
+                                disabled={processing}
+                                className="w-full bg-indigo-600 text-white p-3 rounded-xl flex items-center justify-center gap-2 hover:bg-indigo-700 transition"
+                            >
+                                {processing && <Loader2 className="animate-spin w-4 h-4" />}
+                                Login
+                            </button>
+
+                        </form>
+
+                        <p className="text-center text-xs text-gray-400 mt-6">
+                            © 2026 AISAT College Dasma
+                        </p>
+
+                    </div>
+
+                </div>
+            </div>
+        </>
+    )
 }
