@@ -6,6 +6,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\RoomController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -27,9 +28,11 @@ Route::middleware(['auth', 'role:super admin,registrar'])
 
 
 
-    Route::middleware(['auth', 'role:hr,super admin'])
-        ->resource('faculty', FacultyController::class);
+Route::middleware(['auth', 'role:hr,super admin'])
+    ->resource('faculty', FacultyController::class);
 
+Route::middleware(['auth', 'role:registrar,super admin'])
+    ->resource('rooms', RoomController::class);
 
 
 require __DIR__ . '/settings.php';

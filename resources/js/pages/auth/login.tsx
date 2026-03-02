@@ -1,5 +1,5 @@
-import { Head, useForm } from '@inertiajs/react'
-import { Loader2 } from 'lucide-react'
+import { Head, useForm, Link } from '@inertiajs/react'
+import {  Loader2 } from 'lucide-react'
 import { useState } from 'react'
 
 
@@ -31,6 +31,12 @@ export default function Login() {
                     <p className="text-lg text-center max-w-md text-gray-600 dark:text-gray-200">
                         Class Scheduling System
                     </p>
+                    <Link
+                        href="/register"
+                        className="mt-3 px-6 py-3 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition"
+                    >
+                        Register
+                    </Link>
 
                 </div>
 
