@@ -22,26 +22,27 @@ class TimeSlotController extends Controller
     {
         $validated = $request->validate([
             'day_of_week' => 'required',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
+            'start_time' => 'required',
+            'end_time' => 'required|after:start_time',
             'mode' => 'required|in:f2f,online,hybrid',
             'status' => 'required|in:active, inactive'
         ]);
 
         TimeSlot::create($validated);
 
-        return redirect()->back()->with('success' , 'time slot created');
+        return redirect()->back()->with('success', 'time slot created');
     }
 
     public function update(Request $request, TimeSlot $timeSlot)
     {
-        $validated = $request->validte([
+        $validated = $request->validate([
             'day_of_week' => 'required',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
+            'start_time' => 'required',
+            'end_time' => 'required|after:start_time',
             'mode' => 'required|in:f2f,online,hybrid',
-            'status' => 'required|in:active, inactive'
+            'status' => 'required|in:active,inactive'
         ]);
+
 
         $timeSlot->update($validated);
 
@@ -53,6 +54,6 @@ class TimeSlotController extends Controller
     {
         $timeSlot->delete();
 
-        return redirect()->back()->with('success' , 'time slot deleted');
+        return redirect()->back()->with('success', 'time slot deleted');
     }
 }
