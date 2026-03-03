@@ -154,7 +154,12 @@ const staffNavItems: NavItem[] = [
     },
     {
         title: 'Rooms',
-        href: '/room',
+        href: '/rooms',
+        icon: Folder,
+    },
+    {
+        title: 'Time Slots',
+        href: '/time-slots',
         icon: Folder,
     },
     {

@@ -7,6 +7,7 @@ use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\RoomController;
+use App\Http\Controllers\TimeSlotController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -31,8 +32,10 @@ Route::middleware(['auth', 'role:super admin,registrar'])
 Route::middleware(['auth', 'role:hr,super admin'])
     ->resource('faculty', FacultyController::class);
 
-Route::middleware(['auth', 'role:registrar,super admin'])
+Route::middleware(['auth', 'role:staff,super admin'])  
     ->resource('rooms', RoomController::class);
+    Route::middleware(['auth', 'role:staff,super admin'])
+    ->resource('time-slots', TimeSlotController::class);
 
 
 require __DIR__ . '/settings.php';
