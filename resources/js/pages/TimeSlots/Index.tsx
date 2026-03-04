@@ -42,6 +42,16 @@ export default function Index() {
   const [isEdit, setIsEdit] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
 
+  const formatTime = (time: string) => {
+    if (!time) return ''
+
+    return new Date(`1970-01-01T${time}`).toLocaleTimeString([], {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
+  }
+
   /* OPEN CREATE */
   const handleOpen = () => {
     setForm(emptyForm)
@@ -54,8 +64,8 @@ export default function Index() {
   const handleOpenEdit = (slot: TimeSlot) => {
     setForm({
       day_of_week: slot.day_of_week,
-      start_time: slot.start_time,
-      end_time: slot.end_time,
+      start_time: slot.start_time.slice(0, 5), // remove seconds
+      end_time: slot.end_time.slice(0, 5),     // remove seconds
       mode: slot.mode,
       status: slot.status
     })
@@ -63,6 +73,7 @@ export default function Index() {
     setIsEdit(true)
     setEditId(slot.id)
     setOpen(true)
+
   }
 
   /* CLOSE */
@@ -94,7 +105,7 @@ export default function Index() {
 
     setLoading(true)
 
-    if (isEdit && editId) {
+    if (isEdit && editId !== null) {
       router.put(`/time-slots/${editId}`, form, {
         onSuccess: () => {
           setLoading(false)
@@ -156,8 +167,8 @@ export default function Index() {
               {timeSlots.length > 0 ? timeSlots.map(slot => (
                 <tr key={slot.id} className="border-t">
                   <td className="px-4 py-2">{slot.day_of_week}</td>
-                  <td className="px-4 py-2">{slot.start_time}</td>
-                  <td className="px-4 py-2">{slot.end_time}</td>
+                  <td className="px-4 py-2">{formatTime(slot.start_time)}</td>
+                  <td className="px-4 py-2">{formatTime(slot.end_time)}</td>
                   <td className="px-4 py-2 capitalize">{slot.mode}</td>
                   <td className="px-4 py-2">
                     <span className={
@@ -257,7 +268,7 @@ export default function Index() {
                   <option value="">Select Mode</option>
                   <option value="f2f">Face to Face</option>
                   <option value="online">Online</option>
-                  <option value="hybrid">Hybrid</option>
+                  <option value="hybrid">Hybrid na halimaw</option>
                 </select>
               </div>
 

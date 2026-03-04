@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { AlertCircle, BookOpen, Calendar, ChartBar, ChartBarIcon, Clock10Icon, Folder, Home, Layers, LayoutGrid, PanelsRightBottom, PilcrowRight, PilcrowRightIcon, PlusCircle, ReceiptEuro, Users } from 'lucide-react';
+import { AlertCircle, BookOpen, Calendar, ChartBar, ChartBarIcon, Clock10Icon, Folder, Home, Layers, LayoutGrid, PanelsRightBottom, PilcrowRight, PilcrowRightIcon, PlusCircle, ReceiptEuro, SquareBottomDashedScissors, Users } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -161,6 +161,11 @@ const staffNavItems: NavItem[] = [
         title: 'Time Slots',
         href: '/time-slots',
         icon: Folder,
+    },
+    {
+        title: 'Semester Module',
+        href: '/semesters',
+        icon: SquareBottomDashedScissors,
     },
     {
         title: 'View Schedule',
