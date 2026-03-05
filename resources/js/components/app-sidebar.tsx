@@ -1,8 +1,10 @@
 import { Link, usePage } from '@inertiajs/react';
+
 import { AlertCircle, BookOpen, Calendar, ChartBar, ChartBarIcon, Clock10Icon, Folder, Home, Layers, LayoutGrid, PanelsRightBottom, PilcrowRight, PilcrowRightIcon, PlusCircle, ReceiptEuro, SquareBottomDashedScissors, Users } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
+
 import {
     Sidebar,
     SidebarContent,
@@ -12,9 +14,10 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 import AppLogo from './app-logo';
-import { dashboard } from '@/routes';
+
 
 const mainNavItems: NavItem[] = [
     {
@@ -168,8 +171,8 @@ const staffNavItems: NavItem[] = [
         icon: SquareBottomDashedScissors,
     },
     {
-        title: 'View Schedule',
-        href: '/view-schedule',
+        title: 'Schedule Versions',
+        href: '/schedule-versions',
         icon: Calendar,
     },
     {
