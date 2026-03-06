@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import AppLayout from '@/layouts/app-layout'
-
+import Pagination from '@/components/Pagination'
 interface Department {
     id: number
     department_name: string
@@ -39,7 +39,10 @@ const emptyForm = {
 
 export default function Index() {
     const { rooms, departments } = usePage().props as unknown as {
-        rooms: Room[],
+        rooms:{
+            data: Room[],
+            links: any[],
+        },
         departments: Department[]
     }
 
@@ -154,7 +157,7 @@ export default function Index() {
                         </thead>
 
                         <tbody>
-                            {rooms.length > 0 ? rooms.map(r => (
+                            {rooms.data.length > 0 ? rooms.data.map(r => (
                                 <tr key={r.id} className="border-t">
                                     <td className="px-4 py-2">{r.room_name}</td>
                                     <td className="px-4 py-2 capitalize">{r.room_type}</td>
@@ -199,6 +202,8 @@ export default function Index() {
                         </tbody>
                     </table>
                 </div>
+
+                <Pagination links={rooms.links}/>
 
                 {/* MODAL */}
                 <Dialog open={open} onOpenChange={setOpen}>

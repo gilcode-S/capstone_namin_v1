@@ -13,7 +13,7 @@ class FacultyController extends Controller
     public function index()
     {
         return Inertia::render('Facultys/Index', [
-            'faculties' => Faculty::with(['department', 'availabilities'])->get(),
+            'faculties' => Faculty::with(['department', 'availabilities'])->paginate(15),
             'departments' => Department::all(),
         ]);
     }

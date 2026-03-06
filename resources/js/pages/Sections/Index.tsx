@@ -1,6 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react'
 import { Layers, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import Pagination from '@/components/Pagination'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -37,7 +38,10 @@ const emptyForm = {
 export default function Index() {
 
   const { sections, programs } = usePage().props as unknown as {
-    sections: Section[],
+    sections: {
+      data: Section[],
+      links: any[],
+    },
     programs: Program[]
   }
 
@@ -151,7 +155,7 @@ export default function Index() {
             </thead>
 
             <tbody>
-              {sections.length > 0 ? sections.map(section => (
+              {sections.data.length > 0 ? sections.data.map(section => (
                 <tr key={section.id} className="border-t dark:border-gray-700">
                   <td className="px-4 py-2">
                     {section.program.program_name}
@@ -194,6 +198,7 @@ export default function Index() {
             </tbody>
           </table>
         </div>
+        <Pagination links={sections.links}/>
 
         {/* MODAL */}
         <Dialog open={open} onOpenChange={setOpen}>

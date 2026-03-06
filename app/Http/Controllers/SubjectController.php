@@ -33,7 +33,7 @@ class SubjectController extends Controller
         }
 
         return Inertia::render('Subjects/Index', [
-            'subjects' => $query->latest()->get(),
+            'subjects' => $query->latest()->paginate(15)->withQueryString(),
             'programs' => Programs::all(),
             'filters' => $request->only(['program_id', 'semester', 'year_level'])
         ]);

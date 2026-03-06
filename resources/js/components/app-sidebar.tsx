@@ -14,7 +14,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { dashboard } from '@/routes/index';
 import type { NavItem } from '@/types';
 import AppLogo from './app-logo';
 
@@ -25,15 +25,14 @@ const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
-
-    {
-        title: 'Analytics',
-        href: '/analytics',
-        icon: ChartBar,
-    },
+    // {
+    //     title: 'Analytics',
+    //     href: '/analytics',
+    //     icon: ChartBar,
+    // },
     {
         title: 'Rooms',
-        href: '/room',
+        href: '/rooms',
         icon: Folder,
     },
     {
@@ -62,9 +61,9 @@ const mainNavItems: NavItem[] = [
         icon: PilcrowRightIcon,
     },
     {
-        title: 'Records',
-        href: '/records',
-        icon: Layers,
+        title: 'Assignment',
+        href: '/assignments',
+        icon: ChartNoAxesColumnIncreasingIcon,
     },
     {
         title: 'View Schedule',
@@ -82,9 +81,9 @@ const mainNavItems: NavItem[] = [
         icon: AlertCircle,
     },
     {
-        title: 'History Version',
-        href: '/history-version',
-        icon: Clock10Icon,
+        title: 'Time Slots',
+        href: '/time-slots',
+        icon: Folder,
     },
 ];
 

@@ -14,6 +14,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import AppLayout from '@/layouts/app-layout'
+import Pagination from '@/components/Pagination'
 interface TimeSlot {
   id: number
   day_of_week: string
@@ -33,7 +34,10 @@ const emptyForm = {
 
 export default function Index() {
   const { timeSlots } = usePage().props as unknown as {
-    timeSlots: TimeSlot[]
+    timeSlots: {
+      data: TimeSlot[],
+      links: any[]
+    }
   }
 
   const [open, setOpen] = useState(false)
@@ -164,7 +168,7 @@ export default function Index() {
             </thead>
 
             <tbody>
-              {timeSlots.length > 0 ? timeSlots.map(slot => (
+              {timeSlots.data.length > 0 ? timeSlots.data.map(slot => (
                 <tr key={slot.id} className="border-t">
                   <td className="px-4 py-2">{slot.day_of_week}</td>
                   <td className="px-4 py-2">{formatTime(slot.start_time)}</td>
@@ -209,7 +213,7 @@ export default function Index() {
             </tbody>
           </table>
         </div>
-
+              <Pagination links={timeSlots.links}/>
         {/* MODAL */}
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="max-w-lg">

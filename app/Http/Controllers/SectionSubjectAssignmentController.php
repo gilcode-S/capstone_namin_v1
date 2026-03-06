@@ -21,7 +21,7 @@ class SectionSubjectAssignmentController extends Controller
                 'subject',
                 'faculty',
                 'version'
-            ])->latest()->get(),
+            ])->latest()->paginate(20),
             'sections' => Section::all(),
             'subjects' => Subject::all(),
             'faculties' => Faculty::all(),

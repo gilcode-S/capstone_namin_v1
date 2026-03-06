@@ -15,10 +15,10 @@ class RoomController extends Controller
     {
         //
         return Inertia::render('Rooms/Index', [
-            'rooms' => Room::with('department')->get(),
+            'rooms' => Room::with('department')->paginate(15),
             'departments' => Department::all(),
         ]);
-    } 
+    }    
 
     /**
      * Show the form for creating a new resource.
@@ -68,7 +68,6 @@ class RoomController extends Controller
      */
     public function update(Request $request, Room $room)
     {
-        //
         $validated = $request->validate([
             'room_name' => 'required|string|max:50|unique:rooms,room_name,' . $room->id,
             'room_type' => 'required|in:lecture,laboratory',
@@ -79,7 +78,7 @@ class RoomController extends Controller
 
         $room->update($validated);
 
-        return redirect()->back()->with('success', 'Room updated');
+        return redirect()->back()->with('success', 'Room updated successfully.');
     }
 
     /**

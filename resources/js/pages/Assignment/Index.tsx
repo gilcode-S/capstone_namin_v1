@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import AppLayout from '@/layouts/app-layout'
+import Pagination from '@/components/Pagination'
 
 interface Semester {
     id: number
@@ -61,7 +62,10 @@ export default function Index() {
 
     const { assignments, sections, subjects, faculties, versions } =
         usePage().props as unknown as {
-            assignments: Assignment[],
+            assignments: {
+                data: Assignment[],
+                links: any[],
+            },
             sections: Section[],
             subjects: Subject[],
             faculties: Faculty[],
@@ -199,7 +203,7 @@ export default function Index() {
 
                         <tbody>
 
-                            {assignments.length > 0 ? assignments.map(a => (
+                            {assignments.data.length > 0 ? assignments.data.map(a => (
 
                                 <tr key={a.id} className="border-t">
 
@@ -256,7 +260,7 @@ export default function Index() {
 
                     </table>
                 </div>
-
+                            <Pagination links={assignments.links}/>
                 {/* MODAL */}
 
                 <Dialog open={open} onOpenChange={setOpen}>

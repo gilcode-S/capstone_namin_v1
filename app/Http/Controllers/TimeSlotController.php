@@ -13,7 +13,7 @@ class TimeSlotController extends Controller
     public function index()
     {
         return Inertia::render('TimeSlots/Index', [
-            'timeSlots' => TimeSlot::orderBy('day_of_week')->orderBy('start_time')->get(),
+            'timeSlots' => TimeSlot::orderBy('day_of_week')->orderBy('start_time')->paginate(20),
         ]);
     }
 
