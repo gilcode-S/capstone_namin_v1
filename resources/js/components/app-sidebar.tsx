@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 
-import { AlertCircle, BookOpen, Calendar, ChartBar, ChartBarIcon, Clock10Icon, Folder, Home, Layers, LayoutGrid, PanelsRightBottom, PilcrowRight, PilcrowRightIcon, PlusCircle, ReceiptEuro, SquareBottomDashedScissors, Users } from 'lucide-react';
+import { AlertCircle, BookOpen, Calendar, ChartBar, ChartBarIcon, ChartNoAxesColumnIncreasingIcon, Clock10Icon, Folder, Home, Layers, LayoutGrid, PanelsRightBottom, PilcrowRight, PilcrowRightIcon, PlusCircle, ReceiptEuro, SquareBottomDashedScissors, Users } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -147,6 +147,11 @@ const registrarNavItems: NavItem[] = [
         title: 'Rooms',
         href: '/rooms',
         icon: ChartBarIcon,
+    },
+    {
+        title: 'Assignment',
+        href: '/assignments',
+        icon: ChartNoAxesColumnIncreasingIcon,
     },
 ]
 const staffNavItems: NavItem[] = [

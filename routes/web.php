@@ -8,6 +8,7 @@ use App\Http\Controllers\SectionController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\ScheduleVersionController;
+use App\Http\Controllers\SectionSubjectAssignmentController;
 use App\Http\Controllers\SemesterController;
 use App\Http\Controllers\TimeSlotController;
 use Illuminate\Support\Facades\Route;
@@ -28,22 +29,27 @@ Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('section', SectionController::class);
 Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('subject', SubjectController::class);
-
+Route::middleware(['auth', 'role:super admin,registrar'])
+    ->resource('assignments', SectionSubjectAssignmentController::class);
 
 
 Route::middleware(['auth', 'role:hr,super admin'])
     ->resource('faculty', FacultyController::class);
 
-Route::middleware(['auth', 'role:staff,super admin'])
+Route::middleware(['auth', 'role:staff,super admin,registrar'])
     ->resource('rooms', RoomController::class);
 Route::middleware(['auth', 'role:staff,super admin'])
     ->resource('time-slots', TimeSlotController::class);
 Route::middleware(['auth', 'role:staff,super admin'])
     ->resource('semesters', controller: SemesterController::class);
 
-Route::middleware(['auth', 'role:staff, super admin'])->get('/schedule-versions', [ScheduleVersionController::class, 'index']);
-Route::middleware(['auth', 'role:staff, super admin'])->post('/schedule-versions', [ScheduleVersionController::class, 'store']);
-Route::middleware(['auth', 'role:staff, super admin'])->put('/schedule-versions/{scheduleVersion}/active', [ScheduleVersionController::class, 'active']);
-Route::middleware(['auth', 'role:staff, super admin'])->delete('/schedule-versions/{scheduleVersion}', [ScheduleVersionController::class, 'destroy']);
+Route::middleware(['auth', 'role:staff, super admin'])
+    ->get('/schedule-versions', [ScheduleVersionController::class, 'index']);
+Route::middleware(['auth', 'role:staff, super admin'])
+    ->post('/schedule-versions', [ScheduleVersionController::class, 'store']);
+Route::middleware(['auth', 'role:staff, super admin'])
+    ->put('/schedule-versions/{scheduleVersion}/active', [ScheduleVersionController::class, 'active']);
+Route::middleware(['auth', 'role:staff, super admin'])
+    ->delete('/schedule-versions/{scheduleVersion}', [ScheduleVersionController::class, 'destroy']);
 
 require __DIR__ . '/settings.php';
