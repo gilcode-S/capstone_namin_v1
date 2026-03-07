@@ -1,248 +1,82 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage } from "@inertiajs/react"
+import { LayoutGrid } from "lucide-react"
 
-import { AlertCircle, BookOpen, Calendar, ChartBar, ChartBarIcon, ChartNoAxesColumnIncreasingIcon, Clock10Icon, Folder, Home, Layers, LayoutGrid, PanelsRightBottom, PilcrowRight, PilcrowRightIcon, PlusCircle, ReceiptEuro, SquareBottomDashedScissors, Users } from 'lucide-react';
-import { NavFooter } from '@/components/nav-footer';
-import { NavMain } from '@/components/nav-main';
-import { NavUser } from '@/components/nav-user';
+import { NavFooter } from "@/components/nav-footer"
+import { NavMain } from "@/components/nav-main"
+import { NavUser } from "@/components/nav-user"
 
 import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-} from '@/components/ui/sidebar';
-import { dashboard } from '@/routes/index';
-import type { NavItem } from '@/types';
-import AppLogo from './app-logo';
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem
+} from "@/components/ui/sidebar"
 
+import { dashboard } from "@/routes/index"
+import AppLogo from "./app-logo"
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    // {
-    //     title: 'Analytics',
-    //     href: '/analytics',
-    //     icon: ChartBar,
-    // },
-    {
-        title: 'Rooms',
-        href: '/rooms',
-        icon: Folder,
-    },
-    {
-        title: 'Faculty',
-        href: '/faculty',
-        icon: Users,
-    },
-    {
-        title: 'Subject',
-        href: '/subject',
-        icon: BookOpen,
-    },
-    {
-        title: 'Section',
-        href: '/section',
-        icon: PanelsRightBottom,
-    },
-    {
-        title: 'Department',
-        href: '/department',
-        icon: Layers,
-    },
-    {
-        title: 'Program',
-        href: '/program',
-        icon: PilcrowRightIcon,
-    },
-    {
-        title: 'Assignment',
-        href: '/assignments',
-        icon: ChartNoAxesColumnIncreasingIcon,
-    },
-    {
-        title: 'View Schedule',
-        href: '/view-schedule',
-        icon: Calendar,
-    },
-    {
-        title: 'Generate Schedule',
-        href: '/generate-schedule',
-        icon: PlusCircle,
-    },
-    {
-        title: 'Conflict Detection',
-        href: '/conflict Detection',
-        icon: AlertCircle,
-    },
-    {
-        title: 'Time Slots',
-        href: '/time-slots',
-        icon: Folder,
-    },
-];
-
-
-const hrNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Faculty',
-        href: '/faculty',
-        icon: Users,
-    },
-    {
-        title: 'View Schedule',
-        href: '/view-schedule',
-        icon: Calendar,
-    },
-    {
-        title: 'Resource',
-        href: '/Resource',
-        icon: Folder,
-    },
-];
-
-const registrarNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Subject',
-        href: '/subject',
-        icon: BookOpen,
-    },
-    {
-        title: 'Section',
-        href: '/section',
-        icon: Layers,
-    },
-    {
-        title: 'Department',
-        href: '/department',
-        icon: Layers,
-    },
-    {
-        title: 'Program',
-        href: '/program',
-        icon: PilcrowRight,
-    },
-    {
-        title: 'Records',
-        href: '/records',
-        icon: ReceiptEuro,
-    },
-    {
-        title: 'Rooms',
-        href: '/rooms',
-        icon: ChartBarIcon,
-    },
-    {
-        title: 'Assignment',
-        href: '/assignments',
-        icon: ChartNoAxesColumnIncreasingIcon,
-    },
-]
-const staffNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Rooms',
-        href: '/rooms',
-        icon: Folder,
-    },
-    {
-        title: 'Time Slots',
-        href: '/time-slots',
-        icon: Folder,
-    },
-    {
-        title: 'Semester Module',
-        href: '/semesters',
-        icon: SquareBottomDashedScissors,
-    },
-    {
-        title: 'Schedule Versions',
-        href: '/schedule-versions',
-        icon: Calendar,
-    },
-    {
-        title: 'Generate Schedule',
-        href: '/generate-schedule',
-        icon: PlusCircle,
-    },
-    {
-        title: 'Conflict Detection',
-        href: '/conflict Detection',
-        icon: AlertCircle,
-    },
-    {
-        title: 'History Version',
-        href: '/history-version',
-        icon: Clock10Icon,
-    },
-]
-
-const footerNavItems: NavItem[] = [
-];
+import { sidebarConfig } from "@/config/sidebar"
 
 export function AppSidebar() {
-    const { auth } = usePage<any>().props;
-    const user = auth?.user;
 
-    let roleNavItems: NavItem[] = [];
+  const { auth } = usePage<any>().props
+  const user = auth?.user
 
-    switch (user?.role) {
-        case 'super admin':
-            roleNavItems = mainNavItems;
-            break;
-        case 'hr':
-            roleNavItems = hrNavItems;
-            break;
-        case 'registrar':
-            roleNavItems = registrarNavItems;
-            break;
-        case 'staff':
-            roleNavItems = staffNavItems;
-            break;
-        default:
-            roleNavItems = [];
-    }
-    return (
-        <Sidebar collapsible="icon" variant="inset">
-            <SidebarHeader>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
-                                <AppLogo />
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarHeader>
+  const roleSections = sidebarConfig[user?.role] ?? []
 
-            <SidebarContent>
-                <NavMain items={roleNavItems} />
-            </SidebarContent>
+  return (
+    <Sidebar collapsible="icon" variant="inset">
 
-            <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
-                <NavUser />
-            </SidebarFooter>
-        </Sidebar>
-    );
+      {/* HEADER */}
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <Link href={dashboard()} prefetch>
+                <AppLogo />
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+
+
+      {/* SIDEBAR CONTENT */}
+      <SidebarContent className="overflow-y-auto scrollbar-hide">
+
+        {/* DASHBOARD */}
+        <NavMain
+          label="Dashboard"
+          items={[
+            {
+              title: "Dashboard",
+              href: dashboard(),
+              icon: LayoutGrid
+            }
+          ]}
+        />
+
+        {/* ROLE BASED SECTIONS */}
+        {roleSections.map((section: any) => (
+          <NavMain
+            key={section.label}
+            label={section.label}
+            items={section.items}
+          />
+        ))}
+
+      </SidebarContent>
+
+
+      {/* FOOTER */}
+      <SidebarFooter>
+        <NavFooter items={[]} className="mt-auto" />
+        <NavUser />
+      </SidebarFooter>
+
+    </Sidebar>
+  )
 }

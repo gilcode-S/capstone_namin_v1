@@ -42,13 +42,13 @@ Route::middleware(['auth', 'role:staff,super admin'])
 Route::middleware(['auth', 'role:staff,super admin'])
     ->resource('semesters', controller: SemesterController::class);
 
-Route::middleware(['auth', 'role:staff, super admin'])
+Route::middleware(['auth', 'role:staff,super admin'])
     ->get('/schedule-versions', [ScheduleVersionController::class, 'index']);
-Route::middleware(['auth', 'role:staff, super admin'])
+Route::middleware(['auth', 'role:staff,super admin'])
     ->post('/schedule-versions', [ScheduleVersionController::class, 'store']);
-Route::middleware(['auth', 'role:staff, super admin'])
+Route::middleware(['auth', 'role:staff,super admin'])
     ->put('/schedule-versions/{scheduleVersion}/active', [ScheduleVersionController::class, 'active']);
-Route::middleware(['auth', 'role:staff, super admin'])
+Route::middleware(['auth', 'role:staff,super admin'])
     ->delete('/schedule-versions/{scheduleVersion}', [ScheduleVersionController::class, 'destroy']);
 
 require __DIR__ . '/settings.php';
