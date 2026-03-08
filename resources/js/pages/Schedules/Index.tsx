@@ -1,18 +1,18 @@
 import { Head, router, usePage } from '@inertiajs/react'
-import { Plus, Trash2, Pencil, ClipboardList } from 'lucide-react'
+import { Plus, Trash2, CalendarDays } from 'lucide-react'
 import { useState } from 'react'
-import Pagination from '@/components/Pagination'
+
 import { Button } from '@/components/ui/button'
 import {
     Dialog,
     DialogContent,
-    DialogFooter,
     DialogHeader,
+    DialogFooter,
     DialogTitle
 } from '@/components/ui/dialog'
+
 import { Label } from '@/components/ui/label'
 import AppLayout from '@/layouts/app-layout'
-
 
 interface Semester {
     id: number
@@ -48,27 +48,43 @@ interface Assignment {
     section: Section
     subject: Subject
     faculty: Faculty
+}
+
+interface Room {
+    id: number
+    room_name: string
+}
+
+interface Timeslot {
+    id: number
+    day_of_week: string
+    start_time: string
+    end_time: string
+}
+
+interface Schedule {
+    id: number
     version: Version
+    assignment: Assignment
+    room: Room
+    timeslot: Timeslot
 }
 
 const emptyForm = {
     schedule_version_id: '',
-    section_id: '',
-    subject_id: '',
-    faculty_id: ''
+    assignment_id: '',
+    room_id: '',
+    time_slot_id: ''
 }
 
 export default function Index() {
 
-    const { assignments, sections, subjects, faculties, versions } =
+    const { schedules, assignments, rooms, timeslots, versions } =
         usePage().props as unknown as {
-            assignments: {
-                data: Assignment[],
-                links: any[],
-            },
-            sections: Section[],
-            subjects: Subject[],
-            faculties: Faculty[],
+            schedules: Schedule[],
+            assignments: Assignment[],
+            rooms: Room[],
+            timeslots: Timeslot[],
             versions: Version[]
         }
 
@@ -76,41 +92,10 @@ export default function Index() {
     const [form, setForm] = useState<any>(emptyForm)
     const [loading, setLoading] = useState(false)
 
-    const [isEdit, setIsEdit] = useState(false)
-    const [editId, setEditId] = useState<number | null>(null)
-
-    /* --------------------------
-       OPEN CREATE
-    ---------------------------*/
-
     const handleOpen = () => {
         setForm(emptyForm)
-        setIsEdit(false)
-        setEditId(null)
         setOpen(true)
     }
-
-    /* --------------------------
-       OPEN EDIT
-    ---------------------------*/
-
-    const handleOpenEdit = (a: Assignment) => {
-
-        setForm({
-            schedule_version_id: a.version.id,
-            section_id: a.section.id,
-            subject_id: a.subject.id,
-            faculty_id: a.faculty.id
-        })
-
-        setIsEdit(true)
-        setEditId(a.id)
-        setOpen(true)
-    }
-
-    /* --------------------------
-       INPUT CHANGE
-    ---------------------------*/
 
     const handleChange = (e: any) => {
         setForm({
@@ -119,76 +104,53 @@ export default function Index() {
         })
     }
 
-    /* --------------------------
-       CLOSE
-    ---------------------------*/
-
-    const handleClose = () => {
-        setForm(emptyForm)
-        setIsEdit(false)
-        setEditId(null)
-        setOpen(false)
-    }
-
-    /* --------------------------
-       SUBMIT
-    ---------------------------*/
-
     const handleSubmit = (e: any) => {
         e.preventDefault()
+
         setLoading(true)
 
-        if (isEdit && editId) {
-            router.put(`/assignments/${editId}`, form, {
-                onSuccess: () => {
-                    setLoading(false)
-                    handleClose()
-                }
-            })
-        } else {
-            router.post('/assignments', form, {
-                onSuccess: () => {
-                    setLoading(false)
-                    handleClose()
-                }
-            })
-        }
+        router.post('/schedules', form, {
+            onSuccess: () => {
+                setLoading(false)
+                setOpen(false)
+            }
+        })
     }
 
-    /* --------------------------
-       DELETE
-    ---------------------------*/
-
     const handleDelete = (id: number) => {
-        if (!confirm("Delete this assignment?")) return
-        router.delete(`/assignments/${id}`)
+        if (!confirm('Delete this schedule?')) return
+
+        router.delete(`/schedules/${id}`)
     }
 
     return (
-        <AppLayout breadcrumbs={[{ title: "Assignments", href: "/assignments" }]}>
-            <Head title="Assignments" />
+        <AppLayout breadcrumbs={[{ title: "Schedules", href: "/schedules" }]}>
+            <Head title="Schedules" />
 
             <div className="p-6">
 
                 {/* HEADER */}
 
                 <div className="flex justify-between items-center mb-6">
+
                     <div className="flex items-center">
-                        <ClipboardList className="mr-2 text-indigo-500" size={28} />
+                        <CalendarDays className="mr-2 text-blue-500" size={28} />
                         <h1 className="text-2xl font-bold">
-                            Section Subject Assignment
+                            Schedule Management
                         </h1>
                     </div>
 
                     <Button onClick={handleOpen} className="gap-2">
                         <Plus size={18} />
-                        Add Assignment
+                        Add Schedule
                     </Button>
+
                 </div>
 
                 {/* TABLE */}
 
-                <div className="overflow-x-auto rounded-lg shadow border">
+                <div className="overflow-x-auto rounded-lg border shadow">
+
                     <table className="min-w-full">
 
                         <thead className="bg-gray-100">
@@ -197,53 +159,54 @@ export default function Index() {
                                 <th className="px-4 py-2 text-left">Section</th>
                                 <th className="px-4 py-2 text-left">Subject</th>
                                 <th className="px-4 py-2 text-left">Faculty</th>
+                                <th className="px-4 py-2 text-left">Room</th>
+                                <th className="px-4 py-2 text-left">Time</th>
                                 <th className="px-4 py-2 text-center">Actions</th>
                             </tr>
                         </thead>
 
                         <tbody>
 
-                            {assignments.data.length > 0 ? assignments.data.map(a => (
+                            {schedules.length > 0 ? schedules.map(s => (
 
-                                <tr key={a.id} className="border-t">
+                                <tr key={s.id} className="border-t">
 
                                     <td className="px-4 py-2">
                                         <div className="font-semibold">
-                                            Version {a.version.version_number}
+                                            Version {s.version.version_number}
                                         </div>
 
                                         <div className="text-sm text-gray-500">
-                                            SY {a.version.semester.school_year} • {a.version.semester.term}
+                                            SY {s.version.semester.school_year} • {s.version.semester.term}
                                         </div>
                                     </td>
 
                                     <td className="px-4 py-2">
-                                        {a.section.section_name}
+                                        {s.assignment.section.section_name}
                                     </td>
 
                                     <td className="px-4 py-2">
-                                        {a.subject.subject_code} — {a.subject.subject_name}
+                                        {s.assignment.subject.subject_code} — {s.assignment.subject.subject_name}
                                     </td>
 
                                     <td className="px-4 py-2">
-                                        {a.faculty.first_name} {a.faculty.last_name}
+                                        {s.assignment.faculty.first_name} {s.assignment.faculty.last_name}
+                                    </td>
+
+                                    <td className="px-4 py-2">
+                                        {s.room.room_name}
+                                    </td>
+
+                                    <td className="px-4 py-2">
+                                        {s.timeslot.day_of_week} {s.timeslot.start_time} - {s.timeslot.end_time}
                                     </td>
 
                                     <td className="px-4 py-2 text-center">
 
                                         <Button
                                             size="sm"
-                                            variant="outline"
-                                            className="mr-2"
-                                            onClick={() => handleOpenEdit(a)}
-                                        >
-                                            <Pencil size={16} />
-                                        </Button>
-
-                                        <Button
-                                            size="sm"
                                             variant="destructive"
-                                            onClick={() => handleDelete(a.id)}
+                                            onClick={() => handleDelete(s.id)}
                                         >
                                             <Trash2 size={16} />
                                         </Button>
@@ -255,8 +218,8 @@ export default function Index() {
                             )) : (
 
                                 <tr>
-                                    <td colSpan={5} className="text-center py-6 text-gray-500">
-                                        No assignments yet
+                                    <td colSpan={7} className="text-center py-6 text-gray-500">
+                                        No schedules created yet
                                     </td>
                                 </tr>
 
@@ -265,17 +228,17 @@ export default function Index() {
                         </tbody>
 
                     </table>
+
                 </div>
-                <Pagination links={assignments.links} />
+
                 {/* MODAL */}
 
                 <Dialog open={open} onOpenChange={setOpen}>
+
                     <DialogContent>
 
                         <DialogHeader>
-                            <DialogTitle>
-                                {isEdit ? "Edit Assignment" : "Add Assignment"}
-                            </DialogTitle>
+                            <DialogTitle>Create Schedule</DialogTitle>
                         </DialogHeader>
 
                         <form onSubmit={handleSubmit} className="space-y-4">
@@ -292,71 +255,79 @@ export default function Index() {
                                     required
                                 >
                                     <option value="">Select Version</option>
+
                                     {versions.map(v => (
                                         <option key={v.id} value={v.id}>
-                                            {v.semester.school_year} | {v.semester.term} | Version {v.version_number}
+                                            SY {v.semester.school_year}  |  {v.semester.term}  |  Version  {v.version_number}
                                         </option>
                                     ))}
+
                                 </select>
                             </div>
 
-                            {/* SECTION */}
+                            {/* ASSIGNMENT */}
 
                             <div>
-                                <Label>Section</Label>
+                                <Label>Assignment</Label>
                                 <select
-                                    name="section_id"
-                                    value={form.section_id}
+                                    name="assignment_id"
+                                    value={form.assignment_id}
                                     onChange={handleChange}
                                     className="w-full border rounded px-2 py-2"
                                     required
                                 >
-                                    <option value="">Select Section</option>
-                                    {sections.map(s => (
-                                        <option key={s.id} value={s.id}>
-                                            {s.section_name}
+                                    <option value="">Select Assignment</option>
+
+                                    {assignments.map(a => (
+                                        <option key={a.id} value={a.id}>
+                                            {a.section.section_name} — {a.subject.subject_code} — {a.faculty.first_name}
                                         </option>
                                     ))}
+
                                 </select>
                             </div>
 
-                            {/* SUBJECT */}
+                            {/* ROOM */}
 
                             <div>
-                                <Label>Subject</Label>
+                                <Label>Room</Label>
                                 <select
-                                    name="subject_id"
-                                    value={form.subject_id}
+                                    name="room_id"
+                                    value={form.room_id}
                                     onChange={handleChange}
                                     className="w-full border rounded px-2 py-2"
                                     required
                                 >
-                                    <option value="">Select Subject</option>
-                                    {subjects.map(s => (
-                                        <option key={s.id} value={s.id}>
-                                            {s.subject_code} — {s.subject_name}
+                                    <option value="">Select Room</option>
+
+                                    {rooms.map(r => (
+                                        <option key={r.id} value={r.id}>
+                                            {r.room_name}
                                         </option>
                                     ))}
+
                                 </select>
                             </div>
 
-                            {/* FACULTY */}
+                            {/* TIMESLOT */}
 
                             <div>
-                                <Label>Faculty</Label>
+                                <Label>Time Slot</Label>
                                 <select
-                                    name="faculty_id"
-                                    value={form.faculty_id}
+                                    name="time_slot_id"
+                                    value={form.time_slot_id}
                                     onChange={handleChange}
                                     className="w-full border rounded px-2 py-2"
                                     required
                                 >
-                                    <option value="">Select Faculty</option>
-                                    {faculties.map(f => (
-                                        <option key={f.id} value={f.id}>
-                                            {f.first_name} {f.last_name}
+                                    <option value="">Select Time Slot</option>
+
+                                    {timeslots.map(t => (
+                                        <option key={t.id} value={t.id}>
+                                            {t.day_of_week} {t.start_time} - {t.end_time}
                                         </option>
                                     ))}
+
                                 </select>
                             </div>
 
@@ -365,7 +336,7 @@ export default function Index() {
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    onClick={handleClose}
+                                    onClick={() => setOpen(false)}
                                 >
                                     Cancel
                                 </Button>
@@ -373,8 +344,8 @@ export default function Index() {
                                 <Button type="submit">
 
                                     {loading
-                                        ? (isEdit ? "Saving..." : "Adding...")
-                                        : (isEdit ? "Save Changes" : "Add Assignment")}
+                                        ? "Creating..."
+                                        : "Create Schedule"}
 
                                 </Button>
 
@@ -383,9 +354,11 @@ export default function Index() {
                         </form>
 
                     </DialogContent>
+
                 </Dialog>
 
             </div>
+
         </AppLayout>
     )
 }

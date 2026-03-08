@@ -13,7 +13,22 @@ return new class extends Migration
     {
         Schema::create('schedules', function (Blueprint $table) {
             $table->id();
+            
             $table->foreignId('schedule_version_id')
+                ->constrained()
+                ->cascadeOnDelete();
+
+            $table->foreignId('assignment_id')
+                ->constrained('section_subject_assignments')
+                ->cascadeOnDelete();
+
+            $table->foreignId('room_id')
+                ->constrained()
+                ->cascadeOnDelete();
+
+            $table->foreignId('time_slot_id')
+                ->constrained()
+                ->cascadeOnDelete();
             $table->timestamps();
         });
     }

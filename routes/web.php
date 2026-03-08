@@ -7,6 +7,7 @@ use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\RoomController;
+use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ScheduleVersionController;
 use App\Http\Controllers\SectionSubjectAssignmentController;
 use App\Http\Controllers\SemesterController;
@@ -41,6 +42,8 @@ Route::middleware(['auth', 'role:staff,super admin'])
     ->resource('time-slots', TimeSlotController::class);
 Route::middleware(['auth', 'role:staff,super admin'])
     ->resource('semesters', controller: SemesterController::class);
+    Route::middleware(['auth', 'role:staff,super admin'])
+    ->resource('schedules', controller: ScheduleController::class);
 
 Route::middleware(['auth', 'role:staff,super admin'])
     ->get('/schedule-versions', [ScheduleVersionController::class, 'index']);

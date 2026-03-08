@@ -10,7 +10,8 @@ import {
     AlertCircle,
     SquareBottomDashedScissors,
     ChartNoAxesColumnIncreasingIcon,
-    ReceiptEuro
+    ScanHeart,
+    
   } from "lucide-react"
   
   export const sidebarConfig: Record<string, any> = {
@@ -40,6 +41,7 @@ import {
         items: [
           { title: "Assignment", href: "/assignments", icon: ChartNoAxesColumnIncreasingIcon },
           { title: "Schedule Versions", href: "/schedule-versions", icon: Calendar },
+          { title: "Schedule", href: "/schedules", icon: ScanHeart },
           { title: "Generate Schedule", href: "/generate-schedule", icon: PlusCircle },
           { title: "Conflict Detection", href: "/conflict-detection", icon: AlertCircle }
         ]
@@ -75,7 +77,8 @@ import {
           { title: "Time Slots", href: "/time-slots", icon: Clock10Icon },
           { title: "Schedule Versions", href: "/schedule-versions", icon: Calendar },
           { title: "Generate Schedule", href: "/generate-schedule", icon: PlusCircle },
-          { title: "Conflict Detection", href: "/conflict-detection", icon: AlertCircle }
+          { title: "Conflict Detection", href: "/conflict-detection", icon: AlertCircle },
+          { title: "Schedule", href: "/schedules", icon: ScanHeart },
         ]
       }
     ],
