@@ -3,6 +3,7 @@ import { Plus, Trash2, CalendarDays } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import ComboBox from '@/components/ui/combobox'
 import {
     Dialog,
     DialogContent,
@@ -87,6 +88,20 @@ export default function Index() {
             timeslots: Timeslot[],
             versions: Version[]
         }
+    const assignmentOptions = assignments.map(a => ({
+        value: String(a.id),
+        label: `${a.section.section_name} — ${a.subject.subject_code} — ${a.faculty.first_name}`
+    }))
+
+    const roomOptions = rooms.map(r => ({
+        value: String(r.id),
+        label: r.room_name
+    }))
+
+    const timeslotOptions = timeslots.map(t => ({
+        value: String(t.id),
+        label: `${t.day_of_week} ${t.start_time} - ${t.end_time}`
+    }))
 
     const [open, setOpen] = useState(false)
     const [form, setForm] = useState<any>(emptyForm)
@@ -266,69 +281,36 @@ export default function Index() {
                             </div>
 
                             {/* ASSIGNMENT */}
-
                             <div>
                                 <Label>Assignment</Label>
-                                <select
-                                    name="assignment_id"
+                                <ComboBox
+                                    items={assignmentOptions}
                                     value={form.assignment_id}
-                                    onChange={handleChange}
-                                    className="w-full border rounded px-2 py-2"
-                                    required
-                                >
-                                    <option value="">Select Assignment</option>
-
-                                    {assignments.map(a => (
-                                        <option key={a.id} value={a.id}>
-                                            {a.section.section_name} — {a.subject.subject_code} — {a.faculty.first_name}
-                                        </option>
-                                    ))}
-
-                                </select>
+                                    placeholder="Select Assignment"
+                                    onChange={(value) => setForm({ ...form, assignment_id: value })}
+                                />
                             </div>
 
                             {/* ROOM */}
-
                             <div>
                                 <Label>Room</Label>
-                                <select
-                                    name="room_id"
+                                <ComboBox
+                                    items={roomOptions}
                                     value={form.room_id}
-                                    onChange={handleChange}
-                                    className="w-full border rounded px-2 py-2"
-                                    required
-                                >
-                                    <option value="">Select Room</option>
-
-                                    {rooms.map(r => (
-                                        <option key={r.id} value={r.id}>
-                                            {r.room_name}
-                                        </option>
-                                    ))}
-
-                                </select>
+                                    placeholder="Select Room"
+                                    onChange={(value) => setForm({ ...form, room_id: value })}
+                                />
                             </div>
 
                             {/* TIMESLOT */}
-
                             <div>
                                 <Label>Time Slot</Label>
-                                <select
-                                    name="time_slot_id"
+                                <ComboBox
+                                    items={timeslotOptions}
                                     value={form.time_slot_id}
-                                    onChange={handleChange}
-                                    className="w-full border rounded px-2 py-2"
-                                    required
-                                >
-                                    <option value="">Select Time Slot</option>
-
-                                    {timeslots.map(t => (
-                                        <option key={t.id} value={t.id}>
-                                            {t.day_of_week} {t.start_time} - {t.end_time}
-                                        </option>
-                                    ))}
-
-                                </select>
+                                    placeholder="Select Time Slot"
+                                    onChange={(value) => setForm({ ...form, time_slot_id: value })}
+                                />
                             </div>
 
                             <DialogFooter>

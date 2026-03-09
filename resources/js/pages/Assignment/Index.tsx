@@ -125,6 +125,7 @@ export default function Index() {
             subject_id: String(a.subject.id),
             faculty_id: String(a.faculty.id)
         })
+        
 
         setIsEdit(true)
         setEditId(a.id)
