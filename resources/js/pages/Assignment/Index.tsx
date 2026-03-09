@@ -3,6 +3,7 @@ import { Plus, Trash2, Pencil, ClipboardList } from 'lucide-react'
 import { useState } from 'react'
 import Pagination from '@/components/Pagination'
 import { Button } from '@/components/ui/button'
+import ComboBox from "@/components/ui/combobox"
 import {
     Dialog,
     DialogContent,
@@ -10,7 +11,16 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/components/ui/dialog'
+
 import { Label } from '@/components/ui/label'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+
 import AppLayout from '@/layouts/app-layout'
 
 
@@ -71,6 +81,19 @@ export default function Index() {
             faculties: Faculty[],
             versions: Version[]
         }
+    const subjectOptions = subjects.map((s) => ({
+        value: String(s.id),
+        label: `${s.subject_code} — ${s.subject_name}`
+    }))
+
+    const facultyOptions = faculties.map((f) => ({
+        value: String(f.id),
+        label: `${f.first_name} ${f.last_name}`
+    }))
+    const sectionOptions = sections.map((s) => ({
+        value: String(s.id),
+        label: `${s.section_name}`
+    }))
 
     const [open, setOpen] = useState(false)
     const [form, setForm] = useState<any>(emptyForm)
@@ -80,7 +103,7 @@ export default function Index() {
     const [editId, setEditId] = useState<number | null>(null)
 
     /* --------------------------
-       OPEN CREATE
+    OPEN CREATE
     ---------------------------*/
 
     const handleOpen = () => {
@@ -91,16 +114,16 @@ export default function Index() {
     }
 
     /* --------------------------
-       OPEN EDIT
+    OPEN EDIT
     ---------------------------*/
 
     const handleOpenEdit = (a: Assignment) => {
 
         setForm({
-            schedule_version_id: a.version.id,
-            section_id: a.section.id,
-            subject_id: a.subject.id,
-            faculty_id: a.faculty.id
+            schedule_version_id: String(a.version.id),
+            section_id: String(a.section.id),
+            subject_id: String(a.subject.id),
+            faculty_id: String(a.faculty.id)
         })
 
         setIsEdit(true)
@@ -109,7 +132,7 @@ export default function Index() {
     }
 
     /* --------------------------
-       INPUT CHANGE
+    INPUT CHANGE
     ---------------------------*/
 
     const handleChange = (e: any) => {
@@ -120,7 +143,7 @@ export default function Index() {
     }
 
     /* --------------------------
-       CLOSE
+    CLOSE
     ---------------------------*/
 
     const handleClose = () => {
@@ -131,7 +154,7 @@ export default function Index() {
     }
 
     /* --------------------------
-       SUBMIT
+    SUBMIT
     ---------------------------*/
 
     const handleSubmit = (e: any) => {
@@ -156,7 +179,7 @@ export default function Index() {
     }
 
     /* --------------------------
-       DELETE
+    DELETE
     ---------------------------*/
 
     const handleDelete = (id: number) => {
@@ -270,7 +293,7 @@ export default function Index() {
                 {/* MODAL */}
 
                 <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogContent>
+                    <DialogContent className="max-h-[80vh] overflow-y-auto" >
 
                         <DialogHeader>
                             <DialogTitle>
@@ -284,80 +307,70 @@ export default function Index() {
 
                             <div>
                                 <Label>Schedule Version</Label>
-                                <select
-                                    name="schedule_version_id"
-                                    value={form.schedule_version_id}
-                                    onChange={handleChange}
-                                    className="w-full border rounded px-2 py-2"
-                                    required
+                                <Select
+                                    value={String(form.schedule_version_id)}
+                                    onValueChange={(value) =>
+                                        setForm({ ...form, schedule_version_id: value })
+                                    }
                                 >
-                                    <option value="">Select Version</option>
-                                    {versions.map(v => (
-                                        <option key={v.id} value={v.id}>
-                                            {v.semester.school_year} | {v.semester.term} | Version {v.version_number}
-                                        </option>
-                                    ))}
-                                </select>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select Version" />
+                                    </SelectTrigger>
+
+                                    <SelectContent className="max-h-60">
+                                        {versions.map((v) => (
+                                            <SelectItem key={v.id} value={String(v.id)}>
+                                                {v.semester.school_year} | {v.semester.term} | Version {v.version_number}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             {/* SECTION */}
 
                             <div>
                                 <Label>Section</Label>
-                                <select
-                                    name="section_id"
-                                    value={form.section_id}
-                                    onChange={handleChange}
-                                    className="w-full border rounded px-2 py-2"
-                                    required
-                                >
-                                    <option value="">Select Section</option>
-                                    {sections.map(s => (
-                                        <option key={s.id} value={s.id}>
-                                            {s.section_name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
 
+                                <ComboBox
+                                    items={sectionOptions}
+                                    value={form.section_id}
+                                    placeholder="Select Section"
+                                    onChange={(value) =>
+                                        setForm({ ...form, section_id: value })
+                                    }
+                                />
+                            </div>
                             {/* SUBJECT */}
 
                             <div>
                                 <Label>Subject</Label>
-                                <select
-                                    name="subject_id"
+
+                                <ComboBox
+                                    items={subjectOptions}
                                     value={form.subject_id}
-                                    onChange={handleChange}
-                                    className="w-full border rounded px-2 py-2"
-                                    required
-                                >
-                                    <option value="">Select Subject</option>
-                                    {subjects.map(s => (
-                                        <option key={s.id} value={s.id}>
-                                            {s.subject_code} — {s.subject_name}
-                                        </option>
-                                    ))}
-                                </select>
+                                    placeholder="Select Subject"
+                                    onChange={(value) =>
+                                        setForm({ ...form, subject_id: value })
+                                    }
+                                />
+
                             </div>
 
                             {/* FACULTY */}
 
                             <div>
                                 <Label>Faculty</Label>
-                                <select
-                                    name="faculty_id"
+
+                                <ComboBox
+                                    items={facultyOptions}
                                     value={form.faculty_id}
-                                    onChange={handleChange}
-                                    className="w-full border rounded px-2 py-2"
-                                    required
-                                >
-                                    <option value="">Select Faculty</option>
-                                    {faculties.map(f => (
-                                        <option key={f.id} value={f.id}>
-                                            {f.first_name} {f.last_name}
-                                        </option>
-                                    ))}
-                                </select>
+                                    placeholder="Select Faculty"
+                                    onChange={(value) =>
+                                        setForm({ ...form, faculty_id: value })
+                                    }
+                                />
+
                             </div>
 
                             <DialogFooter>

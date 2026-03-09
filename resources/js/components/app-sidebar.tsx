@@ -14,11 +14,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem
 } from "@/components/ui/sidebar"
-
+import { sidebarConfig } from "@/config/sidebar"
 import { dashboard } from "@/routes/index"
 import AppLogo from "./app-logo"
 
-import { sidebarConfig } from "@/config/sidebar"
+
 
 export function AppSidebar() {
 
@@ -35,7 +35,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href={dashboard()} prefetch>
+              <Link href={dashboard()} preserveScroll >
                 <AppLogo />
               </Link>
             </SidebarMenuButton>
@@ -73,7 +73,7 @@ export function AppSidebar() {
 
       {/* FOOTER */}
       <SidebarFooter>
-        <NavFooter items={[]} className="mt-auto" />
+        <NavFooter items={[]} className="mt-auto"  />
         <NavUser />
       </SidebarFooter>
 

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -15,9 +16,53 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Super Admin
+        User::create([
+            'name' => 'Super Admin',
+            'email' => 'superadmin@example.com',
+            'role' => 'super admin',
+            'password' => Hash::make('password123'), 
+        ]);
+
+        // HR
+        User::create([
+            'name' => 'HR User',
+            'email' => 'hr@example.com',
+            'role' => 'hr',
+            'password' => Hash::make('password123'),
+        ]);
+
+        // Registrar
+        User::create([
+            'name' => 'Registrar User',
+            'email' => 'registrar@example.com',
+            'role' => 'registrar',
+            'password' => Hash::make('password123'),
+        ]);
+
+        // Staff
+        User::create([
+            'name' => 'Staff User',
+            'email' => 'staff@example.com',
+            'role' => 'staff',
+            'password' => Hash::make('password123'),
+        ]);
+
+
+        $this->call([
+            DepartmentSeeder::class,
+            ProgramSeeder::class,
+
+            SubjectSeeder::class,
+            SectionSeeder::class,
+            RoomSeeder::class,
+
+            FacultySeeder::class,
+
+            TimeSlotSeeder::class,
+            SemesterSeeder::class,
+            ScheduleVersionSeeder::class,
+            AssignmentSeeder::class,
         ]);
     }
 }

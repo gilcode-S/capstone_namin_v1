@@ -38,8 +38,8 @@ class ProgramController extends Controller
     {
         // validation
         $validated = $request->validate([
-            'department_id' => 'required|exists:department,id',
-            'program_code' => 'required|unique:programs,program_code' . $program->id,
+            'department_id' => 'required|exists:departments,id',
+            'program_code' => 'required|unique:programs,program_code,' . $program->id,
             'program_name' => 'required'
         ]);
 
