@@ -1,9 +1,11 @@
 import { Head, router, usePage } from '@inertiajs/react'
-import { Plus, Trash2, CalendarDays, Loader2 } from 'lucide-react'
+import { Plus, Trash2, CalendarDays, Loader2, LayoutGrid, List } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import ComboBox from '@/components/ui/combobox'
+
+
 import {
     Dialog,
     DialogContent,
@@ -14,7 +16,7 @@ import {
 
 import { Label } from '@/components/ui/label'
 import AppLayout from '@/layouts/app-layout'
-
+import TimetableGrid from '@/components/TimetableGrid'
 interface Semester {
     id: number
     school_year: number
@@ -88,6 +90,9 @@ export default function Index() {
             timeslots: Timeslot[],
             versions: Version[]
         }
+
+    const [view, setView] = useState<'timetable' | 'table'>('timetable')
+
     const assignmentOptions = assignments.map(a => ({
         value: String(a.id),
         label: `${a.section.section_name} — ${a.subject.subject_code} — ${a.faculty.first_name}`
@@ -135,13 +140,10 @@ export default function Index() {
 
     const handleDelete = (id: number) => {
         if (!confirm('Delete this schedule?')) return
-
         router.delete(`/schedules/${id}`)
     }
 
-
-    // generate sched
-    const versionId = versions?.[0]?.id;
+    const versionId = versions?.[0]?.id
 
     const generateSchedule = () => {
 
@@ -150,11 +152,10 @@ export default function Index() {
         setGenerating(true)
 
         router.post(`/schedules/generate/${versionId}`, {}, {
-            onFinish: () => {
-                setGenerating(false)
-            }
+            onFinish: () => setGenerating(false)
         })
     }
+
     const resetSchedule = () => {
 
         if (!versionId) return
@@ -162,9 +163,7 @@ export default function Index() {
         setGenerating(true)
 
         router.post(`/schedules/reset/${versionId}`, {}, {
-            onFinish: () => {
-                setGenerating(false)
-            }
+            onFinish: () => setGenerating(false)
         })
     }
 
@@ -213,91 +212,128 @@ export default function Index() {
 
                 </div>
 
-                {/* TABLE */}
+                {/* VIEW SWITCH */}
 
-                <div className="overflow-x-auto rounded-lg border shadow">
+                <div className="flex gap-2 mb-6">
 
-                    <table className="min-w-full">
+                    <Button
+                        variant={view === 'timetable' ? 'default' : 'outline'}
+                        onClick={() => setView('timetable')}
+                        className="flex items-center gap-2"
+                    >
+                        <LayoutGrid size={16} />
+                        Timetable
+                    </Button>
 
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="px-4 py-2 text-left">Version</th>
-                                <th className="px-4 py-2 text-left">Section</th>
-                                <th className="px-4 py-2 text-left">Subject</th>
-                                <th className="px-4 py-2 text-left">Faculty</th>
-                                <th className="px-4 py-2 text-left">Room</th>
-                                <th className="px-4 py-2 text-left">Time</th>
-                                <th className="px-4 py-2 text-center">Actions</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-
-                            {schedules.length > 0 ? schedules.map(s => (
-
-                                <tr key={s.id} className="border-t">
-
-                                    <td className="px-4 py-2">
-                                        <div className="font-semibold">
-                                            Version {s.version.version_number}
-                                        </div>
-
-                                        <div className="text-sm text-gray-500">
-                                            SY {s.version.semester.school_year} • {s.version.semester.term}
-                                        </div>
-                                    </td>
-
-                                    <td className="px-4 py-2">
-                                        {s.assignment.section.section_name}
-                                    </td>
-
-                                    <td className="px-4 py-2">
-                                        {s.assignment.subject.subject_code} — {s.assignment.subject.subject_name}
-                                    </td>
-
-                                    <td className="px-4 py-2">
-                                        {s.assignment.faculty.first_name} {s.assignment.faculty.last_name}
-                                    </td>
-
-                                    <td className="px-4 py-2">
-                                        {s.room.room_name}
-                                    </td>
-
-                                    <td className="px-4 py-2">
-                                        {s.timeslot.day_of_week} {s.timeslot.start_time} - {s.timeslot.end_time}
-                                    </td>
-
-                                    <td className="px-4 py-2 text-center">
-
-                                        <Button
-                                            size="sm"
-                                            variant="destructive"
-                                            onClick={() => handleDelete(s.id)}
-                                        >
-                                            <Trash2 size={16} />
-                                        </Button>
-
-                                    </td>
-
-                                </tr>
-
-                            )) : (
-
-                                <tr>
-                                    <td colSpan={7} className="text-center py-6 text-gray-500">
-                                        No schedules created yet
-                                    </td>
-                                </tr>
-
-                            )}
-
-                        </tbody>
-
-                    </table>
+                    <Button
+                        variant={view === 'table' ? 'default' : 'outline'}
+                        onClick={() => setView('table')}
+                        className="flex items-center gap-2"
+                    >
+                        <List size={16} />
+                        Table
+                    </Button>
 
                 </div>
 
-                {/* MODAL */}
+                {/* TIMETABLE VIEW */}
+
+                {view === 'timetable' && (
+                    <TimetableGrid
+                        schedules={schedules}
+                        timeslots={timeslots}
+                    />
+                )}
+
+                {/* TABLE VIEW */}
+
+                {view === 'table' && (
+
+                    <div className="overflow-x-auto rounded-lg border shadow">
+
+                        <table className="min-w-full">
+
+                            <thead className="bg-gray-100">
+                                <tr>
+                                    <th className="px-4 py-2 text-left">Version</th>
+                                    <th className="px-4 py-2 text-left">Section</th>
+                                    <th className="px-4 py-2 text-left">Subject</th>
+                                    <th className="px-4 py-2 text-left">Faculty</th>
+                                    <th className="px-4 py-2 text-left">Room</th>
+                                    <th className="px-4 py-2 text-left">Time</th>
+                                    <th className="px-4 py-2 text-center">Actions</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                {schedules.length > 0 ? schedules.map(s => (
+
+                                    <tr key={s.id} className="border-t">
+
+                                        <td className="px-4 py-2">
+                                            <div className="font-semibold">
+                                                Version {s.version.version_number}
+                                            </div>
+
+                                            <div className="text-sm text-gray-500">
+                                                SY {s.version.semester.school_year} • {s.version.semester.term}
+                                            </div>
+                                        </td>
+
+                                        <td className="px-4 py-2">
+                                            {s.assignment.section.section_name}
+                                        </td>
+
+                                        <td className="px-4 py-2">
+                                            {s.assignment.subject.subject_code} — {s.assignment.subject.subject_name}
+                                        </td>
+
+                                        <td className="px-4 py-2">
+                                            {s.assignment.faculty.first_name} {s.assignment.faculty.last_name}
+                                        </td>
+
+                                        <td className="px-4 py-2">
+                                            {s.room.room_name}
+                                        </td>
+
+                                        <td className="px-4 py-2">
+                                            {s.timeslot.day_of_week} {s.timeslot.start_time} - {s.timeslot.end_time}
+                                        </td>
+
+                                        <td className="px-4 py-2 text-center">
+
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                onClick={() => handleDelete(s.id)}
+                                            >
+                                                <Trash2 size={16} />
+                                            </Button>
+
+                                        </td>
+
+                                    </tr>
+
+                                )) : (
+
+                                    <tr>
+                                        <td colSpan={7} className="text-center py-6 text-gray-500">
+                                            No schedules created yet
+                                        </td>
+                                    </tr>
+
+                                )}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                )}
+
+                {/* CREATE MODAL */}
 
                 <Dialog open={open} onOpenChange={setOpen}>
 
@@ -308,8 +344,6 @@ export default function Index() {
                         </DialogHeader>
 
                         <form onSubmit={handleSubmit} className="space-y-4">
-
-                            {/* VERSION */}
 
                             <div>
                                 <Label>Schedule Version</Label>
@@ -324,14 +358,13 @@ export default function Index() {
 
                                     {versions.map(v => (
                                         <option key={v.id} value={v.id}>
-                                            SY {v.semester.school_year}  |  {v.semester.term}  |  Version  {v.version_number}
+                                            SY {v.semester.school_year} | {v.semester.term} | Version {v.version_number}
                                         </option>
                                     ))}
 
                                 </select>
                             </div>
 
-                            {/* ASSIGNMENT */}
                             <div>
                                 <Label>Assignment</Label>
                                 <ComboBox
@@ -342,7 +375,6 @@ export default function Index() {
                                 />
                             </div>
 
-                            {/* ROOM */}
                             <div>
                                 <Label>Room</Label>
                                 <ComboBox
@@ -353,7 +385,6 @@ export default function Index() {
                                 />
                             </div>
 
-                            {/* TIMESLOT */}
                             <div>
                                 <Label>Time Slot</Label>
                                 <ComboBox
@@ -375,11 +406,7 @@ export default function Index() {
                                 </Button>
 
                                 <Button type="submit">
-
-                                    {loading
-                                        ? "Creating..."
-                                        : "Create Schedule"}
-
+                                    {loading ? "Creating..." : "Create Schedule"}
                                 </Button>
 
                             </DialogFooter>
