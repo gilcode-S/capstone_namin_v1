@@ -12,48 +12,122 @@ use Inertia\Inertia;
 
 class ScheduleController extends Controller
 {
-    //
 
-    private function hasConflict($assignment, $roomId, $timeSlotId, $scheduleVersionId)
+    private function hasConflictMemory($assignment, $roomId, $timeSlotId, $existingSchedules)
     {
-        // ROOM CONFLICT
-        $roomConflict = Schedule::where('schedule_version_id', $scheduleVersionId)
-            ->where('room_id', $roomId)
-            ->where('time_slot_id', $timeSlotId)
-            ->exists();
-        
-        if ($roomConflict) {
-            return true;
-        }
-
-        // SECTION CONFLICT
-        $sectionConflict = Schedule::where('schedule_version_id', $scheduleVersionId)
-            ->whereHas('assignment', function ($q) use ($assignment) {
-                $q->where('section_id', $assignment->section_id);
-            })
-            ->where('time_slot_id', $timeSlotId)
-            ->exists();
-
-        if ($sectionConflict) {
-            return true;
-        }
-
-        // FACULTY CONFLICT
-        if ($assignment->faculty_id) {
-            $facultyConflict = Schedule::where('schedule_version_id', $scheduleVersionId)
-                ->whereHas('assignment', function ($q) use ($assignment) {
-                    $q->where('faculty_id', $assignment->faculty_id);
-                })
-                ->where('time_slot_id', $timeSlotId)
-                ->exists();
-
-            if ($facultyConflict) {
+        foreach ($existingSchedules as $schedule) {
+    
+            // ROOM CONFLICT
+            if ($schedule->room_id == $roomId && $schedule->time_slot_id == $timeSlotId) {
+                return true;
+            }
+    
+            $otherAssignment = $schedule->assignment;
+    
+            // SECTION CONFLICT
+            if ($otherAssignment->section_id == $assignment->section_id &&
+                $schedule->time_slot_id == $timeSlotId) {
+                return true;
+            }
+    
+            // FACULTY CONFLICT
+            if ($assignment->faculty_id &&
+                $otherAssignment->faculty_id == $assignment->faculty_id &&
+                $schedule->time_slot_id == $timeSlotId) {
                 return true;
             }
         }
-
+    
         return false;
     }
+
+
+    // RESET SCHEDULE
+    public function reset($versionId)
+    {
+        Schedule::where('schedule_version_id', $versionId)->delete();
+
+        return back()->with('success', 'Schedule reset successfully');
+    }
+
+
+    // GENERATE SCHEDULE
+    public function generate($versionId)
+    {
+        set_time_limit(300);
+    
+        $assignments = SectionSubjectAssignment::where('schedule_version_id', $versionId)
+            ->with(['section','faculty','subject'])
+            ->get();
+    
+        $rooms = Room::all();
+        $timeslots = TimeSlot::all();
+    
+        $slots = [];
+    
+        // create all possible slots
+        foreach ($timeslots as $timeslot) {
+            foreach ($rooms as $room) {
+                $slots[] = [
+                    'room_id' => $room->id,
+                    'time_slot_id' => $timeslot->id
+                ];
+            }
+        }
+    
+        // shuffle slots for randomness
+        shuffle($slots);
+    
+        $usedSlots = [];
+        $sectionUsed = [];
+        $facultyUsed = [];
+    
+        foreach ($assignments as $assignment) {
+    
+            foreach ($slots as $slot) {
+    
+                $key = $slot['room_id'].'-'.$slot['time_slot_id'];
+    
+                if(isset($usedSlots[$key])) {
+                    continue;
+                }
+    
+                $sectionKey = $assignment->section_id.'-'.$slot['time_slot_id'];
+    
+                if(isset($sectionUsed[$sectionKey])) {
+                    continue;
+                }
+    
+                if($assignment->faculty_id){
+                    $facultyKey = $assignment->faculty_id.'-'.$slot['time_slot_id'];
+    
+                    if(isset($facultyUsed[$facultyKey])){
+                        continue;
+                    }
+                }
+    
+                Schedule::create([
+                    'schedule_version_id'=>$versionId,
+                    'assignment_id'=>$assignment->id,
+                    'room_id'=>$slot['room_id'],
+                    'time_slot_id'=>$slot['time_slot_id']
+                ]);
+    
+                $usedSlots[$key] = true;
+                $sectionUsed[$sectionKey] = true;
+    
+                if($assignment->faculty_id){
+                    $facultyUsed[$facultyKey] = true;
+                }
+    
+                break;
+            }
+        }
+    
+        return back()->with('success','Schedule generated successfully');
+    }
+
+
     public function index()
     {
         return Inertia::render('Schedules/Index', [
@@ -90,7 +164,7 @@ class ScheduleController extends Controller
 
         Schedule::create($validated);
 
-        return redirect()->back()->with('success', 'schedule created');
+        return redirect()->back()->with('success', 'Schedule created');
     }
 
 
@@ -98,6 +172,6 @@ class ScheduleController extends Controller
     {
         $schedule->delete();
 
-        return redirect()->back()->with('success', 'schedule deleted');
+        return redirect()->back()->with('success', 'Schedule deleted');
     }
 }

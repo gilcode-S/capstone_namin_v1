@@ -42,7 +42,7 @@ Route::middleware(['auth', 'role:staff,super admin'])
     ->resource('time-slots', TimeSlotController::class);
 Route::middleware(['auth', 'role:staff,super admin'])
     ->resource('semesters', controller: SemesterController::class);
-    Route::middleware(['auth', 'role:staff,super admin'])
+Route::middleware(['auth', 'role:staff,super admin'])
     ->resource('schedules', controller: ScheduleController::class);
 
 Route::middleware(['auth', 'role:staff,super admin'])
@@ -54,4 +54,10 @@ Route::middleware(['auth', 'role:staff,super admin'])
 Route::middleware(['auth', 'role:staff,super admin'])
     ->delete('/schedule-versions/{scheduleVersion}', [ScheduleVersionController::class, 'destroy']);
 
+
+// routes generate and reset :D 
+Route::middleware(['auth', 'role:staff,super admin'])
+    ->post('/schedules/generate/{version}', [ScheduleController::class, 'generate'])->name('schedule.generate');
+Route::middleware(['auth', 'role:staff,super admin'])
+    ->post('/schedules/reset/{version}', [ScheduleController::class, 'reset'])->name('schedule.reset');
 require __DIR__ . '/settings.php';

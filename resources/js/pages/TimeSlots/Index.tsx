@@ -2,7 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react'
 
 import { Plus, Pencil, Trash2, Clock } from 'lucide-react'
 import { useState } from 'react'
-
+import Pagination from '@/components/Pagination'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import AppLayout from '@/layouts/app-layout'
-import Pagination from '@/components/Pagination'
+
 interface TimeSlot {
   id: number
   day_of_week: string
@@ -46,15 +46,7 @@ export default function Index() {
   const [isEdit, setIsEdit] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
 
-  const formatTime = (time: string) => {
-    if (!time) return ''
 
-    return new Date(`1970-01-01T${time}`).toLocaleTimeString([], {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    })
-  }
 
   /* OPEN CREATE */
   const handleOpen = () => {
@@ -171,8 +163,8 @@ export default function Index() {
               {timeSlots.data.length > 0 ? timeSlots.data.map(slot => (
                 <tr key={slot.id} className="border-t">
                   <td className="px-4 py-2">{slot.day_of_week}</td>
-                  <td className="px-4 py-2">{formatTime(slot.start_time)}</td>
-                  <td className="px-4 py-2">{formatTime(slot.end_time)}</td>
+                  <td className="px-4 py-2">{slot.start_time}</td>
+                  <td className="px-4 py-2">{slot.end_time}</td>
                   <td className="px-4 py-2 capitalize">{slot.mode}</td>
                   <td className="px-4 py-2">
                     <span className={
@@ -213,7 +205,7 @@ export default function Index() {
             </tbody>
           </table>
         </div>
-              <Pagination links={timeSlots.links}/>
+        <Pagination links={timeSlots.links} />
         {/* MODAL */}
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="max-w-lg">
