@@ -1,7 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react'
 import { Plus, Trash2, CalendarDays, Loader2, LayoutGrid, List } from 'lucide-react'
 import { useState } from 'react'
-
+import TimetableGrid from '@/components/TimetableGrid'
 import { Button } from '@/components/ui/button'
 import ComboBox from '@/components/ui/combobox'
 
@@ -16,7 +16,7 @@ import {
 
 import { Label } from '@/components/ui/label'
 import AppLayout from '@/layouts/app-layout'
-import TimetableGrid from '@/components/TimetableGrid'
+
 interface Semester {
     id: number
     school_year: number
@@ -82,13 +82,15 @@ const emptyForm = {
 
 export default function Index() {
 
-    const { schedules, assignments, rooms, timeslots, versions } =
+    const { schedules, assignments, rooms, timeslots, versions, sections, faculty } =
         usePage().props as unknown as {
             schedules: Schedule[],
             assignments: Assignment[],
             rooms: Room[],
             timeslots: Timeslot[],
-            versions: Version[]
+            versions: Version[],
+            sections: Section[],
+            faculty: Faculty[]
         }
 
     const [view, setView] = useState<'timetable' | 'table'>('timetable')
@@ -112,6 +114,25 @@ export default function Index() {
     const [form, setForm] = useState<any>(emptyForm)
     const [loading, setLoading] = useState(false)
     const [generating, setGenerating] = useState(false)
+    const [filterType, setFilterType] = useState<'section' | 'faculty' | 'room'>('section')
+    const [filterId, setFilterId] = useState<number | null>(null)
+
+    const filteredSchedules = schedules.filter((s) => {
+
+        if (!filterId) return true
+
+        if (filterType === 'section')
+            return s.assignment.section.id === filterId
+
+        if (filterType === 'faculty')
+            return s.assignment.faculty?.id === filterId
+
+        if (filterType === 'room')
+            return s.room.id === filterId
+
+        return true
+    })
+
 
     const handleOpen = () => {
         setForm(emptyForm)
@@ -235,12 +256,57 @@ export default function Index() {
                     </Button>
 
                 </div>
+                <div className="flex gap-4 mb-6">
+
+                    <select
+                        onChange={(e) => {
+                            setFilterType(e.target.value as 'section' | 'faculty' | 'room')
+                            setFilterId(null)
+                        }}
+                        className="border rounded px-3 py-2"
+                    >
+                        <option value="section">Section</option>
+                        <option value="faculty">Faculty</option>
+                        <option value="room">Room</option>
+                    </select>
+
+                    <select
+                        onChange={(e) => setFilterId(Number(e.target.value))}
+                        className="border rounded px-3 py-2"
+                    >
+
+                        <option value="">All</option>
+
+                        {filterType === 'section' &&
+                            sections.map(s => (
+                                <option key={s.id} value={s.id}>
+                                    {s.section_name}
+                                </option>
+                            ))}
+
+                        {filterType === 'faculty' &&
+                            faculty.map(f => (
+                                <option key={f.id} value={f.id}>
+                                    {f.first_name} {f.last_name}
+                                </option>
+                            ))}
+
+                        {filterType === 'room' &&
+                            rooms.map(r => (
+                                <option key={r.id} value={r.id}>
+                                    {r.room_name}
+                                </option>
+                            ))}
+
+                    </select>
+
+                </div>
 
                 {/* TIMETABLE VIEW */}
 
                 {view === 'timetable' && (
                     <TimetableGrid
-                        schedules={schedules}
+                        schedules={filteredSchedules}
                         timeslots={timeslots}
                     />
                 )}

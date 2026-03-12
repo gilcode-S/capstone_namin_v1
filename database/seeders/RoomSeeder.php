@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
+use Illuminate\Database\Seeder;
 use App\Models\Department;
 use App\Models\Room;
-use Illuminate\Database\Seeder;
 
 class RoomSeeder extends Seeder
 {
@@ -13,29 +13,32 @@ class RoomSeeder extends Seeder
         $departments = Department::all();
 
         if ($departments->isEmpty()) {
-            $this->command->error("No departments found! Run DepartmentSeeder first.");
+            $this->command->error('Run DepartmentSeeder first.');
             return;
         }
 
-        $buildings = ['F', 'C', 'V']; // Front, Center, Vertical
-        $floors = [1, 2, 3, 4];
-        $roomsPerFloor = 5;
+        $buildings = ['F', 'C', 'V'];
+        $floors = [1,2,3];
+        $roomsPerFloor = 4;
 
-        foreach ($departments as $department) {
-            foreach ($buildings as $building) {
-                foreach ($floors as $floor) {
-                    for ($i = 1; $i <= $roomsPerFloor; $i++) {
-                        $roomNumber = $floor * 100 + $i;
-                        $roomName = "{$department->department_code}-{$building}-{$roomNumber}"; // unique!
+        foreach ($buildings as $index => $building) {
 
-                        Room::create([
-                            'department_id' => $department->id,
-                            'room_name' => $roomName,
-                            'room_type' => ($i % 2 == 0 ? 'laboratory' : 'lecture'),
-                            'capacity' => rand(20, 60),
-                            'status' => 'active',
-                        ]);
-                    }
+            $department = $departments[$index % $departments->count()];
+
+            foreach ($floors as $floor) {
+
+                for ($i = 1; $i <= $roomsPerFloor; $i++) {
+
+                    $roomNumber = $floor . sprintf('%02d', $i);
+                    $roomName = $building . $roomNumber;
+
+                    Room::create([
+                        'department_id' => $department->id,
+                        'room_name' => $roomName,
+                        'room_type' => ($i % 2 == 0) ? 'laboratory' : 'lecture',
+                        'capacity' => rand(30,60),
+                        'status' => 'active'
+                    ]);
                 }
             }
         }

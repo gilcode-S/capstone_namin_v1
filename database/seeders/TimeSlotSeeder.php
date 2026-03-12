@@ -3,40 +3,33 @@
 namespace Database\Seeders;
 
 use App\Models\TimeSlot;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class TimeSlotSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        //
-        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-        $times = [
-            ['07:00:00', '08:00:00'],
-            ['08:00:00', '09:00:00'],
-            ['09:00:00', '10:00:00'],
-            ['10:00:00', '11:00:00'],
-            ['13:00:00', '14:00:00'],
-            ['14:00:00', '15:00:00'],
-            ['15:00:00', '16:00:00'],
-            ['16:00:00', '17:00:00'],
-        ];
+        $startHour = 7;
+        $endHour = 22; // 10 PM
 
         foreach ($days as $day) {
-            foreach ($times as $time) {
+
+            for ($hour = $startHour; $hour < $endHour; $hour++) {
+
+                $start = str_pad($hour, 2, '0', STR_PAD_LEFT) . ':00:00';
+                $end = str_pad($hour + 1, 2, '0', STR_PAD_LEFT) . ':00:00';
+
                 TimeSlot::create([
                     'day_of_week' => $day,
-                    'start_time' => $time[0],
-                    'end_time' => $time[1],
+                    'start_time' => $start,
+                    'end_time' => $end,
                     'mode' => 'f2f',
                     'status' => 'active'
-                ]);
+                ]); 
             }
+
         }
     }
 }

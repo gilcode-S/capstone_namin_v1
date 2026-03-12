@@ -1,136 +1,234 @@
 import { useMemo } from "react"
 
+interface Section {
+    id?: number
+    section_name: string
+}
+
+interface Subject {
+    subject_code: string
+    subject_name: string
+}
+
+interface Faculty {
+    id?: number
+    first_name: string
+    last_name: string
+}
+
+interface Assignment {
+    section: Section
+    subject: Subject
+    faculty: Faculty
+}
+
+interface Room {
+    id?: number
+    room_name: string
+}
+
+interface Timeslot {
+    id: number
+    day_of_week: string
+    start_time: string
+    end_time: string
+}
+
 interface Schedule {
     id: number
-    assignment: any
-    room: any
-    timeslot: any
+    assignment: Assignment
+    room: Room
+    timeslot: Timeslot
 }
 
 interface Props {
     schedules: Schedule[]
-    timeslots: any[]
+    timeslots: Timeslot[]
 }
-
-const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
-
-const subjectColors = [
-    "bg-blue-500",
-    "bg-green-500",
-    "bg-purple-500",
-    "bg-orange-500",
-    "bg-pink-500",
-    "bg-indigo-500",
-]
 
 export default function TimetableGrid({ schedules, timeslots }: Props) {
 
-    const rows = useMemo(() => {
-        const grouped: any = {}
+    const days = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday"
+    ]
 
-        timeslots.forEach(slot => {
-            const key = `${slot.start_time}-${slot.end_time}`
-            if (!grouped[key]) grouped[key] = []
-            grouped[key].push(slot)
+    const uniqueTimes = useMemo(() => {
+
+        const map = new Map()
+
+        timeslots.forEach(t => {
+            const key = `${t.start_time}-${t.end_time}`
+            map.set(key, t)
         })
 
-        return Object.entries(grouped)
+        return Array.from(map.values())
+
     }, [timeslots])
 
-    const getSchedule = (day: string, start: string, end: string) => {
-        return schedules.find(s =>
-            s.timeslot.day_of_week === day &&
-            s.timeslot.start_time === start &&
-            s.timeslot.end_time === end
+    const getSchedules = (day: string, start: string) => {
+        return schedules.filter(
+            s =>
+                s.timeslot.day_of_week === day &&
+                s.timeslot.start_time === start
         )
     }
 
-    const getColor = (subject: string) => {
-        const index = subject.charCodeAt(0) % subjectColors.length
-        return subjectColors[index]
+    const detectConflict = (entries: Schedule[]) => {
+
+        const facultySet = new Set<string>()
+        const roomSet = new Set<string>()
+        const sectionSet = new Set<string>()
+
+        let type: "none" | "faculty" | "room" | "section" = "none"
+
+        entries.forEach(e => {
+
+            const faculty = e.assignment.faculty.first_name + e.assignment.faculty.last_name
+            const room = e.room.room_name
+            const section = e.assignment.section.section_name
+
+            if (facultySet.has(faculty)) type = "faculty"
+            if (roomSet.has(room)) type = "room"
+            if (sectionSet.has(section)) type = "section"
+
+            facultySet.add(faculty)
+            roomSet.add(room)
+            sectionSet.add(section)
+
+        })
+
+        return type
     }
 
     return (
-        <div className="mt-10 border rounded-xl overflow-hidden shadow">
 
-            <div className="bg-gray-100 p-4 font-semibold text-lg">
-                Weekly Timetable
+        <div>
+
+            {/* Legend */}
+            <div className="flex gap-4 mb-4 text-sm">
+
+                <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-blue-200 border border-blue-400"></div>
+                    Normal
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-yellow-200 border border-yellow-400"></div>
+                    Section Conflict
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-orange-200 border border-orange-400"></div>
+                    Room Conflict
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-200 border border-red-500"></div>
+                    Faculty Conflict
+                </div>
+
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto border rounded-lg shadow">
 
-                <table className="w-full text-sm">
+                <table className="w-full border-collapse text-sm">
 
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-100">
+
                         <tr>
 
-                            <th className="p-3 border w-32">Time</th>
+                            <th className="border px-4 py-2 w-[120px] text-left">
+                                Time
+                            </th>
 
                             {days.map(day => (
-                                <th key={day} className="border p-3 text-center">
+                                <th key={day} className="border px-4 py-2 text-center">
                                     {day}
                                 </th>
                             ))}
 
                         </tr>
+
                     </thead>
 
                     <tbody>
 
-                        {rows.map(([timeKey, slots]: any) => {
+                        {uniqueTimes.map((time) => (
 
-                            const slot = slots[0]
-                            const start = slot.start_time
-                            const end = slot.end_time
+                            <tr key={time.id}>
 
-                            return (
-                                <tr key={timeKey}>
+                                <td className="border px-3 py-2 font-medium">
+                                    {time.start_time} - {time.end_time}
+                                </td>
 
-                                    <td className="border p-3 font-medium text-gray-700">
-                                        {start} - {end}
-                                    </td>
+                                {days.map(day => {
 
-                                    {days.map(day => {
+                                    const entries = getSchedules(day, time.start_time)
 
-                                        const sched = getSchedule(day, start, end)
+                                    const conflictType = detectConflict(entries)
 
-                                        return (
-                                            <td key={day} className="border h-24 p-1 align-top">
+                                    const colorClass =
+                                        conflictType === "faculty"
+                                            ? "bg-red-200 border-red-500"
+                                            : conflictType === "room"
+                                                ? "bg-orange-200 border-orange-500"
+                                                : conflictType === "section"
+                                                    ? "bg-yellow-200 border-yellow-500"
+                                                    : "bg-blue-100 border-blue-300"
 
-                                                {sched && (
+                                    return (
 
-                                                    <div
-                                                        className={`rounded-lg p-2 text-white text-xs shadow-md hover:scale-105 transition cursor-pointer ${getColor(
-                                                            sched.assignment.subject.subject_code
-                                                        )}`}
-                                                        title={`${sched.assignment.subject.subject_name}
-Faculty: ${sched.assignment.faculty.first_name} ${sched.assignment.faculty.last_name}
-Room: ${sched.room.room_name}`}
-                                                    >
+                                        <td
+                                            key={day}
+                                            className="border px-2 py-2 align-top min-w-[160px]"
+                                        >
 
-                                                        <div className="font-bold">
-                                                            {sched.assignment.subject.subject_code}
-                                                        </div>
+                                            {entries.map(s => (
 
-                                                        <div className="opacity-90">
-                                                            {sched.assignment.faculty.first_name}
-                                                        </div>
+                                                <div
+                                                    key={s.id}
+                                                    className={`mb-1 rounded-md p-2 text-xs border ${colorClass}`}
+                                                >
 
-                                                        <div className="mt-1 bg-white/20 px-2 py-0.5 rounded text-[10px] inline-block">
-                                                            {sched.room.room_name}
-                                                        </div>
+                                                    <div className="font-semibold">
+                                                        {s.assignment.subject.subject_code}
+                                                    </div>
+
+                                                    <div>
+                                                        {s.assignment.section.section_name}
+                                                    </div>
+
+                                                    <div className="flex justify-between mt-1 text-gray-600">
+
+                                                        <span>
+                                                            {s.assignment.faculty.first_name}
+                                                        </span>
+
+                                                        <span className="bg-white px-1 rounded text-[10px] border">
+                                                            {s.room.room_name}
+                                                        </span>
 
                                                     </div>
 
-                                                )}
+                                                </div>
 
-                                            </td>
-                                        )
-                                    })}
+                                            ))}
 
-                                </tr>
-                            )
-                        })}
+                                        </td>
+
+                                    )
+
+                                })}
+
+                            </tr>
+
+                        ))}
 
                     </tbody>
 
@@ -139,5 +237,6 @@ Room: ${sched.room.room_name}`}
             </div>
 
         </div>
+
     )
 }

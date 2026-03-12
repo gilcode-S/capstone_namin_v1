@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Faculty;
 use App\Models\Room;
 use App\Models\Schedule;
 use App\Models\ScheduleVersion;
+use App\Models\Section;
 use App\Models\SectionSubjectAssignment;
 use App\Models\TimeSlot;
 use Illuminate\Http\Request;
@@ -16,28 +18,32 @@ class ScheduleController extends Controller
     private function hasConflictMemory($assignment, $roomId, $timeSlotId, $existingSchedules)
     {
         foreach ($existingSchedules as $schedule) {
-    
+
             // ROOM CONFLICT
             if ($schedule->room_id == $roomId && $schedule->time_slot_id == $timeSlotId) {
                 return true;
             }
-    
+
             $otherAssignment = $schedule->assignment;
-    
+
             // SECTION CONFLICT
-            if ($otherAssignment->section_id == $assignment->section_id &&
-                $schedule->time_slot_id == $timeSlotId) {
+            if (
+                $otherAssignment->section_id == $assignment->section_id &&
+                $schedule->time_slot_id == $timeSlotId
+            ) {
                 return true;
             }
-    
+
             // FACULTY CONFLICT
-            if ($assignment->faculty_id &&
+            if (
+                $assignment->faculty_id &&
                 $otherAssignment->faculty_id == $assignment->faculty_id &&
-                $schedule->time_slot_id == $timeSlotId) {
+                $schedule->time_slot_id == $timeSlotId
+            ) {
                 return true;
             }
         }
-    
+
         return false;
     }
 
@@ -55,16 +61,16 @@ class ScheduleController extends Controller
     public function generate($versionId)
     {
         set_time_limit(300);
-    
+
         $assignments = SectionSubjectAssignment::where('schedule_version_id', $versionId)
-            ->with(['section','faculty','subject'])
+            ->with(['section', 'faculty', 'subject'])
             ->get();
-    
+
         $rooms = Room::all();
         $timeslots = TimeSlot::all();
-    
+
         $slots = [];
-    
+
         // create all possible slots
         foreach ($timeslots as $timeslot) {
             foreach ($rooms as $room) {
@@ -74,57 +80,57 @@ class ScheduleController extends Controller
                 ];
             }
         }
-    
+
         // shuffle slots for randomness
         shuffle($slots);
-    
+
         $usedSlots = [];
         $sectionUsed = [];
         $facultyUsed = [];
-    
+
         foreach ($assignments as $assignment) {
-    
+
             foreach ($slots as $slot) {
-    
-                $key = $slot['room_id'].'-'.$slot['time_slot_id'];
-    
-                if(isset($usedSlots[$key])) {
+
+                $key = $slot['room_id'] . '-' . $slot['time_slot_id'];
+
+                if (isset($usedSlots[$key])) {
                     continue;
                 }
-    
-                $sectionKey = $assignment->section_id.'-'.$slot['time_slot_id'];
-    
-                if(isset($sectionUsed[$sectionKey])) {
+
+                $sectionKey = $assignment->section_id . '-' . $slot['time_slot_id'];
+
+                if (isset($sectionUsed[$sectionKey])) {
                     continue;
                 }
-    
-                if($assignment->faculty_id){
-                    $facultyKey = $assignment->faculty_id.'-'.$slot['time_slot_id'];
-    
-                    if(isset($facultyUsed[$facultyKey])){
+
+                if ($assignment->faculty_id) {
+                    $facultyKey = $assignment->faculty_id . '-' . $slot['time_slot_id'];
+
+                    if (isset($facultyUsed[$facultyKey])) {
                         continue;
                     }
                 }
-    
+
                 Schedule::create([
-                    'schedule_version_id'=>$versionId,
-                    'assignment_id'=>$assignment->id,
-                    'room_id'=>$slot['room_id'],
-                    'time_slot_id'=>$slot['time_slot_id']
+                    'schedule_version_id' => $versionId,
+                    'assignment_id' => $assignment->id,
+                    'room_id' => $slot['room_id'],
+                    'time_slot_id' => $slot['time_slot_id']
                 ]);
-    
+
                 $usedSlots[$key] = true;
                 $sectionUsed[$sectionKey] = true;
-    
-                if($assignment->faculty_id){
+
+                if ($assignment->faculty_id) {
                     $facultyUsed[$facultyKey] = true;
                 }
-    
+
                 break;
             }
         }
-    
-        return back()->with('success','Schedule generated successfully');
+
+        return back()->with('success', 'Schedule generated successfully');
     }
 
 
@@ -139,12 +145,15 @@ class ScheduleController extends Controller
                 'timeslot',
                 'version.semester'
             ])->latest()->get(),
-
+            
             'assignments' => SectionSubjectAssignment::with([
                 'section',
                 'subject',
                 'faculty'
             ])->get(),
+
+            'sections' => Section::all(),
+            'faculty' => Faculty::all(),
 
             'rooms' => Room::all(),
             'timeslots' => TimeSlot::all(),
