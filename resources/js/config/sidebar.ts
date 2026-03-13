@@ -41,7 +41,7 @@ import {
         items: [
           { title: "Assignment", href: "/assignments", icon: ChartNoAxesColumnIncreasingIcon },
           { title: "Schedule Versions", href: "/schedule-versions", icon: Calendar },
-          { title: "Schedule", href: "/schedules", icon: ScanHeart },
+          { title: "View Schedule", href: "/schedules", icon: ScanHeart },
           { title: "Generate Schedule", href: "/generate-schedule", icon: PlusCircle },
           { title: "Conflict Detection", href: "/conflict-detection", icon: AlertCircle }
         ]
@@ -78,7 +78,7 @@ import {
           { title: "Schedule Versions", href: "/schedule-versions", icon: Calendar },
           { title: "Generate Schedule", href: "/generate-schedule", icon: PlusCircle },
           { title: "Conflict Detection", href: "/conflict-detection", icon: AlertCircle },
-          { title: "Schedule", href: "/schedules", icon: ScanHeart },
+          { title: "View Schedule", href: "/schedules", icon: ScanHeart },
         ]
       }
     ],

@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react'
-import { Plus, Trash2, CalendarDays, Loader2, LayoutGrid, List } from 'lucide-react'
+import { Plus, Trash2, CalendarDays, LayoutGrid, List } from 'lucide-react'
 import { useState } from 'react'
 import TimetableGrid from '@/components/TimetableGrid'
 import { Button } from '@/components/ui/button'
@@ -113,7 +113,7 @@ export default function Index() {
     const [open, setOpen] = useState(false)
     const [form, setForm] = useState<any>(emptyForm)
     const [loading, setLoading] = useState(false)
-    const [generating, setGenerating] = useState(false)
+    // 
     const [filterType, setFilterType] = useState<'section' | 'faculty' | 'room'>('section')
     const [filterId, setFilterId] = useState<number | null>(null)
 
@@ -164,29 +164,7 @@ export default function Index() {
         router.delete(`/schedules/${id}`)
     }
 
-    const versionId = versions?.[0]?.id
-
-    const generateSchedule = () => {
-
-        if (!versionId) return
-
-        setGenerating(true)
-
-        router.post(`/schedules/generate/${versionId}`, {}, {
-            onFinish: () => setGenerating(false)
-        })
-    }
-
-    const resetSchedule = () => {
-
-        if (!versionId) return
-
-        setGenerating(true)
-
-        router.post(`/schedules/reset/${versionId}`, {}, {
-            onFinish: () => setGenerating(false)
-        })
-    }
+   
 
     return (
         <AppLayout breadcrumbs={[{ title: "Schedules", href: "/schedules" }]}>
@@ -212,22 +190,6 @@ export default function Index() {
                             Add Schedule
                         </Button>
 
-                        <Button
-                            onClick={generateSchedule}
-                            disabled={generating}
-                            className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
-                        >
-                            {generating && <Loader2 className="animate-spin" size={16} />}
-                            {generating ? "Generating..." : "Generate Schedule"}
-                        </Button>
-
-                        <Button
-                            onClick={resetSchedule}
-                            disabled={generating}
-                            variant="destructive"
-                        >
-                            Reset
-                        </Button>
 
                     </div>
 

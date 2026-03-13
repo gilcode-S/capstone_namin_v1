@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\FacultyController;
+use App\Http\Controllers\GenerateController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\SectionController;
@@ -44,6 +45,16 @@ Route::middleware(['auth', 'role:staff,super admin'])
     ->resource('semesters', controller: SemesterController::class);
 Route::middleware(['auth', 'role:staff,super admin'])
     ->resource('schedules', controller: ScheduleController::class);
+    
+
+Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
+    Route::get('/generate-schedule', [GenerateController::class, 'index'])
+        ->name('generate.index');
+    Route::post('/schedules/generate/{versionId}', [GenerateController::class, 'generate'])
+        ->name('generate.schedule');
+    Route::post('/schedules/reset/{versionId}', [GenerateController::class, 'reset'])
+        ->name('reset.schedule');
+});
 
 Route::middleware(['auth', 'role:staff,super admin'])
     ->get('/schedule-versions', [ScheduleVersionController::class, 'index']);
