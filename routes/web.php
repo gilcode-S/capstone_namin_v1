@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ConflictController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\FacultyController;
 use App\Http\Controllers\GenerateController;
@@ -45,7 +46,7 @@ Route::middleware(['auth', 'role:staff,super admin'])
     ->resource('semesters', controller: SemesterController::class);
 Route::middleware(['auth', 'role:staff,super admin'])
     ->resource('schedules', controller: ScheduleController::class);
-    
+
 
 Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
     Route::get('/generate-schedule', [GenerateController::class, 'index'])
@@ -54,6 +55,8 @@ Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
         ->name('generate.schedule');
     Route::post('/schedules/reset/{versionId}', [GenerateController::class, 'reset'])
         ->name('reset.schedule');
+    Route::get('/conflicts', [ConflictController::class, 'index'])
+        ->name('schedules.conflicts');
 });
 
 Route::middleware(['auth', 'role:staff,super admin'])

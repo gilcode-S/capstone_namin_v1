@@ -32,6 +32,7 @@ interface Version {
 interface Section {
     id: number
     section_name: string
+    program: Program
 }
 
 interface Subject {
@@ -72,6 +73,15 @@ interface Schedule {
     room: Room
     timeslot: Timeslot
 }
+interface Department {
+    id: number
+    department_name: string
+}
+interface Program {
+    id: number
+    program_name: string
+    department_id: number
+}
 
 const emptyForm = {
     schedule_version_id: '',
@@ -82,7 +92,7 @@ const emptyForm = {
 
 export default function Index() {
 
-    const { schedules, assignments, rooms, timeslots, versions, sections, faculty } =
+    const { schedules, assignments, rooms, timeslots, versions, sections, faculty, departments, programs } =
         usePage().props as unknown as {
             schedules: Schedule[],
             assignments: Assignment[],
@@ -90,7 +100,9 @@ export default function Index() {
             timeslots: Timeslot[],
             versions: Version[],
             sections: Section[],
-            faculty: Faculty[]
+            faculty: Faculty[],
+            departments: Department[],
+            programs: Program[]
         }
 
     const [view, setView] = useState<'timetable' | 'table'>('timetable')
@@ -114,25 +126,27 @@ export default function Index() {
     const [form, setForm] = useState<any>(emptyForm)
     const [loading, setLoading] = useState(false)
     // 
-    const [filterType, setFilterType] = useState<'section' | 'faculty' | 'room'>('section')
-    const [filterId, setFilterId] = useState<number | null>(null)
+    const [departmentId, setDepartmentId] = useState<number | null>(null)
+    const [programId, setProgramId] = useState<number | null>(null)
+    const [sectionId, setSectionId] = useState<number | null>(null)
+    const [facultyId, setFacultyId] = useState<number | null>(null)
+    const [roomId, setRoomId] = useState<number | null>(null)
 
     const filteredSchedules = schedules.filter((s) => {
+        const dept = s.assignment?.section?.program?.department_id
+        const prog = s.assignment?.section?.program?.id
+        const sec = s.assignment?.section?.id
+        const fac = s.assignment?.faculty?.id
+        const rm = s.room?.id
 
-        if (!filterId) return true
-
-        if (filterType === 'section')
-            return s.assignment.section.id === filterId
-
-        if (filterType === 'faculty')
-            return s.assignment.faculty?.id === filterId
-
-        if (filterType === 'room')
-            return s.room.id === filterId
+        if (departmentId && dept !== departmentId) return false
+        if (programId && prog !== programId) return false
+        if (sectionId && sec !== sectionId) return false
+        if (facultyId && fac !== facultyId) return false
+        if (roomId && rm !== roomId) return false
 
         return true
     })
-
 
     const handleOpen = () => {
         setForm(emptyForm)
@@ -164,7 +178,7 @@ export default function Index() {
         router.delete(`/schedules/${id}`)
     }
 
-   
+
 
     return (
         <AppLayout breadcrumbs={[{ title: "Schedules", href: "/schedules" }]}>
@@ -218,52 +232,108 @@ export default function Index() {
                     </Button>
 
                 </div>
-                <div className="flex gap-4 mb-6">
+                <div className="flex gap-4 mb-6 flex-wrap">
+
+                    {/* Department */}
 
                     <select
-                        onChange={(e) => {
-                            setFilterType(e.target.value as 'section' | 'faculty' | 'room')
-                            setFilterId(null)
-                        }}
                         className="border rounded px-3 py-2"
+                        onChange={(e) => {
+                            const value = e.target.value ? Number(e.target.value) : null
+                            setDepartmentId(value)
+                            setProgramId(null)
+                            setSectionId(null)
+                        }}
                     >
-                        <option value="section">Section</option>
-                        <option value="faculty">Faculty</option>
-                        <option value="room">Room</option>
+
+                        <option value="">All Departments</option>
+
+                        {departments.map(d => (
+                            <option key={d.id} value={d.id}>
+                                {d.department_name}
+                            </option>
+                        ))}
+
                     </select>
 
+
+                    {/* Program */}
+
                     <select
-                        onChange={(e) => setFilterId(Number(e.target.value))}
                         className="border rounded px-3 py-2"
+                        onChange={(e) => {
+                            const value = e.target.value ? Number(e.target.value) : null
+                            setProgramId(value)
+                            setSectionId(null)
+                        }}
                     >
 
-                        <option value="">All</option>
+                        <option value="">All Programs</option>
 
-                        {filterType === 'section' &&
-                            sections.map(s => (
+                        {programs
+                            .filter(p => !departmentId || p.department_id === departmentId)
+                            .map(p => (
+                                <option key={p.id} value={p.id}>
+                                    {p.program_name}
+                                </option>
+                            ))}
+
+                    </select>
+
+
+                    {/* Section */}
+
+                    <select
+                        className="border rounded px-3 py-2"
+                        onChange={(e) => {
+                            const value = e.target.value ? Number(e.target.value) : null
+                            setSectionId(value)
+                        }}
+                    >
+
+                        <option value="">All Sections</option>
+
+                        {sections
+                            .filter(s => !programId || s.program?.id === programId)
+                            .map(s => (
                                 <option key={s.id} value={s.id}>
                                     {s.section_name}
                                 </option>
                             ))}
 
-                        {filterType === 'faculty' &&
-                            faculty.map(f => (
-                                <option key={f.id} value={f.id}>
-                                    {f.first_name} {f.last_name}
-                                </option>
-                            ))}
+                    </select>
+                    <select
+                        className="border rounded px-3 py-2"
+                        onChange={(e) => {
+                            const value = e.target.value ? Number(e.target.value) : null
+                            setFacultyId(value)
+                        }}
+                    >
+                        <option value="">All Faculty</option>
+                        {faculty.map(f => (
+                            <option key={f.id} value={f.id}>
+                                {f.first_name} {f.last_name}
+                            </option>
+                        ))}
+                    </select>
 
-                        {filterType === 'room' &&
-                            rooms.map(r => (
-                                <option key={r.id} value={r.id}>
-                                    {r.room_name}
-                                </option>
-                            ))}
-
+                    {/* Room Filter */}
+                    <select
+                        className="border rounded px-3 py-2"
+                        onChange={(e) => {
+                            const value = e.target.value ? Number(e.target.value) : null
+                            setRoomId(value)
+                        }}
+                    >
+                        <option value="">All Rooms</option>
+                        {rooms.map(r => (
+                            <option key={r.id} value={r.id}>
+                                {r.room_name}
+                            </option>
+                        ))}
                     </select>
 
                 </div>
-
                 {/* TIMETABLE VIEW */}
 
                 {view === 'timetable' && (
@@ -295,7 +365,7 @@ export default function Index() {
 
                             <tbody>
 
-                                {schedules.length > 0 ? schedules.map(s => (
+                                {filteredSchedules.length > 0 ? filteredSchedules.map(s => (
 
                                     <tr key={s.id} className="border-t">
 

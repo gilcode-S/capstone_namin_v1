@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Department;
 use App\Models\Faculty;
+use App\Models\Programs;
 use App\Models\Room;
 use App\Models\Schedule;
 use App\Models\ScheduleVersion;
@@ -137,29 +139,35 @@ class ScheduleController extends Controller
     public function index()
     {
         return Inertia::render('Schedules/Index', [
+
             'schedules' => Schedule::with([
-                'assignment.section',
+                'assignment.section.program.department',
                 'assignment.subject',
                 'assignment.faculty',
                 'room',
                 'timeslot',
                 'version.semester'
-            ])->latest()->get(),
-            
-            'assignments' => SectionSubjectAssignment::with([
-                'section',
-                'subject',
-                'faculty'
             ])->get(),
 
-            'sections' => Section::all(),
-            'faculty' => Faculty::all(),
+            'departments' => Department::with('programs')->get(),
 
+            'programs' => Programs::with('department')->get(),
+
+            'sections' => Section::with('program')->get(),
+
+            'faculty' => Faculty::all(),
             'rooms' => Room::all(),
             'timeslots' => TimeSlot::all(),
-            'versions' => ScheduleVersion::with('semester')->get()
+            'versions' => ScheduleVersion::with('semester')->get(),
+
+            'assignments' => SectionSubjectAssignment::with([
+                'section.program',
+                'subject',
+                'faculty'
+            ])->get()
         ]);
     }
+
 
 
     public function store(Request $request)

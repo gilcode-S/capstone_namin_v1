@@ -1,8 +1,15 @@
 import { useMemo } from "react"
 
+interface Program {
+    id: number
+    program_name: string
+    department_id: number
+}
+
 interface Section {
     id?: number
     section_name: string
+    program: Program
 }
 
 interface Subject {

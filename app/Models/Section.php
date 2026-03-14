@@ -2,6 +2,7 @@
 
 namespace App\Models;
 use App\Models\Programs;
+use App\Models\Department;
 use Illuminate\Database\Eloquent\Model;
 
 class Section extends Model
@@ -17,5 +18,10 @@ class Section extends Model
     public function program()
     {
         return $this->belongsTo(Programs::class);
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
     }
 }

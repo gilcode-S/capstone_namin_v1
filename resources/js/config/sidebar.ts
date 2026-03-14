@@ -43,7 +43,7 @@ import {
           { title: "Schedule Versions", href: "/schedule-versions", icon: Calendar },
           { title: "View Schedule", href: "/schedules", icon: ScanHeart },
           { title: "Generate Schedule", href: "/generate-schedule", icon: PlusCircle },
-          { title: "Conflict Detection", href: "/conflict-detection", icon: AlertCircle }
+          { title: "Conflict Detection", href: "/conflicts", icon: AlertCircle }
         ]
       },
   
