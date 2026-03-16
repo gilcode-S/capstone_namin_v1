@@ -65,6 +65,7 @@ export default function TimetableGrid({ schedules, timeslots }: Props) {
         "Sunday"
     ]
 
+    // Unique time rows
     const uniqueTimes = useMemo(() => {
 
         const map = new Map()
@@ -78,46 +79,76 @@ export default function TimetableGrid({ schedules, timeslots }: Props) {
 
     }, [timeslots])
 
-    const getSchedules = (day: string, start: string) => {
-        return schedules.filter(
-            s =>
-                s.timeslot.day_of_week === day &&
-                s.timeslot.start_time === start
-        )
-    }
+    // SMART CONFLICT DETECTION
+    const conflictMap = useMemo(() => {
 
-    const detectConflict = (entries: Schedule[]) => {
+        const map: Record<number, "faculty" | "room" | "section" | "none"> = {}
 
-        const facultySet = new Set<string>()
-        const roomSet = new Set<string>()
-        const sectionSet = new Set<string>()
+        const grouped: Record<string, Schedule[]> = {}
 
-        let type: "none" | "faculty" | "room" | "section" = "none"
+        schedules.forEach(s => {
 
-        entries.forEach(e => {
+            const key =
+                s.timeslot.day_of_week +
+                "-" +
+                s.timeslot.start_time +
+                "-" +
+                s.timeslot.end_time
 
-            const faculty = e.assignment.faculty.first_name + e.assignment.faculty.last_name
-            const room = e.room.room_name
-            const section = e.assignment.section.section_name
+            if (!grouped[key]) {
+                grouped[key] = []
+            }
 
-            if (facultySet.has(faculty)) type = "faculty"
-            if (roomSet.has(room)) type = "room"
-            if (sectionSet.has(section)) type = "section"
-
-            facultySet.add(faculty)
-            roomSet.add(room)
-            sectionSet.add(section)
+            grouped[key].push(s)
 
         })
 
-        return type
-    }
+        Object.values(grouped).forEach(entries => {
+
+            const facultySet = new Set<number>()
+            const roomSet = new Set<number>()
+            const sectionSet = new Set<number>()
+
+            entries.forEach(e => {
+
+                const faculty = e.assignment.faculty?.id
+                const room = e.room?.id
+                const section = e.assignment.section?.id
+
+                if (faculty && facultySet.has(faculty)) {
+                    map[e.id] = "faculty"
+                }
+
+                if (room && roomSet.has(room)) {
+                    map[e.id] = "room"
+                }
+
+                if (section && sectionSet.has(section)) {
+                    map[e.id] = "section"
+                }
+
+                if (faculty) facultySet.add(faculty)
+                if (room) roomSet.add(room)
+                if (section) sectionSet.add(section)
+
+                if (!map[e.id]) {
+                    map[e.id] = "none"
+                }
+
+            })
+
+        })
+
+        return map
+
+    }, [schedules])
 
     return (
 
         <div>
 
-            {/* Legend */}
+            {/* LEGEND */}
+
             <div className="flex gap-4 mb-4 text-sm">
 
                 <div className="flex items-center gap-2">
@@ -141,6 +172,8 @@ export default function TimetableGrid({ schedules, timeslots }: Props) {
                 </div>
 
             </div>
+
+            {/* GRID */}
 
             <div className="overflow-x-auto border rounded-lg shadow">
 
@@ -176,18 +209,12 @@ export default function TimetableGrid({ schedules, timeslots }: Props) {
 
                                 {days.map(day => {
 
-                                    const entries = getSchedules(day, time.start_time)
-
-                                    const conflictType = detectConflict(entries)
-
-                                    const colorClass =
-                                        conflictType === "faculty"
-                                            ? "bg-red-200 border-red-500"
-                                            : conflictType === "room"
-                                                ? "bg-orange-200 border-orange-500"
-                                                : conflictType === "section"
-                                                    ? "bg-yellow-200 border-yellow-500"
-                                                    : "bg-blue-100 border-blue-300"
+                                    const entries = schedules.filter(
+                                        s =>
+                                            s.timeslot.day_of_week === day &&
+                                            s.timeslot.start_time === time.start_time &&
+                                            s.timeslot.end_time === time.end_time
+                                    )
 
                                     return (
 
@@ -196,36 +223,51 @@ export default function TimetableGrid({ schedules, timeslots }: Props) {
                                             className="border px-2 py-2 align-top min-w-[160px]"
                                         >
 
-                                            {entries.map(s => (
+                                            {entries.map(s => {
 
-                                                <div
-                                                    key={s.id}
-                                                    className={`mb-1 rounded-md p-2 text-xs border ${colorClass}`}
-                                                >
+                                                const conflictType = conflictMap[s.id]
 
-                                                    <div className="font-semibold">
-                                                        {s.assignment.subject.subject_code}
+                                                const colorClass =
+                                                    conflictType === "faculty"
+                                                        ? "bg-red-200 border-red-500"
+                                                        : conflictType === "room"
+                                                        ? "bg-orange-200 border-orange-500"
+                                                        : conflictType === "section"
+                                                        ? "bg-yellow-200 border-yellow-500"
+                                                        : "bg-blue-100 border-blue-300"
+
+                                                return (
+
+                                                    <div
+                                                        key={s.id}
+                                                        className={`mb-1 rounded-md p-2 text-xs border ${colorClass}`}
+                                                    >
+
+                                                        <div className="font-semibold">
+                                                            {s.assignment.subject.subject_code}
+                                                        </div>
+
+                                                        <div>
+                                                            {s.assignment.section.section_name}
+                                                        </div>
+
+                                                        <div className="flex justify-between mt-1 text-gray-600">
+
+                                                            <span>
+                                                                {s.assignment.faculty.first_name} {s.assignment.faculty.last_name}
+                                                            </span>
+
+                                                            <span className="bg-white px-1 rounded text-[10px] border">
+                                                                {s.room.room_name}
+                                                            </span>
+
+                                                        </div>
+
                                                     </div>
 
-                                                    <div>
-                                                        {s.assignment.section.section_name}
-                                                    </div>
+                                                )
 
-                                                    <div className="flex justify-between mt-1 text-gray-600">
-
-                                                        <span>
-                                                            {s.assignment.faculty.first_name}
-                                                        </span>
-
-                                                        <span className="bg-white px-1 rounded text-[10px] border">
-                                                            {s.room.room_name}
-                                                        </span>
-
-                                                    </div>
-
-                                                </div>
-
-                                            ))}
+                                            })}
 
                                         </td>
 
@@ -246,4 +288,5 @@ export default function TimetableGrid({ schedules, timeslots }: Props) {
         </div>
 
     )
+
 }

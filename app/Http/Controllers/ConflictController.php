@@ -9,7 +9,6 @@ class ConflictController extends Controller
 {
     public function index()
     {
-
         $schedules = Schedule::with([
             'assignment.section',
             'assignment.subject',
@@ -17,69 +16,55 @@ class ConflictController extends Controller
             'room',
             'timeslot'
         ])->get();
-
+    
         $conflicts = [];
-
-        foreach ($schedules as $a) {
-
-            foreach ($schedules as $b) {
-
-                if ($a->id >= $b->id) continue;
-
-                if (
-                    $a->timeslot->day_of_week === $b->timeslot->day_of_week &&
-                    $a->timeslot->start_time === $b->timeslot->start_time
-                ) {
-
-                    // Faculty conflict
-                    if ($a->assignment->faculty_id === $b->assignment->faculty_id) {
-
-                        $conflicts[] = [
-                            'type' => 'Faculty Conflict',
-                            'day' => $a->timeslot->day_of_week,
-                            'time' => $a->timeslot->start_time,
-                            'message' =>
-                                $a->assignment->faculty->first_name .
-                                ' is teaching two classes at the same time.',
-                            'a' => $a,
-                            'b' => $b,
-                        ];
-                    }
-
-                    // Room conflict
-                    if ($a->room_id === $b->room_id) {
-
-                        $conflicts[] = [
-                            'type' => 'Room Conflict',
-                            'day' => $a->timeslot->day_of_week,
-                            'time' => $a->timeslot->start_time,
-                            'message' =>
-                                'Room ' . $a->room->room_name . ' is double booked.',
-                            'a' => $a,
-                            'b' => $b,
-                        ];
-                    }
-
-                    // Section conflict
-                    if ($a->assignment->section_id === $b->assignment->section_id) {
-
-                        $conflicts[] = [
-                            'type' => 'Section Conflict',
-                            'day' => $a->timeslot->day_of_week,
-                            'time' => $a->timeslot->start_time,
-                            'message' =>
-                                'Section ' . $a->assignment->section->section_name . ' has two subjects at the same time.',
-                            'a' => $a,
-                            'b' => $b,
-                        ];
-                    }
-
+    
+        // group schedules by timeslot
+        $grouped = $schedules->groupBy('time_slot_id');
+    
+        foreach ($grouped as $timeSlotId => $slotSchedules) {
+    
+            // ROOM conflicts
+            $roomGroups = $slotSchedules->groupBy('room_id');
+    
+            foreach ($roomGroups as $roomId => $roomSchedules) {
+                if ($roomSchedules->count() > 1) {
+                    $conflicts[] = [
+                        'type' => 'Room Conflict',
+                        'items' => $roomSchedules
+                    ];
                 }
-
             }
-
+    
+            // FACULTY conflicts
+            $facultyGroups = $slotSchedules->groupBy(function ($s) {
+                return $s->assignment->faculty_id;
+            });
+    
+            foreach ($facultyGroups as $facultyId => $facultySchedules) {
+                if ($facultyId && $facultySchedules->count() > 1) {
+                    $conflicts[] = [
+                        'type' => 'Faculty Conflict',
+                        'items' => $facultySchedules
+                    ];
+                }
+            }
+    
+            // SECTION conflicts
+            $sectionGroups = $slotSchedules->groupBy(function ($s) {
+                return $s->assignment->section_id;
+            });
+    
+            foreach ($sectionGroups as $sectionId => $sectionSchedules) {
+                if ($sectionSchedules->count() > 1) {
+                    $conflicts[] = [
+                        'type' => 'Section Conflict',
+                        'items' => $sectionSchedules
+                    ];
+                }
+            }
         }
-
+    
         return Inertia::render('Schedules/Conflicts', [
             'conflicts' => $conflicts
         ]);
