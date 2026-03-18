@@ -26,19 +26,19 @@ class GenerateController extends Controller
                 'status' => $t->status,
             ];
         });
-    
-        $rooms = Room::all()->map(function($r){
+
+        $rooms = Room::all()->map(function ($r) {
             return [
                 'id' => $r->id,
                 'room_name' => $r->room_name,
             ];
         });
-    
+
         $assignments = SectionSubjectAssignment::with([
             'section.program',
             'subject',
             'faculty'
-        ])->get()->map(function($a){
+        ])->get()->map(function ($a) {
             return [
                 'id' => $a->id,
                 'section_id' => $a->section_id,
@@ -46,7 +46,7 @@ class GenerateController extends Controller
                 'faculty_id' => $a->faculty_id,
             ];
         });
-    
+
         return Inertia::render("Schedules/Generate", [
             'versions' => $versions,
             'timeSlots' => $timeSlots,
@@ -83,7 +83,12 @@ class GenerateController extends Controller
                 'id' => $r->id
             ]),
             'timeslots' => $timeslots->map(fn($t) => [
-                'id' => $t->id
+                'id' => $t->id,
+                'day_of_week' => $t->day_of_week,
+                'start_time' => $t->start_time,
+                'end_time' => $t->end_time,
+                'mode' => $t->mode,
+                'status' => $t->status,
             ])
         ]);
 
