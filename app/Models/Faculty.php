@@ -19,6 +19,10 @@ class Faculty extends Model
         'max_load_hours',
         'status'
     ];
+
+    protected $casts = [
+        'preferred_timeslots' => 'array'
+    ];
     public function department()
     {
         return $this->belongsTo(Department::class);

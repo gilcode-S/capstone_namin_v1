@@ -168,21 +168,6 @@ class ScheduleController extends Controller
         ]);
     }
 
-
-    public function update(Request $request, Schedule $schedule)
-    {
-        $validated = $request->validate([
-            'room_id' => 'required|exists:rooms,id',
-            'time_slot_id' => 'required|exists:time_slots,id'
-        ]);
-
-        $schedule->update($validated);
-
-        return back()->with('success' , 'schedule moved success');
-    }
-
-
-
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -196,6 +181,21 @@ class ScheduleController extends Controller
 
         return redirect()->back()->with('success', 'Schedule created');
     }
+    public function update(Request $request, Schedule $schedule)
+    {
+        $validated = $request->validate([
+            'room_id' => 'required|exists:rooms,id',
+            'time_slot_id' => 'required|exists:time_slots,id'
+        ]);
+
+        $schedule->update($validated);
+
+        return back()->with('success', 'schedule moved success');
+    }
+
+
+
+
 
 
     public function destroy(Schedule $schedule)
