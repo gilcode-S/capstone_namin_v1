@@ -3,17 +3,36 @@ from ortools.sat.python import cp_model
 import time
 from collections import defaultdict
 import random
+import datetime
 
 app = FastAPI()
 
 
 # ---------------------------------
-# HUMAN-LIKE GREEDY TIMESLOT
+# TIME HELPERS
+# ---------------------------------
+def to_minutes(time_str):
+    dt = datetime.datetime.strptime(time_str, "%I:%M %p")
+    return dt.hour * 60 + dt.minute
+
+
+def is_overlap(t1, t2):
+    return max(
+        to_minutes(t1["start_time"]),
+        to_minutes(t2["start_time"])
+    ) < min(
+        to_minutes(t1["end_time"]),
+        to_minutes(t2["end_time"])
+    )
+
+
+# ---------------------------------
+# GREEDY TIMESLOT (SMART VERSION)
 # ---------------------------------
 def greedy_timeslot(assignments, timeslots):
 
-    section_busy = set()
-    faculty_busy = set()
+    faculty_schedule = defaultdict(list)
+    section_schedule = defaultdict(list)
 
     result = {}
 
@@ -26,9 +45,9 @@ def greedy_timeslot(assignments, timeslots):
         day = t.get("day") or t.get("day_of_week") or t.get("dayOfWeek")
 
         if not day:
-            print("❌ BAD TIMESLOT:", t)
             raise ValueError("Timeslot missing day field")
 
+        t["day"] = day  # normalize
         timeslots_by_day[day].append(t)
 
     # -----------------------------
@@ -37,11 +56,14 @@ def greedy_timeslot(assignments, timeslots):
     day_load = {day: 0 for day in timeslots_by_day.keys()}
 
     # -----------------------------
-    # Sort assignments (hard first)
+    # Sort assignments (priority)
     # -----------------------------
     assignments_sorted = sorted(
         assignments,
-        key=lambda x: (x.get("faculty_id") is None, x["section_id"])
+        key=lambda x: (
+            x.get("faculty_id") is None,
+            x["section_id"]
+        )
     )
 
     # -----------------------------
@@ -52,31 +74,56 @@ def greedy_timeslot(assignments, timeslots):
         section = a["section_id"]
         faculty = a.get("faculty_id")
 
-        # pick least-loaded day first
         sorted_days = sorted(day_load.keys(), key=lambda d: day_load[d])
 
         assigned = False
 
         for day in sorted_days:
-
             day_slots = timeslots_by_day[day][:]
-            random.shuffle(day_slots)  # avoid same-hour stacking
+            random.shuffle(day_slots)
 
             for t in day_slots:
-                t_id = t["id"]
 
-                if (section, t_id) in section_busy:
+                # -----------------------------
+                # REAL CONFLICT CHECK
+                # -----------------------------
+                conflict = False
+
+                # faculty conflict
+                if faculty:
+                    for used in faculty_schedule[faculty]:
+                        if used["day"] == day and is_overlap(used, t):
+                            conflict = True
+                            break
+
+                # section conflict
+                for used in section_schedule[section]:
+                    if used["day"] == day and is_overlap(used, t):
+                        conflict = True
+                        break
+
+                if conflict:
                     continue
 
-                if faculty and (faculty, t_id) in faculty_busy:
-                    continue
+                # -----------------------------
+                # LIMIT per day (balance)
+                # -----------------------------
+                if faculty:
+                    daily_count = sum(
+                        1 for s in faculty_schedule[faculty] if s["day"] == day
+                    )
+                    if daily_count >= 4:
+                        continue
 
-                # assign
-                result[a_id] = t_id
-                section_busy.add((section, t_id))
+                # -----------------------------
+                # ASSIGN
+                # -----------------------------
+                result[a_id] = t["id"]
+
+                section_schedule[section].append(t)
 
                 if faculty:
-                    faculty_busy.add((faculty, t_id))
+                    faculty_schedule[faculty].append(t)
 
                 day_load[day] += 1
                 assigned = True
@@ -85,28 +132,41 @@ def greedy_timeslot(assignments, timeslots):
             if assigned:
                 break
 
-        # fallback (rare)
-        if not assigned:
-            for t in timeslots:
-                t_id = t["id"]
-
-                if (section, t_id) in section_busy:
-                    continue
-
-                if faculty and (faculty, t_id) in faculty_busy:
-                    continue
-
-                result[a_id] = t_id
-                section_busy.add((section, t_id))
-
-                if faculty:
-                    faculty_busy.add((faculty, t_id))
-
-                break
-
     print("Day distribution:", day_load)
-
     return result
+
+
+# ---------------------------------
+# VALIDATION (FOR DEBUG / DEFENSE)
+# ---------------------------------
+def validate_schedule(results, assignments, timeslots):
+    print("\n🔍 VALIDATING SCHEDULE...\n")
+
+    timeslot_map = {t["id"]: t for t in timeslots}
+    faculty_map = {a["id"]: a["faculty_id"] for a in assignments}
+
+    conflicts = 0
+
+    for i in range(len(results)):
+        for j in range(i + 1, len(results)):
+
+            r1 = results[i]
+            r2 = results[j]
+
+            f1 = faculty_map[r1["assignment_id"]]
+            f2 = faculty_map[r2["assignment_id"]]
+
+            if f1 != f2 or not f1:
+                continue
+
+            t1 = timeslot_map[r1["time_slot_id"]]
+            t2 = timeslot_map[r2["time_slot_id"]]
+
+            if t1["day_of_week"] == t2["day_of_week"] and is_overlap(t1, t2):
+                print("❌ FACULTY CONFLICT:", r1, r2)
+                conflicts += 1
+
+    print("Total conflicts:", conflicts)
 
 
 # ---------------------------------
@@ -114,17 +174,9 @@ def greedy_timeslot(assignments, timeslots):
 # ---------------------------------
 @app.post("/generate")
 async def generate_schedule(request: Request):
-    """
-    Expects JSON body with keys:
-    - assignments: list of dicts
-    - rooms: list of dicts
-    - timeslots: list of dicts (each with 'day' or 'day_of_week')
-    """
 
-    # Parse JSON request
     data = await request.json()
 
-    # Debug print
     print("=== FULL REQUEST DATA ===")
     print(data)
 
@@ -132,37 +184,30 @@ async def generate_schedule(request: Request):
     rooms = data.get("rooms")
     timeslots = data.get("timeslots")
 
-    print("Received timeslots:", timeslots)
-    if timeslots and isinstance(timeslots, list) and len(timeslots) > 0:
-        print("Sample timeslot keys:", list(timeslots[0].keys()))
-    else:
-        print("No timeslots received or empty or wrong format!")
-
-    # -------------
-    # Normalization: Ensure each timeslot has a day field
-    # -------------
+    # -----------------------------
+    # Normalize timeslots
+    # -----------------------------
     for i, t in enumerate(timeslots):
         if not (t.get("day") or t.get("day_of_week") or t.get("dayOfWeek")):
-            print(f"⚠️ Timeslot missing day field at index {i}, injecting default 'Monday': {t}")
-            t["day_of_week"] = "Monday"  # default fallback to Monday
+            print(f"⚠️ Missing day at {i}, default Monday")
+            t["day_of_week"] = "Monday"
 
     start_total = time.time()
 
     # ---------------------------------
-    # STEP 1: HUMAN GREEDY
+    # STEP 1: GREEDY TIMESLOT
     # ---------------------------------
     timeslot_assignment = greedy_timeslot(assignments, timeslots)
 
     print("Timeslots assigned:", len(timeslot_assignment))
 
     # ---------------------------------
-    # STEP 2: CP-SAT (ROOM ASSIGNMENT)
+    # STEP 2: CP-SAT ROOM ASSIGNMENT
     # ---------------------------------
     model = cp_model.CpModel()
 
     assign_room = {}
 
-    # create vars
     for a in assignments:
         a_id = a["id"]
 
@@ -185,7 +230,7 @@ async def generate_schedule(request: Request):
             sum(assign_room[(a_id, r["id"])] for r in rooms) == 1
         )
 
-    # room conflict (same time)
+    # room conflict
     for r in rooms:
         for t in timeslots:
 
@@ -230,19 +275,19 @@ async def generate_schedule(request: Request):
             if a_id not in timeslot_assignment:
                 continue
 
-            assigned_room = None
-
             for r in rooms:
                 if solver.Value(assign_room[(a_id, r["id"])]) == 1:
-                    assigned_room = r["id"]
+                    results.append({
+                        "assignment_id": a_id,
+                        "room_id": r["id"],
+                        "time_slot_id": timeslot_assignment[a_id]
+                    })
                     break
 
-            if assigned_room:
-                results.append({
-                    "assignment_id": a_id,
-                    "room_id": assigned_room,
-                    "time_slot_id": timeslot_assignment[a_id]
-                })
+    # ---------------------------------
+    # VALIDATE (IMPORTANT)
+    # ---------------------------------
+    validate_schedule(results, assignments, timeslots)
 
     total_time = time.time() - start_total
 
