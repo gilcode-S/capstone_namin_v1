@@ -1,8 +1,21 @@
-import { Head } from '@inertiajs/react';
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
-import AppLayout from '@/layouts/app-layout';
-import { dashboard } from '@/routes';
-import type { BreadcrumbItem } from '@/types';
+import { Head, usePage } from '@inertiajs/react'
+import {
+    Users,
+    Building2,
+    Layers,
+    BookOpen,
+    Sparkles,
+    RotateCcw,
+    AlertTriangle,
+    CheckCircle2,
+    Layout,
+} from 'lucide-react'
+import MetricCard from '@/components/MetricCard'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import AppLayout from '@/layouts/app-layout'
+import { dashboard } from '@/routes'
+import type { BreadcrumbItem } from '@/types'
 
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -10,28 +23,188 @@ const breadcrumbs: BreadcrumbItem[] = [
         title: 'Dashboard',
         href: dashboard().url,
     },
-];
+]
 
 export default function Dashboard() {
+    
+    const {totalFaculty, totalRooms, totalSections, totalSubjects} : any = usePage().props;
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
+
+            <div className="flex flex-col gap-6 p-6">``
+
+                {/* ===================== */}
+                {/* TOP METRICS */}
+                {/* ===================== */}
+                <div className="grid gap-4 md:grid-cols-4">
+                    <MetricCard icon={Users} label="Total Faculty" value={totalFaculty} />
+                    <MetricCard icon={Building2} label="Total Rooms" value={totalRooms} />
+                    <MetricCard icon={Layout} label="Total Sections" value={totalSections} />
+                    <MetricCard icon={BookOpen} label="Total Sections" value={totalSubjects} />
                 </div>
-                <div className="relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">
-                    <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
+
+                {/* ===================== */}
+                {/* AI GENERATOR */}
+                {/* ===================== */}
+                <Card className="rounded-2xl shadow-sm">
+                    <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-lg font-semibold">AI Schedule Generator</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Generate optimized schedules using Hybrid Algorithm
+                                </p>
+                            </div>
+                            <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-600">
+                                Greedy + CP-SAT
+                            </span>
+                        </CardTitle>
+                    </CardHeader>
+
+                    <CardContent className="flex items-center gap-3">
+                        <Button className="gap-2 bg-indigo-600 hover:bg-indigo-700">
+                            <Sparkles size={16} />
+                            Generate Schedule
+                        </Button>
+
+                        <Button variant="outline" className="gap-2">
+                            <RotateCcw size={16} />
+                            Reset
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                {/* ===================== */}
+                {/* SUMMARY + STATUS */}
+                {/* ===================== */}
+                <div className="grid gap-4 md:grid-cols-3">
+
+                    <SummaryCard title="Scheduled Classes" value="120" />
+                    <SummaryCard title="Unassigned" value="5" />
+                    <SummaryCard title="Conflicts" value="2" danger />
+
+                </div>
+
+                {/* ALERT */}
+                <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-red-600">
+                    <AlertTriangle size={18} />
+                    Conflicts detected in schedule
+                </div>
+
+                {/* ===================== */}
+                {/* TIMETABLE */}
+                {/* ===================== */}
+                <Card className="rounded-2xl">
+                    <CardHeader>
+                        <CardTitle>Weekly Timetable</CardTitle>
+                    </CardHeader>
+
+                    <CardContent>
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse text-sm">
+                                <thead>
+                                    <tr>
+                                        <th className="p-2 text-left">Time</th>
+                                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                                            <th key={day} className="p-2">{day}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {['7:00', '9:00', '11:00', '1:00', '3:00'].map(time => (
+                                        <tr key={time}>
+                                            <td className="p-2 font-medium">{time}</td>
+
+                                            {[...Array(6)].map((_, i) => (
+                                                <td key={i} className="p-2">
+                                                    <div className="rounded-xl bg-indigo-100 p-2 text-xs text-indigo-700">
+                                                        CS101<br />
+                                                        Room 1<br />
+                                                        Prof A
+                                                    </div>
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* ===================== */}
+                {/* BOTTOM GRID */}
+                {/* ===================== */}
+                <div className="grid gap-4 md:grid-cols-3">
+
+                    {/* RECENT ACTIVITY */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Recent Activity</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2 text-sm">
+                            <p>✅ Schedule generated • 2 mins ago</p>
+                            <p>➕ Faculty added • 10 mins ago</p>
+                            <p>✏️ Room updated • 1 hour ago</p>
+                        </CardContent>
+                    </Card>
+
+                    {/* QUICK ACTIONS */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Quick Actions</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid gap-2">
+                            <Button variant="outline">Add Faculty</Button>
+                            <Button variant="outline">Add Room</Button>
+                            <Button variant="outline">Add Section</Button>
+                            <Button variant="outline">Create Assignment</Button>
+                        </CardContent>
+                    </Card>
+
+                    {/* SYSTEM STATUS */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>System Status</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2 text-sm">
+                            <p className="flex items-center gap-2 text-green-600">
+                                <CheckCircle2 size={16} /> Optimal
+                            </p>
+                            <p>Generation Time: 2.3s</p>
+                            <p>Last Generated: 5 mins ago</p>
+                        </CardContent>
+                    </Card>
+
                 </div>
             </div>
         </AppLayout>
-    );
+    )
+}
+
+
+
+
+
+
+/* ========================= */
+/* COMPONENTS */
+/* ========================= */
+
+
+
+function SummaryCard({ title, value, danger }: any) {
+    return (
+        <Card className="rounded-2xl">
+            <CardContent className="p-4">
+                <p className="text-sm text-muted-foreground">{title}</p>
+                <h3 className={`text-2xl font-semibold ${danger ? 'text-red-600' : ''}`}>
+                    {value}
+                </h3>
+            </CardContent>
+        </Card>
+    )
 }
