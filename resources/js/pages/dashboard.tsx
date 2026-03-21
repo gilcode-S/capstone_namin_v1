@@ -1,8 +1,8 @@
-import { Head, usePage } from '@inertiajs/react'
+import { Head, usePage, router } from '@inertiajs/react'
 import {
     Users,
     Building2,
-    Layers,
+
     BookOpen,
     Sparkles,
     RotateCcw,
@@ -11,11 +11,13 @@ import {
     Layout,
 } from 'lucide-react'
 import MetricCard from '@/components/MetricCard'
+import SummaryCard from '@/components/SummaryCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import AppLayout from '@/layouts/app-layout'
 import { dashboard } from '@/routes'
 import type { BreadcrumbItem } from '@/types'
+
 
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -26,14 +28,15 @@ const breadcrumbs: BreadcrumbItem[] = [
 ]
 
 export default function Dashboard() {
-    
-    const {totalFaculty, totalRooms, totalSections, totalSubjects} : any = usePage().props;
+
+    const { totalFaculty, totalRooms, totalSections, totalSubjects, summary }: any = usePage().props;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
+            <div className="0000000000000000000000"></div>
             <Head title="Dashboard" />
 
-            <div className="flex flex-col gap-6 p-6">``
+            <div className="flex flex-col gap-6 p-6">
 
                 {/* ===================== */}
                 {/* TOP METRICS */}
@@ -42,7 +45,7 @@ export default function Dashboard() {
                     <MetricCard icon={Users} label="Total Faculty" value={totalFaculty} />
                     <MetricCard icon={Building2} label="Total Rooms" value={totalRooms} />
                     <MetricCard icon={Layout} label="Total Sections" value={totalSections} />
-                    <MetricCard icon={BookOpen} label="Total Sections" value={totalSubjects} />
+                    <MetricCard icon={BookOpen} label="Total Subject" value={totalSubjects} />
                 </div>
 
                 {/* ===================== */}
@@ -64,15 +67,24 @@ export default function Dashboard() {
                     </CardHeader>
 
                     <CardContent className="flex items-center gap-3">
-                        <Button className="gap-2 bg-indigo-600 hover:bg-indigo-700">
+
+                        <Button
+                            onClick={() => router.visit('/generate-schedule')}
+                            className="gap-2 bg-indigo-600 hover:bg-indigo-700"
+                        >
                             <Sparkles size={16} />
                             Generate Schedule
                         </Button>
 
-                        <Button variant="outline" className="gap-2">
+                        <Button
+                            variant="outline"
+                            className="gap-2"
+                            onClick={() => router.visit('/generate-schedule')}
+                        >
                             <RotateCcw size={16} />
-                            Reset
+                            Manage
                         </Button>
+
                     </CardContent>
                 </Card>
 
@@ -81,9 +93,9 @@ export default function Dashboard() {
                 {/* ===================== */}
                 <div className="grid gap-4 md:grid-cols-3">
 
-                    <SummaryCard title="Scheduled Classes" value="120" />
-                    <SummaryCard title="Unassigned" value="5" />
-                    <SummaryCard title="Conflicts" value="2" danger />
+                    <SummaryCard title="Scheduled Classes" value={summary.schedule} />
+                    <SummaryCard title="Unassigned" value={summary.unassigned} />
+                    <SummaryCard title="Conflicts" value={summary.conflicts} danger />
 
                 </div>
 
@@ -195,16 +207,3 @@ export default function Dashboard() {
 /* ========================= */
 
 
-
-function SummaryCard({ title, value, danger }: any) {
-    return (
-        <Card className="rounded-2xl">
-            <CardContent className="p-4">
-                <p className="text-sm text-muted-foreground">{title}</p>
-                <h3 className={`text-2xl font-semibold ${danger ? 'text-red-600' : ''}`}>
-                    {value}
-                </h3>
-            </CardContent>
-        </Card>
-    )
-}
