@@ -1,7 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react'
 import { Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { useState } from 'react'
-
+import Pagination from '@/components/Pagination'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,7 +13,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import AppLayout from '@/layouts/app-layout'
-import Pagination from '@/components/Pagination'
+
 
 
 interface Department {
@@ -53,7 +53,7 @@ const emptyForm = {
 }
 
 export default function Index() {
-  const { faculties, departments } = usePage().props as unknown as {
+  const { faculties, departments, stats } = usePage().props as unknown as {
     faculties: {
       data: Faculty[],
       links: any[]
@@ -243,86 +243,213 @@ export default function Index() {
       <div className="p-6">
 
         {/* HEADER */}
+        {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center">
             <Users className="mr-2 text-blue-500" size={28} />
-            <h1 className="text-2xl font-bold">Manage Faculty</h1>
+            <h1 className="text-2xl font-bold">Faculty Management</h1>
           </div>
 
           <Button onClick={handleOpen} className="gap-2">
             <Plus size={18} />
-            Add Faculty
+            Add Teacher
           </Button>
         </div>
 
-        {/* TABLE */}
-        <div className="overflow-x-auto rounded-lg shadow border">
-          <table className="min-w-full">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-4 py-2 text-left">Code</th>
-                <th className="px-4 py-2 text-left">Name</th>
-                <th className="px-4 py-2 text-left">Department</th>
-                <th className="px-4 py-2 text-left">Type</th>
-                <th className="px-4 py-2 text-left">Max Load</th>
-                <th className="px-4 py-2 text-left">Status</th>
-                <th className="px-4 py-2 text-left">Availability</th>
-                <th className="px-4 py-2 text-center">Actions</th>
-              </tr>
-            </thead>
+        {/* SUMMARY CARDS */}
+        <div className="grid md:grid-cols-3 gap-4 mb-6">
 
-            <tbody>
-              {faculties.data.length > 0 ? faculties.data.map(f => (
-                <tr key={f.id} className="border-t">
-                  <td className="px-4 py-2">{f.faculty_code}</td>
-                  <td className="px-4 py-2">{f.first_name} {f.last_name}</td>
-                  <td className="px-4 py-2">{f.department?.department_name}</td>
-                  <td className="px-4 py-2">{f.employement_type}</td>
-                  <td className="px-4 py-2">{f.max_load_units}</td>
-                  <td className="px-4 py-2">
-                    <span className={
-                      f.status === 'active'
-                        ? 'text-green-600'
-                        : 'text-red-600'
-                    }>
-                      {f.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2">
-                    {f.availabilities?.length || 0} slots
-                  </td>
+          <div className="rounded-xl border p-4 bg-white shadow-sm">
+            <p className="text-sm text-muted-foreground">Total Teachers</p>
+            <h2 className="text-2xl font-bold">{stats?.total ?? 0}</h2>
+            <p className="text-xs text-muted-foreground">Active faculty members</p>
+          </div>
 
-                  <td className="px-4 py-2 text-center">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mr-2"
-                      onClick={() => handleOpenEdit(f)}
-                    >
-                      <Pencil size={16} />
-                    </Button>
+          <div className="rounded-xl border p-4 bg-white shadow-sm">
+            <p className="text-sm text-muted-foreground">Average Workloads</p>
+            <h2 className="text-2xl font-bold">{stats?.avg_load ?? 0}%</h2>
+            <p className="text-xs text-muted-foreground">Overall Utilization</p>
+          </div>
 
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDelete(f.id)}
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan={8} className="px-4 py-4 text-center text-gray-500">
-                    No Faculty Found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          <div className="rounded-xl border p-4 bg-white shadow-sm">
+            <p className="text-sm text-muted-foreground">Subjects Covered</p>
+            <h2 className="text-2xl font-bold">{stats?.subjects ?? 0}</h2>
+            <p className="text-xs text-muted-foreground">Unique subjects</p>
+          </div>
+
         </div>
 
-        <Pagination links={faculties.links}/>
+        {/* FILTERS */}
+        <div className="rounded-xl border p-4 mb-6 bg-white shadow-sm">
+
+          <div className="flex flex-col md:flex-row gap-4">
+
+            {/* SEARCH */}
+            <Input
+              placeholder="Search Teachers or Subjects..."
+              className="flex-1"
+            />
+
+            {/* DEPARTMENT FILTER */}
+            <select className="border rounded px-3 py-2 w-full md:w-64">
+              <option value="">All Departments</option>
+              {departments.map((d: Department) => (
+                <option key={d.id} value={d.id}>
+                  {d.department_name}
+                </option>
+              ))}
+            </select>
+
+          </div>
+
+        </div>
+
+        <div className="rounded-xl border bg-white shadow-sm">
+
+          {/* HEADER */}
+          <div className="p-4 border-b">
+            <h2 className="font-semibold text-lg">Faculty Members</h2>
+            <p className="text-sm text-muted-foreground">
+              Overview of all teachers, their workloads, and scheduling constraints
+            </p>
+          </div>
+
+          {/* TABLE */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-muted-foreground">
+                <tr className="border-b">
+                  <th className="p-3">Teacher</th>
+                  <th className="p-3">Department</th>
+                  <th className="p-3">Subjects</th>
+                  <th className="p-3">Hours</th>
+                  <th className="p-3">Availability</th>
+                  <th className="p-3">Workload</th>
+                  <th className="p-3 text-center">Actions</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {faculties.data.map((f: any) => (
+                  <tr key={f.id} className="border-b hover:bg-gray-50 transition">
+
+                    {/* TEACHER */}
+                    <td className="p-3 font-medium">
+                      {f.first_name} {f.last_name}
+                    </td>
+
+                    {/* DEPARTMENT */}
+                    <td className="p-3">
+                      <span className="px-2 py-1 rounded-md bg-gray-100 text-xs">
+                        {f.department?.department_name}
+                      </span>
+                    </td>
+
+                    {/* SUBJECTS */}
+                    <td className="p-3">
+                      <div className="flex flex-wrap gap-1">
+                        {f.subjects?.slice(0, 2).map((s: string, i: number) => (
+                          <span
+                            key={i}
+                            className="px-2 py-1 text-xs bg-gray-100 rounded-md"
+                          >
+                            {s}
+                          </span>
+                        ))}
+
+                        {f.subjects?.length > 2 && (
+                          <span className="px-2 py-1 text-xs bg-gray-200 rounded-md">
+                            +{f.subjects.length - 2}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* HOURS + PROGRESS */}
+                    <td className="p-3 w-[180px]">
+                      <div className="text-xs mb-1">
+                        {f.assigned_load}/{f.max_load_units}
+                      </div>
+
+                      <div className="w-full bg-gray-200 h-2 rounded-full">
+                        <div
+                          className={`h-2 rounded-full ${f.workload_percent >= 90
+                              ? 'bg-red-500'
+                              : f.workload_percent >= 70
+                                ? 'bg-yellow-500'
+                                : 'bg-green-500'
+                            }`}
+                          style={{ width: `${f.workload_percent}%` }}
+                        />
+                      </div>
+                    </td>
+
+                    {/* AVAILABILITY */}
+                    <td className="p-3">
+                      <div className="flex gap-1 flex-wrap">
+                        {f.teaching_days?.slice(0, 3).map((day: string, i: number) => (
+                          <span
+                            key={i}
+                            className="px-2 py-1 text-xs bg-gray-100 rounded-md"
+                          >
+                            {day}
+                          </span>
+                        ))}
+
+                        {f.teaching_days?.length > 3 && (
+                          <span className="px-2 py-1 text-xs bg-gray-200 rounded-md">
+                            +{f.teaching_days.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* WORKLOAD % */}
+                    <td className="p-3 font-semibold">
+                      <span
+                        className={
+                          f.workload_percent >= 90
+                            ? 'text-red-600'
+                            : f.workload_percent >= 70
+                              ? 'text-yellow-600'
+                              : 'text-green-600'
+                        }
+                      >
+                        {f.workload_percent}%
+                      </span>
+                    </td>
+
+                    {/* ACTIONS */}
+                    <td className="p-3 text-center">
+                      <div className="flex justify-center gap-2">
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenEdit(f)}
+                        >
+                          <Pencil size={14} />
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDelete(f.id)}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+
+                      </div>
+                    </td>
+
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <Pagination links={faculties.links} />
 
         {/* FACULTY MODAL */}
         <Dialog open={open} onOpenChange={setOpen}>

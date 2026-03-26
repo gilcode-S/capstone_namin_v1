@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Department;
 use App\Models\FacultyAvailability;
 use App\Models\Subject;
+use App\Models\SectionSubjectAssignment;
+use App\Models\Schedule;
+
 class Faculty extends Model
 {
     //
@@ -43,5 +46,22 @@ class Faculty extends Model
     public function getFullNameAttribute()
     {
         return $this->first_name . ' ' . $this->last_name;
+    }
+
+    public function assignments()
+    {
+        return $this->hasMany(SectionSubjectAssignment::class);
+    }
+
+    public function schedules()
+    {
+        return $this->hasManyThrough(
+            Schedule::class,
+            SectionSubjectAssignment::class,
+            'faculty_id',
+            'assignment_id',
+            'id',
+            'id'
+        );
     }
 }
