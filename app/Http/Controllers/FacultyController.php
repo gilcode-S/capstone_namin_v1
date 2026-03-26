@@ -101,6 +101,10 @@ class FacultyController extends Controller
             }),
 
             'departments' => Department::all(),
+            'filters' => [
+                'search' => $request->search,
+                'department' => $request->department
+            ],
             'stats' => [
                 'total' => Faculty::count(),
                 'avg_load' => round(

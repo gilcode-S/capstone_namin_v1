@@ -1,6 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react'
 import { Pencil, Plus, Trash2, Users } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Pagination from '@/components/Pagination'
 import { Button } from '@/components/ui/button'
 import {
@@ -53,7 +53,7 @@ const emptyForm = {
 }
 
 export default function Index() {
-  const { faculties, departments, stats } = usePage().props as unknown as {
+  const { faculties, departments, stats, filters } = usePage().props as unknown as {
     faculties: {
       data: Faculty[],
       links: any[]
@@ -67,6 +67,8 @@ export default function Index() {
   const [loading, setLoading] = useState(false)
   const [isEdit, setIsEdit] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
+  const [search, setSearch] = useState(filters.search || '')
+  const [departmentFilter, setDepartmentFilter] = useState(filters.department || '')
 
   const [availability, setAvailability] = useState<Availability>({
     day_of_week: '',
@@ -236,14 +238,29 @@ export default function Index() {
     router.delete(`/faculty/${id}`)
   }
 
+
+
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      router.get('/faculty', {
+        search,
+        department: departmentFilter
+      }, {
+        preserveState: true,
+        replace: true
+      })
+    }, 400)
+
+    return () => clearTimeout(delay)
+  }, [search])
+
   return (
     <AppLayout breadcrumbs={[{ title: "Faculty", href: "/faculty" }]}>
       <Head title="Faculty Management" />
 
       <div className="p-6">
 
-        {/* HEADER */}
-        {/* HEADER */}
+
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center">
             <Users className="mr-2 text-blue-500" size={28} />
@@ -287,11 +304,25 @@ export default function Index() {
             {/* SEARCH */}
             <Input
               placeholder="Search Teachers or Subjects..."
-              className="flex-1"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
             />
 
             {/* DEPARTMENT FILTER */}
-            <select className="border rounded px-3 py-2 w-full md:w-64">
+            <select
+              value={departmentFilter}
+              onChange={(e) => {
+                setDepartmentFilter(e.target.value)
+                router.get('/faculty', {
+                  search,
+                  department: e.target.value
+                }, {
+                  preserveState: true,
+                  replace: true
+                })
+              }}
+              className="border rounded px-3 py-2 w-full md:w-64"
+            >
               <option value="">All Departments</option>
               {departments.map((d: Department) => (
                 <option key={d.id} value={d.id}>
@@ -374,10 +405,10 @@ export default function Index() {
                       <div className="w-full bg-gray-200 h-2 rounded-full">
                         <div
                           className={`h-2 rounded-full ${f.workload_percent >= 90
-                              ? 'bg-red-500'
-                              : f.workload_percent >= 70
-                                ? 'bg-yellow-500'
-                                : 'bg-green-500'
+                            ? 'bg-red-500'
+                            : f.workload_percent >= 70
+                              ? 'bg-yellow-500'
+                              : 'bg-green-500'
                             }`}
                           style={{ width: `${f.workload_percent}%` }}
                         />
