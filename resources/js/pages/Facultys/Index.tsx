@@ -240,19 +240,27 @@ export default function Index() {
 
 
 
-  useEffect(() => {
-    const delay = setTimeout(() => {
-      router.get('/faculty', {
-        search,
-        department: departmentFilter
-      }, {
-        preserveState: true,
-        replace: true
-      })
-    }, 400)
+// SEARCH
+const handleSearch = (value: string) => {
+  setSearch(value)
 
-    return () => clearTimeout(delay)
-  }, [search])
+  router.get('/faculty', {
+    search: value,
+    department: departmentFilter,
+    page: 1
+  }, { preserveState: true, replace: true })
+}
+
+// DEPARTMENT
+const handleDepartment = (value: string) => {
+  setDepartmentFilter(value)
+
+  router.get('/faculty', {
+    search,
+    department: value,
+    page: 1
+  }, { preserveState: true, replace: true })
+}
 
   return (
     <AppLayout breadcrumbs={[{ title: "Faculty", href: "/faculty" }]}>
