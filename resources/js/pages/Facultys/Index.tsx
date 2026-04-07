@@ -1,6 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react'
 import { Pencil, Plus, Trash2, Users } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Pagination from '@/components/Pagination'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,6 +27,13 @@ interface Availability {
   end_time: string
 }
 
+interface Shift {
+  id: number
+  shift_name: string
+  start_time: string
+  end_time: string
+}
+
 interface Faculty {
   id: number
   department: Department
@@ -34,10 +41,13 @@ interface Faculty {
   first_name: string
   last_name: string
   email: string
-  employement_type: string
+  employment_type: string
   max_load_units: number
+  qualification_level: string
+  years_experience: number
   status: string
   availabilities: Availability[]
+  shifts: Shift[]
 }
 
 const emptyForm = {
@@ -46,14 +56,17 @@ const emptyForm = {
   first_name: '',
   last_name: '',
   email: '',
-  employement_type: '',
+  employment_type: '',
   max_load_units: 21,
   status: 'active',
-  availabilities: [] as Availability[]
+  availabilities: [] as string[],
+  shifts: [] as number[],
+  qualificataion_level: '',
+  years_experience: ''
 }
 
 export default function Index() {
-  const { faculties, departments, stats, filters } = usePage().props as unknown as {
+  const { faculties, departments, stats, filters, shifts } = usePage().props as unknown as {
     faculties: {
       data: Faculty[],
       links: any[]
@@ -98,10 +111,16 @@ export default function Index() {
       first_name: faculty.first_name,
       last_name: faculty.last_name,
       email: faculty.email,
-      employement_type: faculty.employement_type,
+      employment_type: faculty.employment_type,
+      qualification_level: faculty.qualification_level,
+      years_experience: faculty.years_experience,
       max_load_units: faculty.max_load_units,
       status: faculty.status,
-      availabilities: faculty.availabilities || []
+      // ✅ FIX THIS
+      availability: faculty.availabilities?.map(a => a.day_of_week) || [],
+
+      // ✅ if you load shifts later
+      shifts: faculty.shifts?.map(s => s.id) || []
     })
 
     setIsEdit(true)
@@ -203,6 +222,30 @@ export default function Index() {
       availabilities: updated
     })
   }
+  const handleCheckboxChange = (e) => {
+    const { value, checked } = e.target;
+
+    setForm(prev => ({
+      ...prev,
+      availability: checked
+        ? [...(prev.availability || []), value]
+        : (prev.availability || []).filter(d => d !== value)
+    }));
+  };
+  const handleShiftChange = (e) => {
+    const value = Number(e.target.value); // ✅ convert to number
+    const checked = e.target.checked;
+
+    setForm(prev => {
+      let updated = checked
+        ? [...(prev.shifts || []), value]
+        : prev.shifts.filter(s => s !== value);
+
+      if (updated.length > 2) return prev;
+
+      return { ...prev, shifts: updated };
+    });
+  }
 
   /* ---------------------------
      SUBMIT
@@ -211,21 +254,41 @@ export default function Index() {
     e.preventDefault()
     setLoading(true)
 
+    // ✅ TRANSFORM HERE
+    const payload = {
+      ...form,
+
+      // convert checkbox days → backend format
+      availabilities: (form.availability || []).map(day => ({
+        day_of_week: day,
+        start_time: "08:00",
+        end_time: "17:00"
+      }))
+    }
+
+    console.log("PAYLOAD:", payload) // ✅ debug
+
     if (isEdit && editId) {
-      router.put(`/faculty/${editId}`, form, {
+      router.put(`/faculty/${editId}`, payload, {
         onSuccess: () => {
           setLoading(false)
           handleClose()
         },
-        onError: () => setLoading(false)
+        onError: (errors) => {
+          console.log("ERRORS:", errors)
+          setLoading(false)
+        }
       })
     } else {
-      router.post('/faculty', form, {
+      router.post('/faculty', payload, {
         onSuccess: () => {
           setLoading(false)
           handleClose()
         },
-        onError: () => setLoading(false)
+        onError: (errors) => {
+          console.log("ERRORS:", errors)
+          setLoading(false)
+        }
       })
     }
   }
@@ -240,27 +303,27 @@ export default function Index() {
 
 
 
-// SEARCH
-const handleSearch = (value: string) => {
-  setSearch(value)
+  // SEARCH
+  const handleSearch = (value: string) => {
+    setSearch(value)
 
-  router.get('/faculty', {
-    search: value,
-    department: departmentFilter,
-    page: 1
-  }, { preserveState: true, replace: true })
-}
+    router.get('/faculty', {
+      search: value,
+      department: departmentFilter,
+      page: 1
+    }, { preserveState: true, replace: true })
+  }
 
-// DEPARTMENT
-const handleDepartment = (value: string) => {
-  setDepartmentFilter(value)
+  // DEPARTMENT
+  const handleDepartment = (value: string) => {
+    setDepartmentFilter(value)
 
-  router.get('/faculty', {
-    search,
-    department: value,
-    page: 1
-  }, { preserveState: true, replace: true })
-}
+    router.get('/faculty', {
+      search,
+      department: value,
+      page: 1
+    }, { preserveState: true, replace: true })
+  }
 
   return (
     <AppLayout breadcrumbs={[{ title: "Faculty", href: "/faculty" }]}>
@@ -490,236 +553,159 @@ const handleDepartment = (value: string) => {
 
         <Pagination links={faculties.links} />
 
-        {/* FACULTY MODAL */}
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>
-                {isEdit ? "Edit Faculty" : "Add Faculty"}
+          <DialogContent className="max-w-xl rounded-2xl p-0 overflow-hidden">
+
+            {/* HEADER */}
+            <div className="p-6 border-b">
+              <DialogTitle className="text-lg font-semibold">
+                {isEdit ? "Edit Teacher" : "Add New Teacher"}
               </DialogTitle>
-            </DialogHeader>
+              <p className="text-sm text-gray-500">
+                Enter teacher information and preferences
+              </p>
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            {/* BODY (SCROLLABLE) */}
+            <form
+              onSubmit={handleSubmit}
+              className="max-h-[70vh] overflow-y-auto p-6 space-y-4 bg-gray-50"
+            >
 
-              <div>
-                <Label>Department</Label>
-                <select
-                  name="department_id"
-                  value={form.department_id}
+              {/* NAME */}
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  name="first_name"
+                  placeholder="First Name"
+                  value={form.first_name}
                   onChange={handleChange}
-                  className="w-full border rounded px-2 py-2"
                   required
-                >
-                  <option value="">Select Department</option>
-                  {departments.map(d => (
-                    <option key={d.id} value={d.id}>
-                      {d.department_name}
-                    </option>
-                  ))}
-                </select>
+                />
+                <Input
+                  name="last_name"
+                  placeholder="Last Name"
+                  value={form.last_name}
+                  onChange={handleChange}
+                  required
+                />
               </div>
 
+              {/* FACULTY CODE */}
               <Input
                 name="faculty_code"
-                placeholder="Faculty Code"
+                placeholder="Faculty Code (e.g. FAC-001)"
                 value={form.faculty_code}
                 onChange={handleChange}
                 required
               />
 
+              {/* EMAIL */}
               <Input
-                name="first_name"
-                placeholder="First Name"
-                value={form.first_name}
-                onChange={handleChange}
-                required
-              />
-
-              <Input
-                name="last_name"
-                placeholder="Last Name"
-                value={form.last_name}
-                onChange={handleChange}
-                required
-              />
-
-              <Input
-                name="email"
                 type="email"
+                name="email"
                 placeholder="Email"
                 value={form.email}
                 onChange={handleChange}
                 required
               />
 
-              <div>
-                <Label>Employment Type</Label>
-                <select
-                  name="employement_type"
-                  value={form.employement_type}
-                  onChange={handleChange}
-                  className="w-full border rounded px-2 py-2"
-                  required
-                >
-                  <option value="">Select Type</option>
-                  <option value="full_time">Full Time</option>
-                  <option value="part_time">Part Time</option>
-                </select>
-              </div>
-
-              <Input
-                type="number"
-                name="max_load_units"
-                placeholder="Max Load Units"
-                value={form.max_load_units}
+              {/* EMPLOYMENT */}
+              <select
+                name="employment_type"
+                value={form.employment_type}
                 onChange={handleChange}
+                className="w-full border rounded-md px-3 py-2"
                 required
-              />
+              >
+                <option value="">Employment Type</option>
+                <option value="full_time">Full Time</option>
+                <option value="part_time">Part Time</option>
+              </select>
 
-              <div>
-                <Label>Status</Label>
+              {/* DEPARTMENT */}
+              <select
+                name="department_id"
+                value={form.department_id}
+                onChange={handleChange}
+                className="w-full border rounded-md px-3 py-2"
+              >
+                <option value="">Select Department</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.department_name}
+                  </option>
+                ))}
+              </select>
+
+              {/* QUALIFICATION */}
+              <div className="grid grid-cols-2 gap-3">
                 <select
-                  name="status"
-                  value={form.status}
+                  name="qualification_level"
+                  value={form.qualification_level}
                   onChange={handleChange}
-                  className="w-full border rounded px-2 py-2"
+                  className="border rounded-md px-3 py-2"
                 >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
+                  <option value="">Qualification</option>
+                  <option>Bachelor</option>
+                  <option>Master</option>
+                  <option>PhD</option>
                 </select>
+
+                <Input
+                  type="number"
+                  name="years_experience"
+                  placeholder="Years Experience"
+                  value={form.years_experience}
+                  onChange={handleChange}
+                />
               </div>
 
               {/* AVAILABILITY */}
               <div>
-                <div className='flex justify-between items-center'>
-                  <Label>Availability</Label>
-
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setAvailability({
-                        day_of_week: '',
-                        start_time: '',
-                        end_time: ''
-                      })
-                      setIsEditAvailability(false)
-                      setEditAvailabilityIndex(null)
-                      setAvailabilityOpen(true)
-                    }}
-                  >
-                    Add Availability Slot
-                  </Button>
+                <Label>Availability</Label>
+                <div className="grid grid-cols-3 gap-2 mt-2 text-sm">
+                  {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => (
+                    <label key={day} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        value={day}
+                        onChange={handleCheckboxChange}
+                      />
+                      {day}
+                    </label>
+                  ))}
                 </div>
-
-                {form.availabilities.length > 0 ? (
-                  form.availabilities.map((a: Availability, index: number) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center mt-2 text-sm border p-2 rounded"
-                    >
-                      <span>
-                        {a.day_of_week} | {a.start_time} - {a.end_time}
-                      </span>
-
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => editAvailability(a, index)}
-                        >
-                          Edit
-                        </Button>
-
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => removeAvailability(index)}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-500 mt-2">
-                    No availability added
-                  </p>
-                )}
               </div>
 
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleClose}
-                  disabled={loading}
-                >
+              {/* SHIFT */}
+              <div>
+                <Label>Shift (Select 2)</Label>
+                <div className="flex gap-4 mt-2 text-sm">
+                  {shifts.map((shift) => (
+                    <label key={shift.id} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        value={shift.id} // ✅ IMPORTANT (ID, not name)
+                        onChange={handleShiftChange}
+                      />
+                      {shift.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* FOOTER */}
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button type="button" variant="outline" onClick={handleClose}>
                   Cancel
                 </Button>
 
                 <Button type="submit">
-                  {loading
-                    ? (isEdit ? "Saving..." : "Adding...")
-                    : (isEdit ? "Save Changes" : "Add Faculty")}
+                  {isEdit ? "Save Changes" : "Add Teacher"}
                 </Button>
-              </DialogFooter>
+              </div>
 
             </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* AVAILABILITY MODAL */}
-        <Dialog open={availabilityOpen} onOpenChange={setAvailabilityOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {isEditAvailability ? "Edit Availability" : "Add Availability"}
-              </DialogTitle>
-            </DialogHeader>
-
-            <div className="space-y-4">
-
-              <select
-                value={availability.day_of_week}
-                onChange={e =>
-                  setAvailability({ ...availability, day_of_week: e.target.value })
-                }
-                className="w-full border rounded px-2 py-2"
-              >
-                <option value="">Select Day</option>
-                <option>Monday</option>
-                <option>Tuesday</option>
-                <option>Wednesday</option>
-                <option>Thursday</option>
-                <option>Friday</option>
-                <option>Saturday</option>
-              </select>
-
-              <Input
-                type="time"
-                value={availability.start_time}
-                onChange={e =>
-                  setAvailability({ ...availability, start_time: e.target.value })
-                }
-              />
-
-              <Input
-                type="time"
-                value={availability.end_time}
-                onChange={e =>
-                  setAvailability({ ...availability, end_time: e.target.value })
-                }
-              />
-
-              <DialogFooter>
-                <Button type="button" onClick={saveAvailability}>
-                  {isEditAvailability ? "Update Slot" : "Add Slot"}
-                </Button>
-              </DialogFooter>
-
-            </div>
           </DialogContent>
         </Dialog>
 

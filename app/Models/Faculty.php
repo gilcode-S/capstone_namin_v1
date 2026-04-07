@@ -8,6 +8,7 @@ use App\Models\FacultyAvailability;
 use App\Models\Subject;
 use App\Models\SectionSubjectAssignment;
 use App\Models\Schedule;
+use App\Models\Shift;
 
 class Faculty extends Model
 {
@@ -18,9 +19,11 @@ class Faculty extends Model
         'first_name',
         'last_name',
         'email',
-        'employement_type',
-        'max_load_hours',
-        'status'
+        'employment_type',
+        'max_load_units',
+        'status',
+        'qualification_level',
+        'years_experience'
     ];
 
     protected $casts = [
@@ -30,7 +33,10 @@ class Faculty extends Model
     {
         return $this->belongsTo(Department::class);
     }
-
+    public function shifts()
+    {
+        return $this->belongsToMany(Shift::class);
+    }
     public function availabilities()
     {
         return $this->hasMany(FacultyAvailability::class);
