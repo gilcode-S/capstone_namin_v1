@@ -6,19 +6,63 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Room;
 use App\Models\Department;
+
 class RoomController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         //
+        $query = Room::with('department');
+
+        // ✅ STATUS FILTER
+        if ($request->status) {
+            $query->where(function ($q) use ($request) {
+                $q->where('resource_status', $request->status)
+                    ->orWhere(function ($q2) use ($request) {
+
+                        // fallback for old data
+                        if ($request->status === 'available') {
+                            $q2->whereNull('resource_status')
+                                ->where('status', 'active');
+                        }
+
+                        if ($request->status === 'maintenance') {
+                            $q2->where('status', 'inactive');
+                        }
+                    });
+            });
+        }
+        if ($request->type) {
+            $query->where('resource_type', $request->type);
+        }
+
         return Inertia::render('Rooms/Index', [
-            'rooms' => Room::with('department')->paginate(15),
+            'rooms' => $query->paginate(15),
             'departments' => Department::all(),
+            'stats' => [
+                'total' => Room::count(),
+
+                'available' => Room::where('resource_status', 'available')
+                    ->orWhere(function ($q) {
+                        $q->whereNull('resource_status')
+                            ->where('status', 'active');
+                    })->count(),
+
+                'occupied' => Room::where('resource_status', 'occupied')->count(),
+
+                'maintenance' => Room::where('resource_status', 'maintenance')
+                    ->orWhere('status', 'inactive')
+                    ->count(),
+            ],
+            'filters' => [
+                'status' => $request->status,
+                'type' => $request->type,
+            ]
         ]);
-    }    
+    }
 
     /**
      * Show the form for creating a new resource.
@@ -36,10 +80,17 @@ class RoomController extends Controller
         //
         $validated = $request->validate([
             'room_name' => 'required|string|max:50|unique:rooms,room_name',
-            'room_type' => 'required|in:lecture,laboratory',
+
+            // NEW
+            'resource_type' => 'required|in:classroom,laboratory,auditorium',
             'capacity' => 'required|integer|min:1',
             'department_id' => 'required|exists:departments,id',
-            'status' => 'required|in:active, inactive'
+
+            'building' => 'nullable|string',
+            'floor' => 'nullable|string',
+            'equipment' => 'nullable|array',
+
+            'resource_status' => 'required|in:available,occupied,maintenance'
         ]);
 
         Room::create($validated);
@@ -70,10 +121,16 @@ class RoomController extends Controller
     {
         $validated = $request->validate([
             'room_name' => 'required|string|max:50|unique:rooms,room_name,' . $room->id,
-            'room_type' => 'required|in:lecture,laboratory',
+
+            'resource_type' => 'required|in:classroom,laboratory,auditorium',
             'capacity' => 'required|integer|min:1',
             'department_id' => 'required|exists:departments,id',
-            'status' => 'required|in:active,inactive'
+
+            'building' => 'nullable|string',
+            'floor' => 'nullable|string',
+            'equipment' => 'nullable|array',
+
+            'resource_status' => 'required|in:available,occupied,maintenance'
         ]);
 
         $room->update($validated);
