@@ -84,7 +84,8 @@ export default function Index() {
     const [statusFilter, setStatusFilter] = useState('')
     const [typeFilter, setTypeFilter] = useState(filters?.type || '')
     const [activeTab, setActiveTab] = useState<'all' | 'idle'>('all')
-
+    const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
+    const [viewOpen, setViewOpen] = useState(false)
 
     useEffect(() => {
         setStatusFilter(filters?.status || '')
@@ -476,7 +477,14 @@ export default function Index() {
                                             const status = r.resource_status || r.status
 
                                             return (
-                                                <tr key={r.id} className="border-b hover:bg-gray-50 transition">
+                                                <tr
+                                                    key={r.id}
+                                                    onClick={() => {
+                                                        setSelectedRoom(r)
+                                                        setViewOpen(true)
+                                                    }}
+                                                    className="border-b hover:bg-gray-50 transition cursor-pointer"
+                                                >
                                                     <td className="p-3 font-medium">{r.room_name}</td>
 
                                                     <td className="p-3">
@@ -514,10 +522,24 @@ export default function Index() {
                                                     </td>
 
                                                     <td className="p-3 text-center">
-                                                        <Button size="sm" variant="outline" onClick={() => handleOpenEdit(r)}>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                handleOpenEdit(r)
+                                                            }}
+                                                        >
                                                             <Pencil size={14} />
                                                         </Button>
-                                                        <Button size="sm" variant="destructive" onClick={() => handleDelete(r.id)}>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="destructive"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                handleDelete(r.id)
+                                                            }}
+                                                        >
                                                             <Trash2 size={14} />
                                                         </Button>
                                                     </td>
@@ -721,6 +743,72 @@ export default function Index() {
                             </Button>
 
                         </form>
+                    </DialogContent>
+                </Dialog>
+
+                {/* modal for slideview detail */}
+                <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+                    <DialogContent className="max-w-md p-6 rounded-2xl">
+                                    
+                        {selectedRoom && (
+                            <div className="space-y-4">
+
+                                {/* HEADER */}
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <h2 className="text-2xl font-bold">
+                                            {selectedRoom.room_name}
+                                        </h2>
+                                        <p className="text-sm text-gray-500">
+                                            {selectedRoom.building
+                                                ? `Building ${selectedRoom.building}, Floor ${selectedRoom.floor}`
+                                                : 'No location'}
+                                        </p>
+                                    </div>
+
+                                    <span className="text-green-600 text-sm font-medium">
+                                        Available
+                                    </span>
+                                </div>
+
+                                {/* DETAILS */}
+                                <div className="space-y-2 text-sm">
+
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Capacity:</span>
+                                        <span className="font-medium">
+                                            {selectedRoom.capacity} students
+                                        </span>
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Type:</span>
+                                        <span className="capitalize">
+                                            {selectedRoom.resource_type}
+                                        </span>
+                                    </div>
+
+                                </div>
+
+                                {/* EQUIPMENT */}
+                                <div>
+                                    <p className="text-sm text-gray-500 mb-1">Equipment:</p>
+
+                                    <div className="flex flex-wrap gap-2">
+                                        {(selectedRoom.equipment || []).map((eq: string, i: number) => (
+                                            <span
+                                                key={i}
+                                                className="px-2 py-1 text-xs bg-gray-100 rounded-md"
+                                            >
+                                                {eq}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                            </div>
+                        )}
+
                     </DialogContent>
                 </Dialog>
 
