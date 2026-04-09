@@ -17,16 +17,38 @@ interface Department {
     id: number
     department_name: string
 }
-
+interface TimeSlot {
+    day_of_week: string
+    start_time: string
+    end_time: string
+}
+interface Schedule {
+    id: number
+    timeslot: TimeSlot
+}
 interface Room {
     id: number
     room_name: string
-    room_type: string
-    capacity: number
-    status: string
-    department: Department
-}
 
+
+    resource_type: 'classroom' | 'laboratory' | 'auditorium'
+    resource_status: 'available' | 'occupied' | 'maintenance'
+
+    capacity: number
+
+    building?: string
+    floor?: string
+
+    equipment?: string[]
+
+    department?: Department
+
+    schedules?: Schedule[]
+
+
+    room_type?: string
+    status?: string
+}
 const emptyForm = {
     room_name: '',
     resource_type: '',
@@ -61,6 +83,8 @@ export default function Index() {
     const [editId, setEditId] = useState<number | null>(null)
     const [statusFilter, setStatusFilter] = useState('')
     const [typeFilter, setTypeFilter] = useState(filters?.type || '')
+    const [activeTab, setActiveTab] = useState<'all' | 'idle'>('all')
+
 
     useEffect(() => {
         setStatusFilter(filters?.status || '')
@@ -77,10 +101,13 @@ export default function Index() {
     const handleOpenEdit = (room: Room) => {
         setForm({
             room_name: room.room_name,
-            room_type: room.room_type,
+            resource_type: room.resource_type || room.room_type,
             capacity: room.capacity,
-            department_id: room.department?.id,
-            status: room.status
+            department_id: room.department?.id || '',
+            building: room.building || '',
+            floor: room.floor || '',
+            equipment_text: (room.equipment || []).join(', '),
+            resource_status: room.resource_status || room.status
         })
 
         setIsEdit(true)
@@ -114,10 +141,136 @@ export default function Index() {
             type: typeFilter
         }, {
             preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        })
+    }
+    const handleTabFilter = (value: string) => {
+        setTabFilter(value)
+
+        router.get('/rooms', {
+            tab: value,
+            type: typeFilter
+        }, {
+            preserveState: true,
+            preserveScroll: true,
             replace: true,
         })
     }
 
+
+    const isRoomOccupiedNow = (room: any) => {
+        const now = new Date()
+
+        return room.schedules?.some((s: any) => {
+            const today = now.toLocaleString('en-US', { weekday: 'long' })
+
+            if (s.timeslot.day_of_week !== today) return false
+
+            const currentTime = new Date(
+                `1970-01-01T${now.toTimeString().slice(0, 8)}`
+            )
+
+            const start = new Date(`1970-01-01T${s.timeslot.start_time}`)
+            const end = new Date(`1970-01-01T${s.timeslot.end_time}`)
+
+            return currentTime >= start && currentTime <= end
+        })
+    }
+
+    const getNextSchedule = (room: any) => {
+        const now = new Date()
+        const currentTime = new Date(`1970-01-01T${now.toTimeString().slice(0, 8)}`)
+
+        const upcoming = room.schedules
+            ?.map((s: any) => {
+                const start = new Date(`1970-01-01T${s.timeslot.start_time}`)
+                return { ...s, start }
+            })
+            .filter((s: any) => s.start > currentTime)
+            .sort((a: any, b: any) => a.start - b.start)
+
+        return upcoming?.[0]
+    }
+
+    const groupSchedulesByDay = (room: any) => {
+        const days: any = {}
+
+        room.schedules?.forEach((s: any) => {
+            const day = s.timeslot.day_of_week
+
+            if (!days[day]) days[day] = []
+            days[day].push(s.timeslot)
+        })
+
+        return days
+    }
+
+    const getAvailableRanges = (timeslots: any[]) => {
+        if (!timeslots.length) {
+            return [{ start: "07:00", end: "19:00" }] // whole day free
+        }
+
+        const sorted = [...timeslots].sort((a, b) =>
+            a.start_time.localeCompare(b.start_time)
+        )
+
+        const available: any[] = []
+        let lastEnd = "07:00:00"
+
+        sorted.forEach(slot => {
+            if (slot.start_time > lastEnd) {
+                available.push({
+                    start: lastEnd,
+                    end: slot.start_time
+                })
+            }
+            lastEnd = slot.end_time
+        })
+
+        if (lastEnd < "19:00:00") {
+            available.push({
+                start: lastEnd,
+                end: "19:00:00"
+            })
+        }
+
+        return available
+    }
+
+    const formatTime = (time: string | null | undefined) => {
+        if (!time) return '—'
+
+        try {
+            let date: Date
+
+            // ✅ Case 1: HH:mm or HH:mm:ss (ISO safe)
+            if (/^\d{2}:\d{2}(:\d{2})?$/.test(time)) {
+                const safeTime = time.length === 5 ? `${time}:00` : time
+                date = new Date(`1970-01-01T${safeTime}`)
+            }
+
+            // ✅ Case 2: 12-hour format (e.g., 2:30 PM)
+            else if (/AM|PM/i.test(time)) {
+                date = new Date(`1970-01-01 ${time}`)
+            }
+
+            // ❌ Unknown format
+            else {
+                return '—'
+            }
+
+            if (isNaN(date.getTime())) return '—'
+
+            return date.toLocaleTimeString([], {
+                hour: 'numeric',
+                minute: '2-digit'
+            })
+
+        } catch {
+            return '—'
+        }
+    }
     const handleTypeFilter = (value: string) => {
         setTypeFilter(value)
 
@@ -126,6 +279,7 @@ export default function Index() {
             type: value
         }, {
             preserveState: true,
+            preserveScroll: true,
             replace: true,
         })
     }
@@ -166,6 +320,9 @@ export default function Index() {
         if (!confirm('Are you sure you want to delete this room?')) return
         router.delete(`/rooms/${id}`)
     }
+    const idleResources = rooms.data.filter((r: any) => {
+        return !isRoomOccupiedNow(r)
+    })
 
     return (
         <AppLayout breadcrumbs={[{ title: 'Rooms', href: '/rooms' }]}>
@@ -257,6 +414,28 @@ export default function Index() {
                         </p>
                     </div>
                     {/* SEGMENTED FILTER */}
+                    <div className="w-full mb-4">
+                        <div className="flex w-full bg-gray-100 rounded-full p-1">
+
+                            {[
+                                { label: 'All Resources', value: 'all' },
+                                { label: 'Idle', value: 'idle' },
+                            ].map((tab) => (
+                                <button
+                                    key={tab.value}
+                                    onClick={() => setActiveTab(tab.value as any)}
+                                    className={`flex-1 text-sm py-2 rounded-full transition
+                    ${activeTab === tab.value
+                                            ? 'bg-white shadow font-medium text-black'
+                                            : 'text-gray-500 hover:text-black'}
+                `}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+
+                        </div>
+                    </div>
                     <div className="flex gap-2 mb-4">
 
                         {/* ALL */}
@@ -274,116 +453,137 @@ export default function Index() {
                     </div>
                     {/* TABLE */}
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        {activeTab === 'all' && (
 
-                            <thead className="text-left text-muted-foreground">
-                                <tr className="border-b">
-                                    <th className="p-3">Resource</th>
-                                    <th className="p-3">Type</th>
-                                    <th className="p-3">Capacity</th>
-                                    <th className="p-3">Location</th>
-                                    <th className="p-3">Equipment</th>
-                                    <th className="p-3">Status</th>
-                                    <th className="p-3 text-center">Actions</th>
-                                </tr>
-                            </thead>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="text-left text-muted-foreground">
+                                        <tr className="border-b">
+                                            <th className="p-3">Resource</th>
+                                            <th className="p-3">Type</th>
+                                            <th className="p-3">Capacity</th>
+                                            <th className="p-3">Location</th>
+                                            <th className="p-3">Equipment</th>
+                                            <th className="p-3">Status</th>
+                                            <th className="p-3 text-center">Actions</th>
+                                        </tr>
+                                    </thead>
 
-                            <tbody>
-                                {rooms.data.map((r: any) => {
+                                    <tbody>
+                                        {rooms.data.map((r: any) => {
+                                            // console.log("ROOM IDS:", rooms.data.map(r => r.id))
+                                            //console.log("Idle Rooms:", idleResources)
+                                            const status = r.resource_status || r.status
 
-                                    const status = r.resource_status || r.status
+                                            return (
+                                                <tr key={r.id} className="border-b hover:bg-gray-50 transition">
+                                                    <td className="p-3 font-medium">{r.room_name}</td>
 
-                                    return (
-                                        <tr key={r.id} className="border-b hover:bg-gray-50 transition">
+                                                    <td className="p-3">
+                                                        <span className="px-2 py-1 rounded-md bg-gray-100 text-xs capitalize">
+                                                            {r.resource_type || r.room_type}
+                                                        </span>
+                                                    </td>
 
-                                            {/* RESOURCE NAME */}
-                                            <td className="p-3 font-medium">
-                                                {r.room_name}
-                                            </td>
+                                                    <td className="p-3">{r.capacity}</td>
 
-                                            {/* TYPE BADGE */}
-                                            <td className="p-3">
-                                                <span className="px-2 py-1 rounded-md bg-gray-100 text-xs capitalize">
-                                                    {r.resource_type || r.room_type}
-                                                </span>
-                                            </td>
+                                                    <td className="p-3">
+                                                        {r.building
+                                                            ? `Building ${r.building}, Floor ${r.floor}`
+                                                            : '—'}
+                                                    </td>
 
-                                            {/* CAPACITY */}
-                                            <td className="p-3">
-                                                {r.capacity}
-                                            </td>
+                                                    <td className="p-3">
+                                                        {(r.equipment || []).slice(0, 2).map((eq: string, i: number) => (
+                                                            <span key={i} className="px-2 py-1 text-xs bg-gray-100 rounded-md mr-1">
+                                                                {eq}
+                                                            </span>
+                                                        ))}
+                                                    </td>
 
-                                            {/* LOCATION */}
-                                            <td className="p-3">
-                                                <span className="text-sm text-gray-600">
+                                                    <td className="p-3">
+                                                        <span className={`px-2 py-1 rounded-md text-xs capitalize
+                                                     ${status === 'occupied'
+                                                                ? 'bg-yellow-100 text-yellow-700'
+                                                                : status === 'maintenance'
+                                                                    ? 'bg-red-100 text-red-700'
+                                                                    : 'bg-green-100 text-green-700'}
+                                                                                         `}>
+                                                            {status}
+                                                        </span>
+                                                    </td>
+
+                                                    <td className="p-3 text-center">
+                                                        <Button size="sm" variant="outline" onClick={() => handleOpenEdit(r)}>
+                                                            <Pencil size={14} />
+                                                        </Button>
+                                                        <Button size="sm" variant="destructive" onClick={() => handleDelete(r.id)}>
+                                                            <Trash2 size={14} />
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                        )}
+                        {activeTab === 'idle' && (
+                            <div className="grid md:grid-cols-3 gap-4">
+                                {rooms.data
+                                    .filter(r => r.resource_status === 'available') // ✅ use DB status
+                                    .map((r: any) => {
+
+                                        const days = groupSchedulesByDay(r)
+                                        const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+                                        return (
+                                            <div key={r.id} className="border rounded-xl p-4 bg-white shadow-sm">
+
+                                                <h3 className="font-semibold text-lg">{r.room_name}</h3>
+
+                                                <p className="text-sm text-gray-500">
                                                     {r.building
                                                         ? `Building ${r.building}, Floor ${r.floor}`
-                                                        : '—'}
-                                                </span>
-                                            </td>
+                                                        : 'No location'}
+                                                </p>
 
-                                            {/* EQUIPMENT */}
-                                            <td className="p-3">
-                                                <div className="flex flex-wrap gap-1">
-                                                    {(r.equipment || []).slice(0, 2).map((eq: string, i: number) => (
-                                                        <span
-                                                            key={i}
-                                                            className="px-2 py-1 text-xs bg-gray-100 rounded-md"
-                                                        >
-                                                            {eq}
-                                                        </span>
-                                                    ))}
+                                                <p className="text-sm mt-2">
+                                                    Capacity: <span className="font-medium">{r.capacity}</span>
+                                                </p>
 
-                                                    {(r.equipment || []).length > 2 && (
-                                                        <span className="px-2 py-1 text-xs bg-gray-200 rounded-md">
-                                                            +{r.equipment.length - 2}
-                                                        </span>
-                                                    )}
+                                                {/* 🔥 WEEKLY AVAILABILITY */}
+                                                <div className="mt-3 space-y-1">
+                                                    Available Time:
+                                                    {weekDays.map(day => {
+
+                                                        const slots = days[day] || []
+                                                        const available = getAvailableRanges(slots)
+
+                                                        return (
+                                                            <p key={day} className="text-xs text-gray-600">
+                                                                <span className="font-medium w-16 inline-block">
+                                                                    {day.slice(0, 3)}:
+                                                                </span>
+
+                                                                {available.length
+                                                                    ? `${formatTime(available[0].start)} - ${formatTime(available[0].end)}`
+                                                                    : 'Fully occupied'}
+                                                            </p>
+                                                        )
+                                                    })}
                                                 </div>
-                                            </td>
 
-                                            {/* STATUS */}
-                                            <td className="p-3">
-                                                <span
-                                                    className={`px-2 py-1 rounded-md text-xs font-medium
-                ${status === 'available' && 'bg-green-100 text-green-700'}
-                ${status === 'occupied' && 'bg-yellow-100 text-yellow-700'}
-                ${status === 'maintenance' && 'bg-red-100 text-red-700'}
-                `}
-                                                >
-                                                    {status}
-                                                </span>
-                                            </td>
+                                                <p className="text-xs text-green-600 mt-2">
+                                                    Available now
+                                                </p>
 
-                                            {/* ACTIONS */}
-                                            <td className="p-3 text-center">
-                                                <div className="flex justify-center gap-2">
-
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => handleOpenEdit(r)}
-                                                    >
-                                                        <Pencil size={14} />
-                                                    </Button>
-
-                                                    <Button
-                                                        size="sm"
-                                                        variant="destructive"
-                                                        onClick={() => handleDelete(r.id)}
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </Button>
-
-                                                </div>
-                                            </td>
-
-                                        </tr>
-                                    )
-                                })}
-                            </tbody>
-
-                        </table>
+                                            </div>
+                                        )
+                                    })}
+                            </div>
+                        )}
                     </div>
                 </div>
 

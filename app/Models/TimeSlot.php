@@ -16,7 +16,7 @@ class TimeSlot extends Model
         'mode',
         'status'
     ];
-
+    
     public function getStartTimeAttribute($value)
     {
         return Carbon::parse($value)->format('g:i A');

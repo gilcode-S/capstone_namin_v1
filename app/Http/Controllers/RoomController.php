@@ -15,8 +15,11 @@ class RoomController extends Controller
     public function index(Request $request)
     {
         //
-        $query = Room::with('department');
-
+        $query = Room::with([
+            'department',
+            'schedules.timeslot'
+        ])->orderBy('room_name', 'asc');
+        
         // ✅ STATUS FILTER
         if ($request->status) {
             $query->where(function ($q) use ($request) {
@@ -37,6 +40,9 @@ class RoomController extends Controller
         }
         if ($request->type) {
             $query->where('resource_type', $request->type);
+        }
+        if ($request->tab && $request->tab !== 'utilization') {
+            $query->where('resource_type', $request->tab);
         }
 
         return Inertia::render('Rooms/Index', [

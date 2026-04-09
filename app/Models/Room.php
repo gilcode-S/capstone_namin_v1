@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Department;
+use App\Models\Schedule;
 
 class Room extends Model
 {
@@ -27,5 +28,10 @@ class Room extends Model
     public function department()
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function schedules() 
+    {
+        return $this->hasMany(Schedule::class);
     }
 }
