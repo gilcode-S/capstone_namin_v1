@@ -32,7 +32,7 @@ class FacultySeeder extends Seeder
                 'first_name' => $firstName,
                 'last_name' => $lastName,
                 'email' => strtolower($firstName . '.' . $lastName . $i . '@example.com'),
-                'employement_type' => (rand(0, 1) ? 'full_time' : 'part_time'),
+                'employment_type' => (rand(0, 1) ? 'full_time' : 'part_time'),
                 'max_load_units' => 21,
                 'status' => 'active',
             ]);

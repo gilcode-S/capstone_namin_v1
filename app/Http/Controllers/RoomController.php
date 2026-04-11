@@ -90,7 +90,7 @@ class RoomController extends Controller
             // NEW
             'resource_type' => 'required|in:classroom,laboratory,auditorium',
             'capacity' => 'required|integer|min:1',
-            'department_id' => 'required|exists:departments,id',
+           'department_id' => 'nullable|exists:departments,id',
 
             'building' => 'nullable|string',
             'floor' => 'nullable|string',
@@ -130,7 +130,7 @@ class RoomController extends Controller
 
             'resource_type' => 'required|in:classroom,laboratory,auditorium',
             'capacity' => 'required|integer|min:1',
-            'department_id' => 'required|exists:departments,id',
+            'department_id' => 'nullable|exists:departments,id',
 
             'building' => 'nullable|string',
             'floor' => 'nullable|string',

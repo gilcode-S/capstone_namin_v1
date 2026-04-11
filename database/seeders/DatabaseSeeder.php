@@ -53,16 +53,16 @@ class DatabaseSeeder extends Seeder
             DepartmentSeeder::class,
             ProgramSeeder::class,
 
-            SubjectSeeder::class,
-            SectionSeeder::class,
-            RoomSeeder::class,
+            // SubjectSeeder::class,
+            // SectionSeeder::class,
+            // RoomSeeder::class,
 
-            FacultySeeder::class,
+            // FacultySeeder::class,
 
-            TimeSlotSeeder::class,
-            SemesterSeeder::class,
-            ScheduleVersionSeeder::class,
-            AssignmentSeeder::class,
+             TimeSlotSeeder::class,
+            // SemesterSeeder::class,
+            // ScheduleVersionSeeder::class,
+            // AssignmentSeeder::class,
         ]);
     }
 }

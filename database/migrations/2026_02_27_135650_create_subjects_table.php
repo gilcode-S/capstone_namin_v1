@@ -16,9 +16,9 @@ return new class extends Migration
             $table->foreignId('program_id')->constrained('programs')->cascadeOnDelete();
             $table->string('subject_code');
             $table->string('subject_name');
-            $table->integer('units');
-            $table->integer('lecture_hours')->default(0);
-            $table->integer('lab_hours')->default(0);
+            $table->integer('units')->nullable();
+            // $table->integer('lecture_hours')->default(0);
+            // $table->integer('lab_hours')->default(0);
             $table->integer('year_level');
             $table->integer('semester');
             $table->timestamps();

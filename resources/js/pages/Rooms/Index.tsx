@@ -656,6 +656,23 @@ export default function Index() {
                                     <option value="auditorium">Auditorium</option>
                                 </select>
                             </div>
+                            <div>
+                                <Label>Department</Label>
+                                <select
+                                    name="department_id"
+                                    value={form.department_id}
+                                    onChange={handleChange}
+                                    className="w-full border rounded px-3 py-2"
+                                    required
+                                >
+                                    <option value="">Select department</option>
+                                    {departments.map((d: any) => (
+                                        <option key={d.id} value={d.id}>
+                                            {d.department_name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
 
                             {/* CAPACITY */}
                             <div>

@@ -45,13 +45,12 @@ const emptyForm = {
     program_id: '',
     subject_code: '',
     subject_name: '',
-    units: '',
-    lecture_hours: '',
-    lab_hours: '',
+    subject_type: '',
+    hours_per_week: '',
+    room_type: '',
     year_level: '',
-    semester: ''
+    semester: '',
 }
-
 export default function Index() {
 
     const { subjects, programs, filters } = usePage().props as unknown as {
@@ -92,16 +91,16 @@ export default function Index() {
         setOpen(true)
     }
 
-    const handleOpenEdit = (subject: Subject) => {
+    const handleOpenEdit = (subject: any) => {
         setForm({
             program_id: subject.program_id,
             subject_code: subject.subject_code,
             subject_name: subject.subject_name,
-            units: subject.units,
-            lecture_hours: subject.lecture_hours,
-            lab_hours: subject.lab_hours,
+            subject_type: subject.subject_type,
+            hours_per_week: subject.hours_per_week,
+            room_type: subject.room_type,
             year_level: subject.year_level,
-            semester: subject.semester
+            semester: subject.semester,
         })
 
         setIsEdit(true)
@@ -280,103 +279,156 @@ export default function Index() {
                     </table>
                 </div>
 
-                <Pagination links={subjects.links}/>
+                <Pagination links={subjects.links} />
 
                 {/* ============================
                     MODAL
                 ============================= */}
                 <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>
-                                {isEdit ? "Edit Subject" : "Add Subject"}
-                            </DialogTitle>
-                        </DialogHeader>
+                   <DialogContent className="max-w-2xl rounded-2xl p-6">
 
-                        <form onSubmit={handleSubmit} className="space-y-3">
+  {/* HEADER */}
+  <DialogHeader className="space-y-1">
+    <DialogTitle className="text-xl font-semibold">
+      {isEdit ? "Edit Subject" : "Add New Subject"}
+    </DialogTitle>
+    <p className="text-sm text-muted-foreground">
+      Create a new subject with scheduling requirements
+    </p>
+  </DialogHeader>
 
-                            <Label>Program</Label>
-                            <select
-                                name="program_id"
-                                value={form.program_id}
-                                onChange={handleChange}
-                                className="w-full border rounded p-2"
-                                required
-                            >
-                                <option value="">Select Program</option>
-                                {programs.map(p => (
-                                    <option key={p.id} value={p.id}>
-                                        {p.program_name}
-                                    </option>
-                                ))}
-                            </select>
+  <form onSubmit={handleSubmit} className="space-y-6 mt-4">
 
-                            <Label>Subject Code</Label>
-                            <Input name="subject_code"
-                                value={form.subject_code}
-                                onChange={handleChange} required />
+    <div className="grid grid-cols-2 gap-4">
 
-                            <Label>Subject Name</Label>
-                            <Input name="subject_name"
-                                value={form.subject_name}
-                                onChange={handleChange} required />
+      {/* SUBJECT NAME */}
+      <div>
+        <Label>Subject Name</Label>
+        <Input
+          name="subject_name"
+          value={form.subject_name}
+          onChange={handleChange}
+          placeholder="Computer Programming"
+          className="h-11 rounded-lg"
+        />
+      </div>
 
-                            <Label>Units</Label>
-                            <Input type="number"
-                                name="units"
-                                value={form.units}
-                                onChange={handleChange} required />
+      {/* SUBJECT CODE */}
+      <div>
+        <Label>Course Code</Label>
+        <Input
+          name="subject_code"
+          value={form.subject_code}
+          onChange={handleChange}
+          placeholder="CS101"
+          className="h-11 rounded-lg"
+        />
+      </div>
 
-                            <Label>Lecture Hours</Label>
-                            <Input type="number"
-                                name="lecture_hours"
-                                value={form.lecture_hours}
-                                onChange={handleChange} required />
+      {/* PROGRAM */}
+      <div>
+        <Label>Program</Label>
+        <select
+          name="program_id"
+          value={form.program_id}
+          onChange={handleChange}
+          className="w-full h-11 rounded-lg border px-3"
+        >
+          <option value="">Select program</option>
+          {programs.map((p: any) => (
+            <option key={p.id} value={p.id}>
+              {p.program_name}
+            </option>
+          ))}
+        </select>
+      </div>
 
-                            <Label>Lab Hours</Label>
-                            <Input type="number"
-                                name="lab_hours"
-                                value={form.lab_hours}
-                                onChange={handleChange} required />
+      {/* SUBJECT TYPE */}
+      <div>
+        <Label>Subject Type</Label>
+        <select
+          name="subject_type"
+          value={form.subject_type}
+          onChange={handleChange}
+          className="w-full h-11 rounded-lg border px-3"
+        >
+          <option value="">Select type</option>
+          <option value="major">Major</option>
+          <option value="minor">Minor</option>
+        </select>
+      </div>
 
-                            <Label>Year Level</Label>
-                            <select name="year_level"
-                                value={form.year_level}
-                                onChange={handleChange}
-                                className="w-full border rounded p-2" required>
-                                <option value="">Select</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                            </select>
+      {/* HOURS PER WEEK */}
+      <div>
+        <Label>Hours / Week</Label>
+        <Input
+          type="number"
+          name="hours_per_week"
+          value={form.hours_per_week}
+          onChange={handleChange}
+          placeholder="3"
+          className="h-11 rounded-lg"
+        />
+      </div>
 
-                            <Label>Semester</Label>
-                            <select name="semester"
-                                value={form.semester}
-                                onChange={handleChange}
-                                className="w-full border rounded p-2" required>
-                                <option value="">Select</option>
-                                <option value="1">1st</option>
-                                <option value="2">2nd</option>
-                            </select>
+      {/* ROOM TYPE */}
+      <div>
+        <Label>Room Type</Label>
+        <select
+          name="room_type"
+          value={form.room_type}
+          onChange={handleChange}
+          className="w-full h-11 rounded-lg border px-3"
+        >
+          <option value="">Select room</option>
+          <option value="lecture">Lecture</option>
+          <option value="lab">Laboratory</option>
+        </select>
+      </div>
 
-                            <DialogFooter>
-                                <Button type="button"
-                                    variant="outline"
-                                    onClick={handleClose}>
-                                    Cancel
-                                </Button>
+      {/* YEAR LEVEL */}
+      <div>
+        <Label>Year Level</Label>
+        <select
+          name="year_level"
+          value={form.year_level}
+          onChange={handleChange}
+          className="w-full h-11 rounded-lg border px-3"
+        >
+          <option value="">Select year</option>
+          <option value="1">1st Year</option>
+          <option value="2">2nd Year</option>
+          <option value="3">3rd Year</option>
+          <option value="4">4th Year</option>
+        </select>
+      </div>
 
-                                <Button type="submit">
-                                    {loading
-                                        ? "Saving..."
-                                        : isEdit ? "Update Subject" : "Create Subject"}
-                                </Button>
-                            </DialogFooter>
+      {/* SEMESTER */}
+      <div>
+        <Label>Semester</Label>
+        <select
+          name="semester"
+          value={form.semester}
+          onChange={handleChange}
+          className="w-full h-11 rounded-lg border px-3"
+        >
+          <option value="">Select semester</option>
+          <option value="1">1st</option>
+          <option value="2">2nd</option>
+        </select>
+      </div>
 
-                        </form>
-                    </DialogContent>
+    </div>
+
+    {/* BUTTON */}
+    <Button className="w-full h-11 rounded-lg text-base">
+      {loading
+        ? (isEdit ? "Saving..." : "Adding...")
+        : (isEdit ? "Save Changes" : "Add Subject")}
+    </Button>
+
+  </form>
+</DialogContent>
                 </Dialog>
 
             </div>

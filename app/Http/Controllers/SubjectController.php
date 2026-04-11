@@ -43,18 +43,18 @@ class SubjectController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'program_id' => "required|exists:programs,id",
-            'subject_code' => 'required',
-            'subject_name' => 'required',
-            'units' => 'required|integer|min:1',
-            'lecture_hours' => 'required|integer|min:0',
-            'lab_hours' => 'required|integer|min:0',
+            'program_id' => 'required|exists:programs,id',
+            'subject_code' => 'required|string|max:20',
+            'subject_name' => 'required|string|max:150',
+            'subject_type' => 'required|in:major,minor',
+            'hours_per_week' => 'required|integer|min:1',
+            'room_type' => 'nullable|string|max:50',
             'year_level' => 'required|integer|min:1|max:5',
-            'semester' => 'required|integer|min:1|max:2'
+            'semester' => 'required|integer|min:1|max:3',
         ]);
-    
+        $validated['units'] = $validated['hours_per_week'];
         $subject = Subject::create($validated);
-    
+
         return redirect()->route('subject.index', [
             'program_id' => $subject->program_id,
             'semester' => $subject->semester,
@@ -65,16 +65,16 @@ class SubjectController extends Controller
     public function update(Request $request, Subject $subject)
     {
         $validated = $request->validate([
-            'program_id' => "required|exists:programs,id",
-            'subject_code' => 'required',
-            'subject_name' => 'required',
-            'units' => 'required|integer|min:1',
-            'lecture_hours' => 'required|integer|min:0',
-            'lab_hours' => 'required|integer|min:0',
+            'program_id' => 'required|exists:programs,id',
+            'subject_code' => 'required|string|max:20',
+            'subject_name' => 'required|string|max:150',
+            'subject_type' => 'required|in:major,minor',
+            'hours_per_week' => 'required|integer|min:1',
+            'room_type' => 'nullable|string|max:50',
             'year_level' => 'required|integer|min:1|max:5',
-            'semester' => 'required|integer|min:1|max:2'
+            'semester' => 'required|integer|min:1|max:3',
         ]);
-
+        $validated['units'] = $validated['hours_per_week'];
         $subject->update($validated);
         return redirect()->back()->with('success', 'subject updated');
     }
