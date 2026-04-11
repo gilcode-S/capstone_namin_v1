@@ -749,7 +749,7 @@ export default function Index() {
                 {/* modal for slideview detail */}
                 <Dialog open={viewOpen} onOpenChange={setViewOpen}>
                     <DialogContent className="max-w-md p-6 rounded-2xl">
-                                    
+
                         {selectedRoom && (
                             <div className="space-y-4">
 
@@ -766,9 +766,23 @@ export default function Index() {
                                         </p>
                                     </div>
 
-                                    <span className="text-green-600 text-sm font-medium">
-                                        Available
-                                    </span>
+                                    {(() => {
+                                        const status = selectedRoom.resource_status || selectedRoom.status
+
+                                        return (
+                                            <span
+                                                className={`px-2 py-1 rounded-md text-xs capitalize
+        ${status === 'occupied'
+                                                        ? 'bg-yellow-100 text-yellow-700'
+                                                        : status === 'maintenance'
+                                                            ? 'bg-red-100 text-red-700'
+                                                            : 'bg-green-100 text-green-700'
+                                                    }`}
+                                            >
+                                                {status}
+                                            </span>
+                                        )
+                                    })()}
                                 </div>
 
                                 {/* DETAILS */}
