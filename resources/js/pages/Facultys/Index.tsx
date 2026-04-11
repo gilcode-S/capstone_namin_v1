@@ -34,6 +34,14 @@ interface Shift {
   end_time: string
 }
 
+interface Schedule {
+  day: string
+  start_time: string
+  end_time: string
+  subject: string
+  room: string
+}
+
 interface Faculty {
   id: number
   department: Department
@@ -48,6 +56,7 @@ interface Faculty {
   status: string
   availabilities: Availability[]
   shifts: Shift[]
+  schedule?: Schedule[]
 }
 
 const emptyForm = {
@@ -82,6 +91,13 @@ export default function Index() {
   const [editId, setEditId] = useState<number | null>(null)
   const [search, setSearch] = useState(filters.search || '')
   const [departmentFilter, setDepartmentFilter] = useState(filters.department || '')
+  const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null)
+  const [viewOpen, setViewOpen] = useState(false)
+  const groupedSchedule = selectedFaculty?.schedule_full?.reduce((acc, s) => {
+    if (!acc[s.day]) acc[s.day] = []
+    acc[s.day].push(s)
+    return acc
+  }, {}) || {}
 
   const [availability, setAvailability] = useState<Availability>({
     day_of_week: '',
@@ -259,11 +275,12 @@ export default function Index() {
       ...form,
 
       // convert checkbox days → backend format
-      availabilities: (form.availability || []).map(day => ({
-        day_of_week: day,
-        start_time: "08:00",
-        end_time: "17:00"
-      }))
+      // availabilities: (form.availability || []).map(day => ({
+      //   day_of_week: day,
+      //   start_time: "08:00",
+      //   end_time: "17:00"
+      // }))
+      availability: form.availability || []
     }
 
     console.log("PAYLOAD:", payload) // ✅ debug
@@ -323,6 +340,38 @@ export default function Index() {
       department: value,
       page: 1
     }, { preserveState: true, replace: true })
+  }
+
+  // const formatTime = (time: string) => {
+  //   if (!time) return ""
+
+  //   const [hour, minute] = time.split(":")
+  //   let h = parseInt(hour)
+  //   const ampm = h >= 12 ? "PM" : "AM"
+
+  //   h = h % 12 || 12
+
+  //   return `${h}:00 ${ampm}`
+  // }
+
+  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+  const times = [
+    "7:00 AM", "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM",
+    "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM",
+    "4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM",
+    "8:00 PM", "9:00 PM", "10:00 PM"
+  ]
+
+  const formatTime = (time: string) => {
+    if (!time) return ""
+
+    const [hour] = time.split(":")
+    let h = parseInt(hour)
+    const ampm = h >= 12 ? "PM" : "AM"
+    h = h % 12 || 12
+
+    return `${h}:00 ${ampm}`
   }
 
   return (
@@ -433,7 +482,14 @@ export default function Index() {
 
               <tbody>
                 {faculties.data.map((f: any) => (
-                  <tr key={f.id} className="border-b hover:bg-gray-50 transition">
+                  <tr
+                    key={f.id}
+                    onClick={() => {
+                      setSelectedFaculty(f)
+                      setViewOpen(true)
+                    }}
+                    className="border-b hover:bg-gray-50 transition cursor-pointer"
+                  >
 
                     {/* TEACHER */}
                     <td className="p-3 font-medium">
@@ -486,21 +542,21 @@ export default function Index() {
                       </div>
                     </td>
 
-                    {/* AVAILABILITY */}
+                    {/* AVAILABILITY ✅ FIXED */}
                     <td className="p-3">
                       <div className="flex gap-1 flex-wrap">
-                        {f.teaching_days?.slice(0, 3).map((day: string, i: number) => (
+                        {f.availability_full?.slice(0, 3).map((a: any, i: number) => (
                           <span
                             key={i}
                             className="px-2 py-1 text-xs bg-gray-100 rounded-md"
                           >
-                            {day}
+                            {a.day_of_week}
                           </span>
                         ))}
 
-                        {f.teaching_days?.length > 3 && (
+                        {f.availability_full?.length > 3 && (
                           <span className="px-2 py-1 text-xs bg-gray-200 rounded-md">
-                            +{f.teaching_days.length - 3}
+                            +{f.availability_full.length - 3}
                           </span>
                         )}
                       </div>
@@ -528,7 +584,10 @@ export default function Index() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleOpenEdit(f)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleOpenEdit(f)
+                          }}
                         >
                           <Pencil size={14} />
                         </Button>
@@ -536,7 +595,10 @@ export default function Index() {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => handleDelete(f.id)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDelete(f.id)
+                          }}
                         >
                           <Trash2 size={14} />
                         </Button>
@@ -669,6 +731,7 @@ export default function Index() {
                       <input
                         type="checkbox"
                         value={day}
+                        checked={form.availability?.includes(day)}
                         onChange={handleCheckboxChange}
                       />
                       {day}
@@ -685,7 +748,8 @@ export default function Index() {
                     <label key={shift.id} className="flex items-center gap-2">
                       <input
                         type="checkbox"
-                        value={shift.id} // ✅ IMPORTANT (ID, not name)
+                        value={shift.id}
+                        checked={form.shifts?.includes(shift.id)}
                         onChange={handleShiftChange}
                       />
                       {shift.name}
@@ -706,6 +770,115 @@ export default function Index() {
               </div>
 
             </form>
+          </DialogContent>
+        </Dialog>
+
+
+        {/* pop up modal */}
+        {/* FACULTY VIEW MODAL */}
+        <Dialog
+          open={viewOpen}
+          onOpenChange={(open) => {
+            setViewOpen(open)
+            if (!open) setSelectedFaculty(null)
+          }}
+        >
+          <DialogContent className="max-w-4xl w-full h-[90vh] flex flex-col p-0 rounded-2xl">
+
+            {selectedFaculty && (
+              <div className="flex flex-col h-full bg-white">
+
+                {/* HEADER (FIXED) */}
+                <div className="p-6 border-b shrink-0 bg-white">
+                  <h2 className="text-2xl font-bold">
+                    {selectedFaculty.first_name} {selectedFaculty.last_name}
+                  </h2>
+
+                  <p className="text-sm text-gray-500 mt-1">
+                    Department: {selectedFaculty.department?.department_name || "N/A"}
+                  </p>
+
+                  <p className="text-sm text-gray-500">
+                    Subjects: {selectedFaculty.subjects?.join(", ") || "None"}
+                  </p>
+
+                  <p className="text-sm text-gray-500">
+                    Availability: {
+                      selectedFaculty.availability_full?.map(a => a.day_of_week).join(", ")
+                      || "None"
+                    }
+                  </p>
+
+                  <p className="text-sm text-gray-500">
+                    Workload: {selectedFaculty.workload_percent ?? 0}%
+                  </p>
+                </div>
+
+                {/* SCROLLABLE BODY */}
+                <div className="flex-1 overflow-y-auto p-6 bg-gray-50 space-y-6">
+
+                  {/* WEEKLY SCHEDULE */}
+                  <div className="bg-white rounded-xl border overflow-hidden">
+
+                    {/* SCHEDULE HEADER (STICKY) */}
+                    <div className="p-4 border-b sticky top-0 bg-white z-10">
+                      <h3 className="font-semibold text-lg">Weekly Schedule</h3>
+                      <p className="text-sm text-gray-500">
+                        Showing assigned teaching schedule
+                      </p>
+                    </div>
+
+                    {/* EMPTY STATE */}
+                    {Object.keys(groupedSchedule).length === 0 && (
+                      <div className="p-6 text-center text-gray-500">
+                        No schedule assigned
+                      </div>
+                    )}
+
+                    {/* SCHEDULE LIST */}
+                    <div className="divide-y">
+
+                      {Object.entries(groupedSchedule).map(([day, schedules]) => (
+                        <div key={day}>
+
+                          {/* DAY HEADER (OPTIONAL STICKY 🔥) */}
+                          <div className="bg-gray-100 px-4 py-2 font-semibold sticky top-[60px] z-10">
+                            {day}
+                          </div>
+
+                          {schedules.map((sched, i) => (
+                            <div
+                              key={i}
+                              className="p-4 flex justify-between hover:bg-gray-50"
+                            >
+
+                              <span className="text-sm">
+                                {formatTime(sched.start_time)} - {formatTime(sched.end_time)}
+                              </span>
+
+                              <span className="font-medium">
+                                {sched.subject}
+                              </span>
+
+                              <span className="text-gray-500 text-sm">
+                                {sched.room}
+                              </span>
+
+                            </div>
+                          ))}
+
+                        </div>
+                      ))}
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
+            )}
+
           </DialogContent>
         </Dialog>
 

@@ -17,10 +17,14 @@ class FacultyController extends Controller
         $query = Faculty::with([
             'department',
             'assignments.subject',
-            'schedules.timeslot'
+            'schedules.timeslot',
+            'availabilities', // ✅ IMPORTANT (YOU MISSED THIS)
+            'shifts'
         ]);
 
-
+        /* ---------------------------
+           SEARCH
+        ----------------------------*/
         if ($request->search) {
             $search = $request->search;
 
@@ -33,7 +37,9 @@ class FacultyController extends Controller
             });
         }
 
-
+        /* ---------------------------
+           FILTER
+        ----------------------------*/
         if ($request->department) {
             $query->where('department_id', $request->department);
         }
@@ -44,96 +50,122 @@ class FacultyController extends Controller
 
             'faculties' => $faculties->through(function ($f) {
 
+                /* ---------------------------
+                   VALID SCHEDULES
+                ----------------------------*/
                 $validSchedules = $f->schedules->filter(function ($s) {
-
-                    if (!$s->timeslot) return false;
-
-                    $start = Carbon::parse($s->timeslot->start_time);
-                    $end = Carbon::parse($s->timeslot->end_time);
-
-                    return $end->greaterThan($start);
+                    return $s->timeslot &&
+                        strtotime($s->timeslot->end_time) > strtotime($s->timeslot->start_time);
                 });
 
-
+                /* ---------------------------
+                   TOTAL HOURS
+                ----------------------------*/
                 $totalMinutes = $validSchedules->sum(function ($s) {
+                    $start = strtotime($s->timeslot->start_time);
+                    $end = strtotime($s->timeslot->end_time);
 
-                    $start = Carbon::parse($s->timeslot->start_time);
-                    $end = Carbon::parse($s->timeslot->end_time);
-
-                    return $start->diffInMinutes($end);
+                    return ($end - $start) / 60;
                 });
-
 
                 $hours = round($totalMinutes / 60, 1);
 
+                /* ---------------------------
+                   WORKLOAD
+                ----------------------------*/
+                $maxLoad = $f->max_load_units > 0 ? $f->max_load_units : 21;
 
-                $maxLoad = max(1, $f->max_load_units); // avoid divide by 0
+                $workload = $maxLoad > 0
+                    ? min(100, round(($hours / $maxLoad) * 100))
+                    : 0;
 
-                $workload = round(($hours / $maxLoad) * 100);
-
+                /* ---------------------------
+                   SUBJECTS
+                ----------------------------*/
                 $subjects = $f->assignments
                     ->pluck('subject.subject_name')
                     ->filter()
                     ->unique()
                     ->values();
 
-
+                /* ---------------------------
+                   TEACHING DAYS (FROM SCHEDULE)
+                ----------------------------*/
                 $days = $validSchedules
                     ->pluck('timeslot.day_of_week')
                     ->filter()
                     ->unique()
                     ->values();
 
+                /* ---------------------------
+                   AVAILABILITY (REAL FIX)
+                ----------------------------*/
+                $availability = $f->availabilities
+                    ->map(function ($a) {
+                        return [
+                            'day_of_week' => $a->day_of_week,
+                            'start_time' => $a->start_time,
+                            'end_time' => $a->end_time,
+                        ];
+                    })
+                    ->values();
 
-                $maxLoad = $f->max_load_units > 0 ? $f->max_load_units : 21;
-
-                $workload = $maxLoad > 0
-                    ? max(0, round(($hours / $maxLoad) * 100))
-                    : 0;
+                /* ---------------------------
+                   SCHEDULE FORMAT (FOR UI)
+                ----------------------------*/
+                $schedule = $validSchedules->map(function ($s) {
+                    return [
+                        'day' => $s->timeslot->day_of_week,
+                        'start_time' => $s->timeslot->start_time,
+                        'end_time' => $s->timeslot->end_time,
+                        'subject' => optional($s->assignment->subject)->subject_name ?? 'N/A',
+                        'room' => optional($s->room)->room_name ?? 'N/A',
+                    ];
+                })->values();
 
                 return [
                     ...$f->toArray(),
 
+                    // ✅ UI DATA
                     'assigned_load' => $hours,
                     'workload_percent' => $workload,
                     'subjects' => $subjects,
-                    'teaching_days' => $days
+                    'teaching_days' => $days,
+
+                    // ✅ IMPORTANT (FOR YOUR POPUP)
+                    'availability_full' => $availability,
+                    'schedule_full' => $schedule,
                 ];
             }),
 
             'departments' => Department::all(),
+
             'filters' => [
                 'search' => $request->search,
                 'department' => $request->department
             ],
+
             'stats' => [
                 'total' => Faculty::count(),
+
                 'avg_load' => round(
                     Faculty::with('schedules.timeslot')->get()->avg(function ($f) {
 
-                        $validSchedules = $f->schedules->filter(function ($schedule) {
-                            if (!$schedule->timeslot) return false;
-
-                            $start = Carbon::parse($schedule->timeslot->start_time);
-                            $end = Carbon::parse($schedule->timeslot->end_time);
-
-                            return $end->gt($start);
+                        $validSchedules = $f->schedules->filter(function ($s) {
+                            return $s->timeslot &&
+                                strtotime($s->timeslot->end_time) > strtotime($s->timeslot->start_time);
                         });
 
-                        $totalMinutes = $validSchedules->sum(function ($schedule) {
-                            $start = Carbon::parse($schedule->timeslot->start_time);
-                            $end = Carbon::parse($schedule->timeslot->end_time);
+                        $totalMinutes = $validSchedules->sum(function ($s) {
+                            $start = strtotime($s->timeslot->start_time);
+                            $end = strtotime($s->timeslot->end_time);
 
-                            return $start->diffInMinutes($end); // ✅ FIXED
+                            return ($end - $start) / 60;
                         });
 
                         $hours = round($totalMinutes / 60, 1);
 
                         $maxLoad = $f->max_load_units > 0 ? $f->max_load_units : 21;
-
-                        $workload = $maxLoad > 0
-                            ? min(100, round(($hours / $maxLoad) * 100))
-                            : 0;
 
                         return $maxLoad > 0
                             ? ($hours / $maxLoad) * 100
@@ -143,32 +175,30 @@ class FacultyController extends Controller
                 ),
 
                 'subjects' => \App\Models\Subject::count(),
-                
             ],
+
             'shifts' => Shift::all(),
         ]);
     }
 
 
-    public function store(Request $request, Faculty $faculty)
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'department_id' => 'required|exists:departments,id',
-            'faculty_code' => 'required|unique:faculties,faculty_code,'. $faculty->id,
-            //'faculty_code' => 'nullable|string|max:255',
+            'faculty_code' => 'required|unique:faculties,faculty_code',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:faculties,email,'. $faculty->id,
-            //'email' => 'nullable|email',
+            'email' => 'required|email|unique:faculties,email',
             'employment_type' => 'nullable',
             'max_load_units' => 'required|integer|min:1',
             'status' => 'required|in:active,inactive',
 
-            // ✅ AVAILABILITY
+            // ✅ availability (DAYS ONLY)
             'availability' => 'nullable|array',
             'availability.*' => 'in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
 
-            // ✅ SHIFTS 
+            // shifts
             'shifts' => 'nullable|array',
             'shifts.*' => 'exists:shifts,id',
 
@@ -178,7 +208,7 @@ class FacultyController extends Controller
 
         $faculty = Faculty::create($validated);
 
-        // ✅ SAVE AVAILABILITY (AUTO TIME)
+        // ✅ SAVE AVAILABILITY (DEFAULT TIME RANGE)
         if ($request->availability) {
             foreach ($request->availability as $day) {
                 $faculty->availabilities()->create([
@@ -189,7 +219,7 @@ class FacultyController extends Controller
             }
         }
 
-        // ✅ SAVE SHIFTS (pivot table)
+        // ✅ SAVE SHIFTS
         if ($request->shifts) {
             $faculty->shifts()->sync($request->shifts);
         }
@@ -202,20 +232,18 @@ class FacultyController extends Controller
         $validated = $request->validate([
             'department_id' => 'required|exists:departments,id',
             'faculty_code' => 'required|unique:faculties,faculty_code,' . $faculty->id,
-            //'faculty_code' => 'nullable|string|max:255',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:faculties,email,' . $faculty->id,
-            //'email' => 'nullable|email',
             'employment_type' => 'nullable',
             'max_load_units' => 'required|integer|min:1',
             'status' => 'required|in:active,inactive',
 
-            // ✅ AVAILABILITY
+            // ✅ availability (DAYS ONLY)
             'availability' => 'nullable|array',
             'availability.*' => 'in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
 
-            // ✅ SHIFTS
+            // shifts
             'shifts' => 'nullable|array',
             'shifts.*' => 'exists:shifts,id',
 
@@ -225,9 +253,10 @@ class FacultyController extends Controller
 
         $faculty->update($validated);
 
-        // ✅ RESET + SAVE AVAILABILITY
+        // ❌ REMOVE OLD AVAILABILITY
         $faculty->availabilities()->delete();
 
+        // ✅ RECREATE AVAILABILITY
         if ($request->availability) {
             foreach ($request->availability as $day) {
                 $faculty->availabilities()->create([
