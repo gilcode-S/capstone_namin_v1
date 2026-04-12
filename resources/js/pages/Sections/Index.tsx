@@ -19,30 +19,45 @@ interface Program {
   program_name: string
 }
 
+interface Semester {
+  id: number
+  school_year: string
+  term: string
+}
+
 interface Section {
   id: number
   program_id: number
+  semester_id: number
   section_name: string
   year_level: number
   student_count: number
+  shift: string
+  octoberian: boolean
   program: Program
+  semester: Semester
 }
+
 
 const emptyForm = {
   program_id: '',
+  semester_id: '',
   section_name: '',
   year_level: '',
-  student_count: ''
+  student_count: '',
+  shift: '',
+  octoberian: false,
 }
 
 export default function Index() {
 
-  const { sections, programs } = usePage().props as unknown as {
+  const { sections, programs, stats, semesters, filters: initialFilters, view: initialView, } = usePage().props as unknown as {
     sections: {
       data: Section[],
       links: any[],
     },
-    programs: Program[]
+    programs: Program[],
+    semesters: Semester[]
   }
 
   const [open, setOpen] = useState(false)
@@ -50,6 +65,46 @@ export default function Index() {
   const [loading, setLoading] = useState(false)
   const [isEdit, setIsEdit] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
+  // const { filters: initialFilters } = usePage().props as any
+
+  const [view, setView] = useState<'grid' | 'section' | 'teacher'>(
+    initialView || 'grid'
+  )
+
+
+  const [filters, setFilters] = useState({
+    set: initialFilters?.set || 'A',
+    program: initialFilters?.program || '',
+    shift: initialFilters?.shift || '',
+    section: initialFilters?.section || '',
+  })
+
+  // const [filters, setFilter] = useState({
+  //   section: "",
+  //   shift: "",
+  //   program: "",
+  // });
+
+  const handleViewChange = (value: 'grid' | 'section' | 'teacher') => {
+    setView(value)
+
+    router.get('/section', {
+      ...filters,
+      view: value
+    }, {
+      preserveState: true,
+      replace: true,
+    })
+  }
+  const handleFilterChange = (name: string, value: string) => {
+    const updated = { ...filters, [name]: value }
+    setFilters(updated)
+
+    router.get('/section', updated, {
+      preserveState: true,
+      replace: true,
+    })
+  }
 
   // OPEN CREATE
   const handleOpen = () => {
@@ -63,9 +118,12 @@ export default function Index() {
   const handleOpenEdit = (section: Section) => {
     setForm({
       program_id: section.program_id,
+      semester_id: section.semester_id,
       section_name: section.section_name,
       year_level: section.year_level,
-      student_count: section.student_count
+      student_count: section.student_count,
+      shift: section.shift,
+      octoberian: section.octoberian ?? false
     })
 
     setIsEdit(true)
@@ -85,10 +143,14 @@ export default function Index() {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value
-    })
+    const { name, value, type } = e.target
+
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked
+      setForm({ ...form, [name]: checked })
+    } else {
+      setForm({ ...form, [name]: value })
+    }
   }
 
   // SUBMIT
@@ -121,7 +183,23 @@ export default function Index() {
 
     router.delete(`/section/${id}`)
   }
-
+  
+  const mockRooms = [
+    { id: 1, name: 'Room 101' },
+    { id: 2, name: 'Room 102' },
+    { id: 3, name: 'Room 103' },
+    { id: 4, name: 'Room 104' },
+  ]
+  const timeSlots = [
+    '7:00 AM - 8:00 AM',
+    '8:00 AM - 9:00 AM',
+    '9:00 AM - 10:00 AM',
+    '10:00 AM - 11:00 AM',
+    '11:00 AM - 12:00 PM',
+    '1:00 PM - 2:00 PM',
+    '2:00 PM - 3:00 PM',
+    '3:00 PM - 4:00 PM',
+  ]
   return (
     <AppLayout breadcrumbs={[{ title: "Sections", href: '/section' }]}>
       <Head title="Sections" />
@@ -141,87 +219,301 @@ export default function Index() {
           </Button>
         </div>
 
-        {/* TABLE */}
-        <div className="overflow-x-auto rounded-lg shadow border dark:border-gray-700">
-          <table className="min-w-full bg-white dark:bg-gray-800">
-            <thead>
-              <tr className="bg-gray-100 dark:bg-gray-800">
-                <th className="px-4 py-2 text-left">Program</th>
-                <th className="px-4 py-2 text-left">Section</th>
-                <th className="px-4 py-2 text-left">Year Level</th>
-                <th className="px-4 py-2 text-left">Students</th>
-                <th className="px-4 py-2 text-center">Actions</th>
-              </tr>
-            </thead>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
-            <tbody>
-              {sections.data.length > 0 ? sections.data.map(section => (
-                <tr key={section.id} className="border-t dark:border-gray-700">
-                  <td className="px-4 py-2">
-                    {section.program.program_name}
-                  </td>
-                  <td className="px-4 py-2">
-                    {section.section_name}
-                  </td>
-                  <td className="px-4 py-2">
-                    {section.year_level}
-                  </td>
-                  <td className="px-4 py-2">
-                    {section.student_count}
-                  </td>
-                  <td className="px-4 py-2 text-center">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mr-2"
-                      onClick={() => handleOpenEdit(section)}
-                    >
-                      <Pencil size={16} />
-                    </Button>
+          {/* TOTAL CLASSES */}
+          <div className="p-4 rounded-xl border bg-white shadow-sm">
+            <p className="text-sm text-gray-500">Total Classes</p>
+            <h2 className="text-2xl font-bold">
+              {stats?.total_classes ?? 0}
+            </h2>
+          </div>
 
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDelete(section.id)}
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan={5} className="px-4 py-4 text-center text-gray-500">
-                    No Sections Found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          {/* WEEKLY HOURS */}
+          <div className="p-4 rounded-xl border bg-white shadow-sm">
+            <p className="text-sm text-gray-500">Weekly Hours</p>
+            <h2 className="text-2xl font-bold">
+              {stats?.weekly_hours ?? 0}
+            </h2>
+          </div>
+
+          {/* ACTIVE ROOMS */}
+          <div className="p-4 rounded-xl border bg-white shadow-sm">
+            <p className="text-sm text-gray-500">Active Rooms</p>
+            <h2 className="text-2xl font-bold">
+              {stats?.active_rooms ?? 0}
+            </h2>
+          </div>
+
+          {/* TOTAL SECTIONS */}
+          <div className="p-4 rounded-xl border bg-white shadow-sm">
+            <p className="text-sm text-gray-500">Total Sections</p>
+            <h2 className="text-2xl font-bold">
+              {stats?.total_sections ?? 0}
+            </h2>
+          </div>
+
         </div>
-        <Pagination links={sections.links}/>
+
+        {/* FILTER BAR */}
+        {/* FILTER BAR (FIGMA MATCH) */}
+        <div className="bg-gray-100 rounded-2xl p-4 mb-6">
+
+          <p className="text-sm text-gray-500 mb-3">Filters</p>
+
+          <div className="flex flex-wrap gap-4">
+
+            {/* SET */}
+            <select
+              className="px-4 py-2 rounded-full bg-white border text-sm shadow-sm"
+              value={filters.set}
+              onChange={(e) => handleFilterChange('set', e.target.value)}
+            >
+              <option value="A">Set A</option>
+              <option value="B">Set B</option>
+            </select>
+
+            {/* DEPARTMENT */}
+            <select
+              className="px-4 py-2 rounded-full bg-white border text-sm shadow-sm"
+              value={filters.program}
+              onChange={(e) => handleFilterChange('program', e.target.value)}
+            >
+              <option value="">All Department</option>
+              {programs.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.program_name}
+                </option>
+              ))}
+            </select>
+
+            {/* SHIFT */}
+            <select
+              className="px-4 py-2 rounded-full bg-white border text-sm shadow-sm"
+              value={filters.shift}
+              onChange={(e) => handleFilterChange('shift', e.target.value)}
+            >
+              <option value="">All Shift</option>
+              <option value="Morning">Morning</option>
+              <option value="Afternoon">Afternoon</option>
+              <option value="Evening">Evening</option>
+            </select>
+
+            {/* SECTION */}
+            <select
+              className="px-4 py-2 rounded-full bg-white border text-sm shadow-sm"
+              value={filters.section}
+              onChange={(e) => handleFilterChange('section', e.target.value)}
+            >
+              <option value="">All Section</option>
+              {sections.data.map(sec => (
+                <option key={sec.id} value={sec.section_name}>
+                  {sec.section_name}
+                </option>
+              ))}
+            </select>
+
+          </div>
+        </div>
+
+        <div className="bg-gray-200 rounded-2xl p-1 mb-4 flex">
+
+          {/* GRID */}
+          <button
+            onClick={() => handleViewChange('grid')}
+            className={`flex-1 text-sm py-2 rounded-xl transition ${view === 'grid'
+              ? 'bg-white shadow font-medium'
+              : 'text-gray-600'
+              }`}
+          >
+            GRID
+          </button>
+
+          {/* BY SECTION */}
+          <button
+            onClick={() => handleViewChange('section')}
+            className={`flex-1 text-sm py-2 rounded-xl transition ${view === 'section'
+              ? 'bg-white shadow font-medium'
+              : 'text-gray-600'
+              }`}
+          >
+            By Section
+          </button>
+
+          {/* BY TEACHER */}
+          <button
+            onClick={() => handleViewChange('teacher')}
+            className={`flex-1 text-sm py-2 rounded-xl transition ${view === 'teacher'
+              ? 'bg-white shadow font-medium'
+              : 'text-gray-600'
+              }`}
+          >
+            By Teacher
+          </button>
+
+        </div>
+        {view === 'grid' && (
+          <div className="overflow-auto rounded-xl border bg-white">
+
+  <table className="min-w-full border-collapse text-[11px]">
+
+    {/* ================= HEADER ================= */}
+    <thead>
+
+      {/* SET TITLE */}
+      <tr>
+        <th colSpan={mockRooms.length * 2 + 1} className="border text-center py-2 font-semibold bg-gray-100">
+          Set {filters.set}
+        </th>
+      </tr>
+
+      {/* BUILDING */}
+      <tr>
+        <th className="border w-20"></th>
+        <th colSpan={mockRooms.length * 2} className="border text-center py-1 bg-gray-50">
+          BUILDING 1
+        </th>
+      </tr>
+
+      {/* ROOM NAMES */}
+      <tr>
+        <th className="border w-20">MONDAY</th>
+
+        {mockRooms.map(room => (
+          <th
+            key={room.id}
+            colSpan={2}
+            className="border text-center py-1 bg-gray-50"
+          >
+            {room.name.toUpperCase()}
+          </th>
+        ))}
+      </tr>
+
+      {/* TEACHER / SECTION */}
+      <tr>
+        <th className="border text-[10px]">MORNING</th>
+
+        {mockRooms.map(room => (
+          <>
+            <th key={`${room.id}-t`} className="border text-[10px]">TEACHER</th>
+            <th key={`${room.id}-s`} className="border text-[10px]">SECTION</th>
+          </>
+        ))}
+      </tr>
+
+    </thead>
+
+    {/* ================= BODY ================= */}
+    <tbody>
+
+      {timeSlots.slice(0, 5).map((time, i) => {
+        const [start] = time.split(' - ')
+
+        return (
+          <tr key={i}>
+
+            {/* TIME */}
+            <td className="border px-2 py-1 text-[10px] bg-gray-50">
+              {start}
+            </td>
+
+            {/* CELLS */}
+            {mockRooms.map(room => (
+              <>
+                {/* TEACHER CELL */}
+                <td className="border text-center text-gray-400 h-8">
+                  TEACHER
+                </td>
+
+                {/* SECTION CELL */}
+                <td className="border text-center text-gray-400">
+                  SECTION
+                </td>
+              </>
+            ))}
+
+          </tr>
+        )
+      })}
+
+      {/* AFTERNOON LABEL */}
+      <tr>
+        <td className="border font-semibold bg-gray-100 text-center">
+          AFTERNOON
+        </td>
+        <td colSpan={mockRooms.length * 2} className="border"></td>
+      </tr>
+
+      {/* AFTERNOON TIMES */}
+      {timeSlots.slice(5).map((time, i) => {
+        const [start] = time.split(' - ')
+
+        return (
+          <tr key={i}>
+            <td className="border px-2 py-1 text-[10px] bg-gray-50">
+              {start}
+            </td>
+
+            {mockRooms.map(room => (
+              <>
+                <td className="border text-center text-gray-400 h-8">
+                  TEACHER
+                </td>
+                <td className="border text-center text-gray-400">
+                  SECTION
+                </td>
+              </>
+            ))}
+          </tr>
+        )
+      })}
+
+    </tbody>
+
+  </table>
+</div>
+        )}
+
+        {view === 'section' && (
+          <div className="p-6 text-gray-500">
+            Section View (coming next)
+          </div>
+        )}
+
+        {view === 'teacher' && (
+          <div className="p-6 text-gray-500">
+            Teacher View (coming next)
+          </div>
+        )}
+
+        <Pagination links={sections.links} />
 
         {/* MODAL */}
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>
-                {isEdit ? "Edit Section" : "Add Section"}
+              <DialogTitle className="text-lg font-semibold">
+                {isEdit ? "Edit Section" : "Add New Section"}
               </DialogTitle>
+              <p className="text-sm text-gray-500">
+                Create a new section with scheduling requirements
+              </p>
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className="space-y-4">
 
-              {/* PROGRAM */}
+              {/* COURSE */}
               <div>
-                <Label>Program</Label>
+                <Label>Course</Label>
                 <select
                   name="program_id"
                   value={form.program_id}
                   onChange={handleChange}
-                  className="w-full border rounded px-2 py-2"
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
                   required
                 >
-                  <option value="">Select Program</option>
+                  <option value="">e.g. BS Computer Science, BS Accounting</option>
                   {programs.map(program => (
                     <option key={program.id} value={program.id}>
                       {program.program_name}
@@ -230,57 +522,103 @@ export default function Index() {
                 </select>
               </div>
 
-              {/* SECTION NAME */}
-              <div>
-                <Label>Section Name</Label>
-                <Input
-                  name="section_name"
-                  value={form.section_name}
-                  onChange={handleChange}
-                  required
-                />
+              {/* GRID 2 COL */}
+              <div className="grid grid-cols-2 gap-4">
+
+                {/* YEAR */}
+                <div>
+                  <Label>Year</Label>
+                  <select
+                    name="year_level"
+                    value={form.year_level}
+                    onChange={handleChange}
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    required
+                  >
+                    <option value="">First Year</option>
+                    <option value="1">1st Year</option>
+                    <option value="2">2nd Year</option>
+                    <option value="3">3rd Year</option>
+                    <option value="4">4th Year</option>
+                  </select>
+                </div>
+
+                {/* SEM */}
+                <div>
+                  <Label>Sem</Label>
+                  <select
+                    name="semester_id"
+                    value={form.semester_id}
+                    onChange={handleChange}
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                  >
+                    <option value="">Select Semester</option>
+                    {semesters.map(sem => (
+                      <option key={sem.id} value={sem.id}>
+                        {sem.school_year} - {sem.term}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* SHIFT */}
+                <div>
+                  <Label>Shift</Label>
+                  <select
+                    name="shift"
+                    value={form.shift}
+                    onChange={handleChange}
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                  >
+                    <option>Morning</option>
+                    <option>Afternoon</option>
+                    <option>Evening</option>
+                  </select>
+                </div>
+
+                {/* SECTION */}
+                <div>
+                  <Label>Section</Label>
+                  <Input
+                    name="section_name"
+                    placeholder="e.g. A, B, C"
+                    value={form.section_name}
+                    onChange={handleChange}
+                  />
+                </div>
+
               </div>
 
-              {/* YEAR LEVEL */}
+              {/* CAPACITY */}
               <div>
-                <Label>Year Level</Label>
-                <select
-                  name="year_level"
-                  value={form.year_level}
-                  onChange={handleChange}
-                  className="w-full border rounded px-2 py-2"
-                  required
-                >
-                  <option value="">Select Year</option>
-                  <option value="1">1st Year</option>
-                  <option value="2">2nd Year</option>
-                  <option value="3">3rd Year</option>
-                  <option value="4">4th Year</option>
-                </select>
-              </div>
-
-              {/* STUDENT COUNT */}
-              <div>
-                <Label>Student Count</Label>
+                <Label>Capacity</Label>
                 <Input
                   type="number"
                   name="student_count"
+                  placeholder="e.g. 40"
                   value={form.student_count}
                   onChange={handleChange}
                 />
               </div>
 
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleClose}
-                  disabled={loading}
-                >
-                  Cancel
-                </Button>
+              {/* CHECKBOX */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="octoberian"
+                  checked={form.octoberian}
+                  onChange={handleChange}
+                  className="rounded border-gray-300"
+                />
+                <Label className="text-sm">Octoberian</Label>
+              </div>
 
-                <Button type="submit">
+              {/* FOOTER */}
+              <DialogFooter className="pt-2">
+                <Button
+                  type="submit"
+                  className="w-full"
+                >
                   {loading
                     ? (isEdit ? "Saving..." : "Adding...")
                     : (isEdit ? "Save Changes" : "Add Section")}

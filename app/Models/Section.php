@@ -1,18 +1,23 @@
 <?php
 
 namespace App\Models;
+
 use App\Models\Programs;
 use App\Models\Department;
+use App\Models\Semester;
 use Illuminate\Database\Eloquent\Model;
 
 class Section extends Model
 {
     //
     protected $fillable = [
-        'program_id', 
+        'program_id',
+        'semester_id',
         'section_name',
         'year_level',
-        'student_count'
+        'shift',
+        'student_count',
+        'octoberian',
     ];
 
     public function program()
@@ -23,5 +28,10 @@ class Section extends Model
     public function department()
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function semester()
+    {
+        return $this->belongsTo(Semester::class);
     }
 }

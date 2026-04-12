@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use App\Models\Section;
 class Semester extends Model
 {
     //
@@ -14,4 +14,9 @@ class Semester extends Model
         'end_date',
         'status'
     ];
+
+    public function sections() 
+    {
+        return $this->hasMany(Section::class);
+    }
 }
