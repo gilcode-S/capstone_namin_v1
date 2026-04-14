@@ -17,8 +17,10 @@ class DepartmentController extends Controller
     public function index()
     {
         //
-        return Inertia::render('Departments/Index', [
-            'departments' => Department::latest()->get()
+
+        $departments = Department::with('programs')->get();
+        return Inertia::render('Acedemics/Index', [
+            'departments' => $departments
         ]);
     }
 

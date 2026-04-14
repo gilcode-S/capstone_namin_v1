@@ -19,6 +19,16 @@ class SubjectController extends Controller
         // ]);
 
         $query = Subject::with('program');
+        if ($request->search) {
+            $query->where(function ($q) use ($request) {
+                $q->where('subject_name', 'like', '%' . $request->search . '%')
+                    ->orWhere('subject_code', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        if ($request->room_type) {
+            $query->where('room_type', $request->room_type);
+        }
 
         if ($request->program_id) {
             $query->where('program_id', $request->program_id);
@@ -35,7 +45,21 @@ class SubjectController extends Controller
         return Inertia::render('Subjects/Index', [
             'subjects' => $query->latest()->paginate(15)->withQueryString(),
             'programs' => Programs::all(),
-            'filters' => $request->only(['program_id', 'semester', 'year_level'])
+            'filters' => $request->only([
+                'program_id',
+                'semester',
+                'year_level',
+                'search',
+                'room_type'
+            ]),
+
+            'stats' => [
+                'total_subject' => Subject::count(),
+                'total_credits' => 0,
+                'total_weeklyHours' => 0,
+                'total_students' => 0,
+                'avg_capacity' => 0
+            ]
         ]);
     }
 

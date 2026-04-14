@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ConflictController;
+use App\Http\Controllers\CurriculumController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FacultyController;
@@ -35,7 +36,9 @@ Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('subject', SubjectController::class);
 Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('assignments', SectionSubjectAssignmentController::class);
-
+Route::middleware(['auth', 'role:super admin,registrar'])
+    ->resource('curriculum', CurriculumController::class);
+Route::get('/academics', [DepartmentController::class, 'index']);
 
 Route::middleware(['auth', 'role:hr,super admin'])
     ->resource('faculty', FacultyController::class);

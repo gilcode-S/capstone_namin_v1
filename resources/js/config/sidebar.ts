@@ -20,10 +20,15 @@ import {
       {
         label: "Academics",
         items: [
-          { title: "Department", href: "/department", icon: Layers },
-          { title: "Program", href: "/program", icon: Layers },
+       { title: "Academics", href: "/academics", icon: Layers },
           { title: "Subject", href: "/subject", icon: BookOpen },
-          { title: "Section", href: "/section", icon: PanelsRightBottom }
+          { title: "Section", href: "/section", icon: PanelsRightBottom },
+          {
+            title: "Curriculum",
+            href: "/curriculum",
+            icon: Layers
+          },
+     
         ]
       },
   

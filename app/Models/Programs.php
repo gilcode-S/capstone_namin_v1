@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Department;
 use App\Models\Section;
 use App\Models\Subject;
+use App\Models\Curriculum;
+
 class Programs extends Model
 {
     //
@@ -14,7 +16,7 @@ class Programs extends Model
         'program_code',
         'program_name'
     ];
-    
+
     public function department()
     {
         return $this->belongsTo(Department::class);
@@ -28,5 +30,9 @@ class Programs extends Model
     public function subjects()
     {
         return $this->hasMany(Subject::class);
+    }
+    public function curriculums()
+    {
+        return $this->hasMany(Curriculum::class);
     }
 }

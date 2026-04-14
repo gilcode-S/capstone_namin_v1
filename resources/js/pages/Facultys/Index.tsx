@@ -132,10 +132,10 @@ export default function Index() {
       years_experience: faculty.years_experience,
       max_load_units: faculty.max_load_units,
       status: faculty.status,
-      // ✅ FIX THIS
+ 
       availability: faculty.availabilities?.map(a => a.day_of_week) || [],
 
-      // ✅ if you load shifts later
+
       shifts: faculty.shifts?.map(s => s.id) || []
     })
 
@@ -249,7 +249,7 @@ export default function Index() {
     }));
   };
   const handleShiftChange = (e) => {
-    const value = Number(e.target.value); // ✅ convert to number
+    const value = Number(e.target.value);
     const checked = e.target.checked;
 
     setForm(prev => {
@@ -270,7 +270,6 @@ export default function Index() {
     e.preventDefault()
     setLoading(true)
 
-    // ✅ TRANSFORM HERE
     const payload = {
       ...form,
 
@@ -283,7 +282,7 @@ export default function Index() {
       availability: form.availability || []
     }
 
-    console.log("PAYLOAD:", payload) // ✅ debug
+    console.log("PAYLOAD:", payload) 
 
     if (isEdit && editId) {
       router.put(`/faculty/${editId}`, payload, {

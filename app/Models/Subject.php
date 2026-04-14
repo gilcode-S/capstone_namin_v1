@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Programs;
+use App\Models\Curriculum;
 
 class Subject extends Model
 {
@@ -24,5 +25,9 @@ class Subject extends Model
     public function program()
     {
         return $this->belongsTo(Programs::class);
+    }
+    public function curriculums()
+    {
+        return $this->hasMany(Curriculum::class);
     }
 }
