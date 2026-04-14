@@ -18,7 +18,7 @@ class SubjectController extends Controller
         //     'programs' => Programs::all(),
         // ]);
 
-        $query = Subject::with('program');
+        $query = Subject::with(['program', 'prerequisites']);
         if ($request->search) {
             $query->where(function ($q) use ($request) {
                 $q->where('subject_name', 'like', '%' . $request->search . '%')
@@ -45,20 +45,21 @@ class SubjectController extends Controller
         return Inertia::render('Subjects/Index', [
             'subjects' => $query->latest()->paginate(15)->withQueryString(),
             'programs' => Programs::all(),
+            'allSubjects' => Subject::select('id', 'subject_name', 'subject_code')->get(),
+
             'filters' => $request->only([
                 'program_id',
                 'semester',
                 'year_level',
                 'search',
-                'room_type'
+                'room_type',
+                'subject_type'
             ]),
 
             'stats' => [
                 'total_subject' => Subject::count(),
-                'total_credits' => 0,
-                'total_weeklyHours' => 0,
-                'total_students' => 0,
-                'avg_capacity' => 0
+                'total_minor' => Subject::where('subject_type', 'minor')->count(),
+                'total_major' => Subject::where('subject_type', 'major')->count(),
             ]
         ]);
     }
@@ -75,15 +76,14 @@ class SubjectController extends Controller
             'room_type' => 'nullable|string|max:50',
             'year_level' => 'required|integer|min:1|max:5',
             'semester' => 'required|integer|min:1|max:3',
+            'prerequisites' => 'nullable|array',
+            'prerequisites.*' => 'exists:subjects,id',
         ]);
         $validated['units'] = $validated['hours_per_week'];
         $subject = Subject::create($validated);
+        $subject->prerequisites()->sync($request->prerequisites ?? []);
 
-        return redirect()->route('subject.index', [
-            'program_id' => $subject->program_id,
-            'semester' => $subject->semester,
-            'year_level' => $subject->year_level
-        ])->with('success', 'Subject created');
+        return redirect()->back()->with('success', 'Subject created');
     }
 
     public function update(Request $request, Subject $subject)
@@ -97,9 +97,12 @@ class SubjectController extends Controller
             'room_type' => 'nullable|string|max:50',
             'year_level' => 'required|integer|min:1|max:5',
             'semester' => 'required|integer|min:1|max:3',
+            'prerequisites' => 'nullable|array',
+            'prerequisites.*' => 'exists:subjects,id',
         ]);
         $validated['units'] = $validated['hours_per_week'];
         $subject->update($validated);
+        $subject->prerequisites()->sync($request->prerequisites ?? []);
         return redirect()->back()->with('success', 'subject updated');
     }
 

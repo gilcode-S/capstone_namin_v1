@@ -51,10 +51,12 @@ const emptyForm = {
     room_type: '',
     year_level: '',
     semester: '',
+    prerequisites: [],
+    preferred_day: ''
 }
 export default function Index() {
 
-    const { subjects, programs, filters, stats } = usePage().props as unknown as {
+    const { subjects, programs, filters, stats, allSubjects } = usePage().props as unknown as {
         subjects: {
             data: Subject[],
             links: any[]
@@ -68,7 +70,7 @@ export default function Index() {
     const [isEdit, setIsEdit] = useState(false)
     const [editId, setEditId] = useState<number | null>(null)
     const [loading, setLoading] = useState(false)
-
+    const [isAdvance, setIsAdvance] = useState(false)
     const [search, setSearch] = useState(filters.search || '')
 
     useEffect(() => {
@@ -118,6 +120,8 @@ export default function Index() {
             room_type: subject.room_type,
             year_level: subject.year_level,
             semester: subject.semester,
+
+            prerequisites: subject.prerequisites?.map((p: any) => p.id) || [],
         })
 
         setIsEdit(true)
@@ -192,12 +196,10 @@ export default function Index() {
 
 
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                    <StatCard title="Total Subjects" value={stats?.total_subject ?? 0} icon={BookOpen} />
-                    <StatCard title="Total Credits" value={stats?.total_credits ?? 0} icon={BarChart3} />
-                    <StatCard title="Weekly Hours" value={stats?.total_weeklyHours ?? 0} icon={Clock} />
-                    <StatCard title="Total Students" value={stats?.total_students ?? 0} icon={Users} />
-                    <StatCard title="Avg. Capacity" value={`${stats?.avg_capacity ?? 0}%`} icon={BarChart3} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                    <StatCard title="Total Subject" value={stats?.total_subject ?? 0} icon={BookOpen} />
+                    <StatCard title="Total Minor" value={stats?.total_minor ?? 0} icon={Clock} />
+                    <StatCard title="Total Major" value={stats?.total_major ?? 0} icon={Users} />
                 </div>
 
                 {/* ============================
@@ -205,7 +207,7 @@ export default function Index() {
                 ============================= */}
                 <div className="mb-6 border rounded-xl bg-white p-4 shadow-sm">
 
-                    <div className="flex flex-col md:flex-row gap-4 items-center">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
 
                         {/* SEARCH */}
                         <div className="flex-1 w-full">
@@ -286,15 +288,15 @@ export default function Index() {
                         <table className="w-full text-sm">
 
                             {/* HEAD */}
-                            <thead className="bg-gray-50 text-muted-foreground">
+                            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                                 <tr>
                                     <th className="px-6 py-3 text-left">Subject</th>
                                     <th className="px-6 py-3 text-left">Code</th>
-                                    <th className="px-6 py-3 text-left">Department</th>
-                                    <th className="px-6 py-3 text-left">Hours</th>
+                                    <th className="px-6 py-3 text-left">Type</th>
+                                    <th className="px-6 py-3 text-left">Unit</th>
                                     <th className="px-6 py-3 text-left">Room Type</th>
-                                    {/* <th className="px-6 py-3 text-left">Prerequisites</th> */}
-                                    <th className="px-6 py-3 text-right">Actions</th>
+                                    <th className="px-6 py-3 text-left">Prerequisites</th>
+                                    <th className="px-6 py-3 text-left">Program</th>
                                 </tr>
                             </thead>
 
@@ -303,93 +305,77 @@ export default function Index() {
                                 {subjects.data.length > 0 ? subjects.data.map((subject) => (
                                     <tr
                                         key={subject.id}
-                                        className="border-t hover:bg-gray-50 group transition"
+                                        className="border-t hover:bg-gray-50 transition"
                                     >
 
                                         {/* SUBJECT */}
-                                        <td className="px-6 py-4 font-medium">
+                                        <td className="px-6 py-4 font-medium text-gray-900">
                                             {subject.subject_name}
                                         </td>
 
                                         {/* CODE */}
-                                        <td className="px-6 py-4 text-muted-foreground">
+                                        <td className="px-6 py-4 text-gray-500">
                                             {subject.subject_code}
                                         </td>
 
-                                        {/* DEPARTMENT */}
+                                        {/* TYPE */}
                                         <td className="px-6 py-4">
-                                            <span className="px-2 py-1 text-xs rounded-full bg-gray-100">
-                                                {subject.program?.program_name}
+                                            <span className="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-700">
+                                                {subject.subject_type === 'major' ? 'Major' : 'Minor'}
                                             </span>
                                         </td>
 
-                                        {/* HOURS */}
-                                        <td className="px-6 py-4 text-muted-foreground">
-                                            {subject.hours_per_week ?? subject.lecture_hours}h/week
+                                        {/* UNIT */}
+                                        <td className="px-6 py-4 text-gray-700">
+                                            {subject.units ?? subject.hours_per_week ?? 0}
                                         </td>
 
                                         {/* ROOM TYPE */}
                                         <td className="px-6 py-4">
                                             <span
                                                 className={`px-2 py-1 text-xs rounded-full font-medium
-                                    ${subject.room_type === 'lab'
+                        ${subject.room_type === 'lab'
                                                         ? 'bg-green-100 text-green-700'
-                                                        : 'bg-blue-100 text-blue-700'
+                                                        : subject.room_type === 'court'
+                                                            ? 'bg-purple-100 text-purple-700'
+                                                            : 'bg-blue-100 text-blue-700'
                                                     }`}
                                             >
                                                 {subject.room_type === 'lab'
                                                     ? 'Laboratory'
-                                                    : 'Classroom'}
+                                                    : subject.room_type === 'court'
+                                                        ? 'Court'
+                                                        : 'Classroom'}
                                             </span>
                                         </td>
 
                                         {/* PREREQUISITES */}
-                                        {/* <td className="px-6 py-4">
-                            {subject.prerequisites?.length ? (
-                                <div className="flex flex-wrap gap-1">
-                                    {subject.prerequisites.map((pre: any, i: number) => (
-                                        <span
-                                            key={i}
-                                            className="px-2 py-1 text-xs bg-gray-100 rounded-full"
-                                        >
-                                            {pre}
-                                        </span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <span className="text-xs text-muted-foreground">
-                                    None
-                                </span>
-                            )}
-                        </td> */}
+                                        <td className="px-6 py-4">
+                                            {subject.prerequisites?.length ? (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {subject.prerequisites.map((pre: any) => (
+                                                        <span
+                                                            key={pre.id}
+                                                            className="px-2 py-1 text-xs bg-gray-200 rounded-full"
+                                                        >
+                                                            {pre.subject_code}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400 text-xs">None</span>
+                                            )}
+                                        </td>
 
-                                        {/* ACTIONS */}
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition">
-
-                                                {/* EDIT */}
-                                                <button
-                                                    onClick={() => handleOpenEdit(subject)}
-                                                    className="p-2 rounded-md hover:bg-gray-100"
-                                                >
-                                                    <Pencil size={16} className="text-gray-600" />
-                                                </button>
-
-                                                {/* DELETE */}
-                                                <button
-                                                    onClick={() => handleDelete(subject.id)}
-                                                    className="p-2 rounded-md hover:bg-red-50"
-                                                >
-                                                    <Trash2 size={16} className="text-red-500" />
-                                                </button>
-
-                                            </div>
+                                        {/* PROGRAM */}
+                                        <td className="px-6 py-4 text-gray-700">
+                                            {subject.program?.program_name ?? 'None'}
                                         </td>
 
                                     </tr>
                                 )) : (
                                     <tr>
-                                        <td colSpan={7} className="text-center py-6 text-gray-500">
+                                        <td colSpan={7} className="text-center py-6 text-gray-400">
                                             No subjects found.
                                         </td>
                                     </tr>
@@ -401,12 +387,8 @@ export default function Index() {
                 </div>
 
                 <Pagination links={subjects.links} />
-
-                {/* ============================
-                    MODAL
-                ============================= */}
                 <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogContent className="max-w-2xl rounded-2xl p-6">
+                    <DialogContent className="max-w-6xl w-full rounded-2xl p-6">
 
                         {/* HEADER */}
                         <DialogHeader className="space-y-1">
@@ -418,9 +400,10 @@ export default function Index() {
                             </p>
                         </DialogHeader>
 
-                        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+                        <form onSubmit={handleSubmit} className="space-y-5 mt-4">
 
-                            <div className="grid grid-cols-2 gap-4">
+                            {/* GRID */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
                                 {/* SUBJECT NAME */}
                                 <div>
@@ -429,39 +412,21 @@ export default function Index() {
                                         name="subject_name"
                                         value={form.subject_name}
                                         onChange={handleChange}
-                                        placeholder="Computer Programming"
+                                        placeholder="Calculus 1"
                                         className="h-11 rounded-lg"
                                     />
                                 </div>
 
-                                {/* SUBJECT CODE */}
+                                {/* COURSE CODE */}
                                 <div>
                                     <Label>Course Code</Label>
                                     <Input
                                         name="subject_code"
                                         value={form.subject_code}
                                         onChange={handleChange}
-                                        placeholder="CS101"
+                                        placeholder="MATH101"
                                         className="h-11 rounded-lg"
                                     />
-                                </div>
-
-                                {/* PROGRAM */}
-                                <div>
-                                    <Label>Program</Label>
-                                    <select
-                                        name="program_id"
-                                        value={form.program_id}
-                                        onChange={handleChange}
-                                        className="w-full h-11 rounded-lg border px-3"
-                                    >
-                                        <option value="">Select program</option>
-                                        {programs.map((p: any) => (
-                                            <option key={p.id} value={p.id}>
-                                                {p.program_name}
-                                            </option>
-                                        ))}
-                                    </select>
                                 </div>
 
                                 {/* SUBJECT TYPE */}
@@ -473,15 +438,15 @@ export default function Index() {
                                         onChange={handleChange}
                                         className="w-full h-11 rounded-lg border px-3"
                                     >
-                                        <option value="">Select type</option>
+                                        <option value="">Minor or Major</option>
                                         <option value="major">Major</option>
                                         <option value="minor">Minor</option>
                                     </select>
                                 </div>
 
-                                {/* HOURS PER WEEK */}
+                                {/* HOURS */}
                                 <div>
-                                    <Label>Hours / Week</Label>
+                                    <Label>Hours/Week</Label>
                                     <Input
                                         type="number"
                                         name="hours_per_week"
@@ -492,21 +457,6 @@ export default function Index() {
                                     />
                                 </div>
 
-                                {/* ROOM TYPE */}
-                                <div>
-                                    <Label>Room Type</Label>
-                                    <select
-                                        name="room_type"
-                                        value={form.room_type}
-                                        onChange={handleChange}
-                                        className="w-full h-11 rounded-lg border px-3"
-                                    >
-                                        <option value="">Select room</option>
-                                        <option value="lecture">Lecture</option>
-                                        <option value="lab">Laboratory</option>
-                                    </select>
-                                </div>
-
                                 {/* YEAR LEVEL */}
                                 <div>
                                     <Label>Year Level</Label>
@@ -514,7 +464,7 @@ export default function Index() {
                                         name="year_level"
                                         value={form.year_level}
                                         onChange={handleChange}
-                                        className="w-full h-11 rounded-lg border px-3"
+                                        className="w-full h-11 border rounded-lg px-3"
                                     >
                                         <option value="">Select year</option>
                                         <option value="1">1st Year</option>
@@ -531,7 +481,7 @@ export default function Index() {
                                         name="semester"
                                         value={form.semester}
                                         onChange={handleChange}
-                                        className="w-full h-11 rounded-lg border px-3"
+                                        className="w-full h-11 border rounded-lg px-3"
                                     >
                                         <option value="">Select semester</option>
                                         <option value="1">1st</option>
@@ -539,10 +489,141 @@ export default function Index() {
                                     </select>
                                 </div>
 
+                                {/* PROGRAM */}
+                                <div className="col-span-1 md:col-span-2 lg:col-span-3">
+                                    <Label>Program</Label>
+                                    <select
+                                        name="program_id"
+                                        value={form.program_id}
+                                        onChange={handleChange}
+                                        className="w-full h-11 rounded-lg border px-3"
+                                    >
+                                        <option value="">*If Major* Select program</option>
+                                        {programs.map((p: any) => (
+                                            <option key={p.id} value={p.id}>
+                                                {p.program_name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* PREREQUISITES */}
+                                <div className="col-span-2">
+                                    <Label>Prerequisites</Label>
+
+                                    <div className="border rounded-lg p-2 flex flex-wrap gap-2 min-h-[44px]">
+
+                                        {/* SELECTED CHIPS */}
+                                        {form.prerequisites.map((id: number) => {
+                                            const subject = allSubjects.find((s: any) => s.id === id)
+
+                                            return (
+                                                <span
+                                                    key={id}
+                                                    className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm flex items-center gap-1"
+                                                >
+                                                    {subject?.subject_code}
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setForm({
+                                                                ...form,
+                                                                prerequisites: form.prerequisites.filter((p: number) => p !== id)
+                                                            })
+                                                        }
+                                                        className="text-xs hover:text-red-500"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </span>
+                                            )
+                                        })}
+
+                                        {/* ADD DROPDOWN */}
+                                        <select
+                                            onChange={(e) => {
+                                                const value = Number(e.target.value)
+
+                                                if (!value) return
+
+                                                // prevent duplicates
+                                                if (!form.prerequisites.includes(value)) {
+                                                    setForm({
+                                                        ...form,
+                                                        prerequisites: [...form.prerequisites, value]
+                                                    })
+                                                }
+
+                                                // reset dropdown after select
+                                                e.target.value = ""
+                                            }}
+                                            className="outline-none flex-1 min-w-[150px] bg-transparent text-sm"
+                                        >
+                                            <option value="">+ Add prerequisite</option>
+
+                                            {allSubjects.map((s: any) => (
+                                                <option key={s.id} value={s.id}>
+                                                    {s.subject_code} - {s.subject_name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* ROOM TYPE */}
+                                <div className="col-span-1 md:col-span-2 lg:col-span-3">
+                                    <Label>Required Room Type</Label>
+                                    <select
+                                        name="room_type"
+                                        value={form.room_type}
+                                        onChange={handleChange}
+                                        className="w-full h-11 rounded-lg border px-3"
+                                    >
+                                        <option value="">Select room type</option>
+                                        <option value="lecture">Classroom</option>
+                                        <option value="lab">Laboratory</option>
+                                    </select>
+                                </div>
+
                             </div>
 
+                            {/* ADVANCE OPTION */}
+                            <div className="flex items-center gap-2 border-t pt-4">
+                                <input
+                                    type="checkbox"
+                                    checked={isAdvance}
+                                    onChange={(e) => setIsAdvance(e.target.checked)}
+                                    className="w-4 h-4"
+                                />
+                                <Label className="text-sm">
+                                    Advance (If not regular schedule)
+                                </Label>
+                            </div>
+
+                            {isAdvance && (
+                                <div className="mt-2">
+                                    <Label>Preferred Day to Schedule</Label>
+                                    <select
+                                        name="preferred_day"
+                                        value={form.preferred_day}
+                                        onChange={handleChange}
+                                        className="w-full h-11 rounded-lg border px-3"
+                                    >
+                                        <option value="">Select Day (Monday to Sunday)</option>
+                                        <option value="monday">Monday</option>
+                                        <option value="tuesday">Tuesday</option>
+                                        <option value="wednesday">Wednesday</option>
+                                        <option value="thursday">Thursday</option>
+                                        <option value="friday">Friday</option>
+                                        <option value="saturday">Saturday</option>
+                                        <option value="sunday">Sunday</option>
+                                    </select>
+                                </div>
+                            )}
+
                             {/* BUTTON */}
-                            <Button className="w-full h-11 rounded-lg text-base">
+                            <Button className="w-full h-12 rounded-xl text-base">
                                 {loading
                                     ? (isEdit ? "Saving..." : "Adding...")
                                     : (isEdit ? "Save Changes" : "Add Subject")}
@@ -551,7 +632,6 @@ export default function Index() {
                         </form>
                     </DialogContent>
                 </Dialog>
-
             </div>
         </AppLayout>
     )

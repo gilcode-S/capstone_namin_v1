@@ -2,29 +2,40 @@
 
 namespace Database\Seeders;
 
+use Illuminate\Database\Seeder;
 use App\Models\Programs;
 use App\Models\Subject;
-use Illuminate\Database\Seeder;
 
 class SubjectSeeder extends Seeder
 {
     public function run(): void
     {
-        $programs = Programs::all();
+        $bscs = Programs::where('program_code', 'BSCS')->first();
 
-        for ($i = 1; $i <= 50; $i++) { // 50 subjects
-            $program = $programs->random(); // pick random program for each subject
-
-            Subject::create([
-                'program_id' => $program->id,
-                'subject_code' => 'SUBJ' . str_pad($i, 3, '0', STR_PAD_LEFT),
-                'subject_name' => 'Subject ' . $i,
-                'units' => rand(2, 4),
-                'lecture_hours' => rand(2, 3),
-                'lab_hours' => rand(0, 2),
-                'year_level' => rand(1, 4),
-                'semester' => rand(1, 2),
-            ]);
+        if (!$bscs) {
+            dd('BSCS program not found');
         }
+
+        $math101 = Subject::create([
+            'subject_code' => 'MATH101',
+            'subject_name' => 'Basic Mathematics',
+            'program_id' => $bscs->id,
+            'subject_type' => 'major',
+            'hours_per_week' => 3,
+            'year_level' => 1,
+            'semester' => 1,
+        ]);
+
+        $math102 = Subject::create([
+            'subject_code' => 'MATH102',
+            'subject_name' => 'Advanced Mathematics',
+            'program_id' => $bscs->id,
+            'subject_type' => 'major',
+            'hours_per_week' => 3,
+            'year_level' => 1,
+            'semester' => 2,
+        ]);
+
+        $math102->prerequisites()->attach($math101->id);
     }
 }
