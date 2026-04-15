@@ -14,6 +14,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import AppLayout from '@/layouts/app-layout'
+import StatCard from '@/components/StatCard'
 interface Program {
   id: number
   program_name: string
@@ -183,7 +184,7 @@ export default function Index() {
 
     router.delete(`/section/${id}`)
   }
-  
+
   const mockRooms = [
     { id: 1, name: 'Room 101' },
     { id: 2, name: 'Room 102' },
@@ -207,291 +208,192 @@ export default function Index() {
       <div className="p-6">
 
         {/* HEADER */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center">
-            <Layers className="mr-2 text-purple-500" size={28} />
-            <h1 className="text-2xl font-bold">Manage Sections</h1>
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h1 className="text-2xl font-bold">Section Management</h1>
+            <p className="text-sm text-gray-500">
+              Maintains section details, including course, year, student enrollment, and capacity limits.
+            </p>
           </div>
 
-          <Button onClick={handleOpen} className="gap-2">
-            <Plus size={18} />
-            Add Section
+          <Button onClick={handleOpen} className="bg-black text-white rounded-xl">
+            + Add Section
           </Button>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-
-          {/* TOTAL CLASSES */}
-          <div className="p-4 rounded-xl border bg-white shadow-sm">
-            <p className="text-sm text-gray-500">Total Classes</p>
-            <h2 className="text-2xl font-bold">
-              {stats?.total_classes ?? 0}
-            </h2>
-          </div>
-
-          {/* WEEKLY HOURS */}
-          <div className="p-4 rounded-xl border bg-white shadow-sm">
-            <p className="text-sm text-gray-500">Weekly Hours</p>
-            <h2 className="text-2xl font-bold">
-              {stats?.weekly_hours ?? 0}
-            </h2>
-          </div>
-
-          {/* ACTIVE ROOMS */}
-          <div className="p-4 rounded-xl border bg-white shadow-sm">
-            <p className="text-sm text-gray-500">Active Rooms</p>
-            <h2 className="text-2xl font-bold">
-              {stats?.active_rooms ?? 0}
-            </h2>
-          </div>
-
-          {/* TOTAL SECTIONS */}
-          <div className="p-4 rounded-xl border bg-white shadow-sm">
-            <p className="text-sm text-gray-500">Total Sections</p>
-            <h2 className="text-2xl font-bold">
-              {stats?.total_sections ?? 0}
-            </h2>
-          </div>
-
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <StatCard title="Total Section" value={stats?.total_sections ?? 0} />
+          <StatCard title="Total Student" value={85} />
+          <StatCard title="Total Morning" value={85} />
+          <StatCard title="Total Afternoon" value={85} />
+          <StatCard title="Total Evening" value={85} />
         </div>
 
         {/* FILTER BAR */}
         {/* FILTER BAR (FIGMA MATCH) */}
-        <div className="bg-gray-100 rounded-2xl p-4 mb-6">
+     <div className="bg-white border rounded-2xl p-4 mb-6 shadow-sm">
+  <p className="text-sm font-medium mb-3">Filters</p>
 
-          <p className="text-sm text-gray-500 mb-3">Filters</p>
+  <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
 
-          <div className="flex flex-wrap gap-4">
+    {/* SEARCH */}
+    <Input
+      placeholder="Search Section..."
+      value={filters.section}
+      onChange={(e) => handleFilterChange('section', e.target.value)}
+      className="h-10 rounded-lg"
+    />
 
-            {/* SET */}
-            <select
-              className="px-4 py-2 rounded-full bg-white border text-sm shadow-sm"
-              value={filters.set}
-              onChange={(e) => handleFilterChange('set', e.target.value)}
-            >
-              <option value="A">Set A</option>
-              <option value="B">Set B</option>
-            </select>
+    {/* YEAR */}
+    <select
+      value={filters.year_level || ''}
+      onChange={(e) => handleFilterChange('year_level', e.target.value)}
+      className="h-10 rounded-lg border px-3"
+    >
+      <option value="">All Year</option>
+      <option value="1">First Year</option>
+      <option value="2">Second Year</option>
+      <option value="3">Third Year</option>
+      <option value="4">Fourth Year</option>
+    </select>
 
-            {/* DEPARTMENT */}
-            <select
-              className="px-4 py-2 rounded-full bg-white border text-sm shadow-sm"
-              value={filters.program}
-              onChange={(e) => handleFilterChange('program', e.target.value)}
-            >
-              <option value="">All Department</option>
-              {programs.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.program_name}
-                </option>
-              ))}
-            </select>
+    {/* SHIFT */}
+    <select
+      value={filters.shift}
+      onChange={(e) => handleFilterChange('shift', e.target.value)}
+      className="h-10 rounded-lg border px-3"
+    >
+      <option value="">All Shift</option>
+      <option value="Morning">Morning</option>
+      <option value="Afternoon">Afternoon</option>
+      <option value="Evening">Evening</option>
+    </select>
 
-            {/* SHIFT */}
-            <select
-              className="px-4 py-2 rounded-full bg-white border text-sm shadow-sm"
-              value={filters.shift}
-              onChange={(e) => handleFilterChange('shift', e.target.value)}
-            >
-              <option value="">All Shift</option>
-              <option value="Morning">Morning</option>
-              <option value="Afternoon">Afternoon</option>
-              <option value="Evening">Evening</option>
-            </select>
+    {/* DEPARTMENT */}
+    <select
+      value={filters.program}
+      onChange={(e) => handleFilterChange('program', e.target.value)}
+      className="h-10 rounded-lg border px-3"
+    >
+      <option value="">All Departments</option>
+      {programs.map(p => (
+        <option key={p.id} value={p.id}>
+          {p.program_name}
+        </option>
+      ))}
+    </select>
+
+    {/* PROGRAM */}
+    <select className="h-10 rounded-lg border px-3">
+      <option>All Program</option>
+    </select>
+
+  </div>
+</div>
+
+        <div className="bg-white border rounded-2xl shadow-sm">
+
+  {/* HEADER */}
+  <div className="p-5 border-b">
+    <h2 className="font-semibold text-lg">Section List</h2>
+    <p className="text-sm text-gray-500">
+      Provides a summary of sections, including course, year level, and student capacity.
+    </p>
+  </div>
+
+  {/* TABLE */}
+  <div className="overflow-x-auto">
+    <table className="w-full text-sm">
+
+      <thead className="text-gray-500 text-xs uppercase border-b">
+        <tr>
+          <th className="px-6 py-3 text-left">Section</th>
+          <th className="px-6 py-3 text-left">Department</th>
+          <th className="px-6 py-3 text-left">Program</th>
+          <th className="px-6 py-3 text-left">Shift</th>
+          <th className="px-6 py-3 text-left">Year</th>
+          <th className="px-6 py-3 text-left">Capacity</th>
+          <th className="px-6 py-3 text-center">Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {sections.data.map((sec) => (
+          <tr key={sec.id} className="border-t hover:bg-gray-50">
 
             {/* SECTION */}
-            <select
-              className="px-4 py-2 rounded-full bg-white border text-sm shadow-sm"
-              value={filters.section}
-              onChange={(e) => handleFilterChange('section', e.target.value)}
-            >
-              <option value="">All Section</option>
-              {sections.data.map(sec => (
-                <option key={sec.id} value={sec.section_name}>
-                  {sec.section_name}
-                </option>
-              ))}
-            </select>
-
-          </div>
-        </div>
-
-        <div className="bg-gray-200 rounded-2xl p-1 mb-4 flex">
-
-          {/* GRID */}
-          <button
-            onClick={() => handleViewChange('grid')}
-            className={`flex-1 text-sm py-2 rounded-xl transition ${view === 'grid'
-              ? 'bg-white shadow font-medium'
-              : 'text-gray-600'
-              }`}
-          >
-            GRID
-          </button>
-
-          {/* BY SECTION */}
-          <button
-            onClick={() => handleViewChange('section')}
-            className={`flex-1 text-sm py-2 rounded-xl transition ${view === 'section'
-              ? 'bg-white shadow font-medium'
-              : 'text-gray-600'
-              }`}
-          >
-            By Section
-          </button>
-
-          {/* BY TEACHER */}
-          <button
-            onClick={() => handleViewChange('teacher')}
-            className={`flex-1 text-sm py-2 rounded-xl transition ${view === 'teacher'
-              ? 'bg-white shadow font-medium'
-              : 'text-gray-600'
-              }`}
-          >
-            By Teacher
-          </button>
-
-        </div>
-        {view === 'grid' && (
-          <div className="overflow-auto rounded-xl border bg-white">
-
-  <table className="min-w-full border-collapse text-[11px]">
-
-    {/* ================= HEADER ================= */}
-    <thead>
-
-      {/* SET TITLE */}
-      <tr>
-        <th colSpan={mockRooms.length * 2 + 1} className="border text-center py-2 font-semibold bg-gray-100">
-          Set {filters.set}
-        </th>
-      </tr>
-
-      {/* BUILDING */}
-      <tr>
-        <th className="border w-20"></th>
-        <th colSpan={mockRooms.length * 2} className="border text-center py-1 bg-gray-50">
-          BUILDING 1
-        </th>
-      </tr>
-
-      {/* ROOM NAMES */}
-      <tr>
-        <th className="border w-20">MONDAY</th>
-
-        {mockRooms.map(room => (
-          <th
-            key={room.id}
-            colSpan={2}
-            className="border text-center py-1 bg-gray-50"
-          >
-            {room.name.toUpperCase()}
-          </th>
-        ))}
-      </tr>
-
-      {/* TEACHER / SECTION */}
-      <tr>
-        <th className="border text-[10px]">MORNING</th>
-
-        {mockRooms.map(room => (
-          <>
-            <th key={`${room.id}-t`} className="border text-[10px]">TEACHER</th>
-            <th key={`${room.id}-s`} className="border text-[10px]">SECTION</th>
-          </>
-        ))}
-      </tr>
-
-    </thead>
-
-    {/* ================= BODY ================= */}
-    <tbody>
-
-      {timeSlots.slice(0, 5).map((time, i) => {
-        const [start] = time.split(' - ')
-
-        return (
-          <tr key={i}>
-
-            {/* TIME */}
-            <td className="border px-2 py-1 text-[10px] bg-gray-50">
-              {start}
+            <td className="px-6 py-4 font-medium">
+              {sec.section_name}
             </td>
 
-            {/* CELLS */}
-            {mockRooms.map(room => (
-              <>
-                {/* TEACHER CELL */}
-                <td className="border text-center text-gray-400 h-8">
-                  TEACHER
-                </td>
-
-                {/* SECTION CELL */}
-                <td className="border text-center text-gray-400">
-                  SECTION
-                </td>
-              </>
-            ))}
-
-          </tr>
-        )
-      })}
-
-      {/* AFTERNOON LABEL */}
-      <tr>
-        <td className="border font-semibold bg-gray-100 text-center">
-          AFTERNOON
-        </td>
-        <td colSpan={mockRooms.length * 2} className="border"></td>
-      </tr>
-
-      {/* AFTERNOON TIMES */}
-      {timeSlots.slice(5).map((time, i) => {
-        const [start] = time.split(' - ')
-
-        return (
-          <tr key={i}>
-            <td className="border px-2 py-1 text-[10px] bg-gray-50">
-              {start}
+            {/* DEPARTMENT */}
+            <td className="px-6 py-4">
+              <span className="px-2 py-1 bg-gray-100 rounded-md text-xs">
+                {sec.program?.program_name}
+              </span>
             </td>
 
-            {mockRooms.map(room => (
-              <>
-                <td className="border text-center text-gray-400 h-8">
-                  TEACHER
-                </td>
-                <td className="border text-center text-gray-400">
-                  SECTION
-                </td>
-              </>
-            ))}
+            {/* PROGRAM */}
+            <td className="px-6 py-4">
+              <span className="px-2 py-1 bg-gray-100 rounded-md text-xs">
+                {sec.program?.program_name}
+              </span>
+            </td>
+
+            {/* SHIFT */}
+            <td className="px-6 py-4">
+              <span className="px-2 py-1 bg-gray-200 rounded-full text-xs">
+                {sec.shift}
+              </span>
+            </td>
+
+            {/* YEAR */}
+            <td className="px-6 py-4 text-gray-600">
+              {sec.year_level === 1 ? 'First Year' :
+               sec.year_level === 2 ? 'Second Year' :
+               sec.year_level === 3 ? 'Third Year' : 'Fourth Year'}
+            </td>
+
+            {/* CAPACITY */}
+            <td className="px-6 py-4">
+              {sec.student_count || 0}
+            </td>
+
+            {/* ACTION */}
+            <td className="px-6 py-4 text-center">
+              <div className="flex justify-center gap-2">
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleOpenEdit(sec)}
+                >
+                  <Pencil size={14} />
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => handleDelete(sec.id)}
+                >
+                  <Trash2 size={14} />
+                </Button>
+
+              </div>
+            </td>
+
           </tr>
-        )
-      })}
+        ))}
+      </tbody>
 
-    </tbody>
-
-  </table>
+    </table>
+  </div>
 </div>
-        )}
-
-        {view === 'section' && (
-          <div className="p-6 text-gray-500">
-            Section View (coming next)
-          </div>
-        )}
-
-        {view === 'teacher' && (
-          <div className="p-6 text-gray-500">
-            Teacher View (coming next)
-          </div>
-        )}
 
         <Pagination links={sections.links} />
 
         {/* MODAL */}
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-2xl w-full rounded-2xl p-6">
             <DialogHeader>
               <DialogTitle className="text-lg font-semibold">
                 {isEdit ? "Edit Section" : "Add New Section"}
@@ -501,16 +403,16 @@ export default function Index() {
               </p>
             </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5 mt-4">
 
-              {/* COURSE */}
+              {/* PROGRAM */}
               <div>
-                <Label>Course</Label>
+                <Label>Program</Label>
                 <select
                   name="program_id"
                   value={form.program_id}
                   onChange={handleChange}
-                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  className="w-full h-11 rounded-lg border px-3"
                   required
                 >
                   <option value="">e.g. BS Computer Science, BS Accounting</option>
@@ -522,7 +424,7 @@ export default function Index() {
                 </select>
               </div>
 
-              {/* GRID 2 COL */}
+              {/* GRID */}
               <div className="grid grid-cols-2 gap-4">
 
                 {/* YEAR */}
@@ -532,8 +434,7 @@ export default function Index() {
                     name="year_level"
                     value={form.year_level}
                     onChange={handleChange}
-                    className="w-full border rounded-lg px-3 py-2 text-sm"
-                    required
+                    className="w-full h-11 rounded-lg border px-3"
                   >
                     <option value="">First Year</option>
                     <option value="1">1st Year</option>
@@ -550,12 +451,12 @@ export default function Index() {
                     name="semester_id"
                     value={form.semester_id}
                     onChange={handleChange}
-                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    className="w-full h-11 rounded-lg border px-3"
                   >
-                    <option value="">Select Semester</option>
+                    <option value="">Second Semester</option>
                     {semesters.map(sem => (
                       <option key={sem.id} value={sem.id}>
-                        {sem.school_year} - {sem.term}
+                        {sem.term}
                       </option>
                     ))}
                   </select>
@@ -568,11 +469,12 @@ export default function Index() {
                     name="shift"
                     value={form.shift}
                     onChange={handleChange}
-                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    className="w-full h-11 rounded-lg border px-3"
                   >
-                    <option>Morning</option>
-                    <option>Afternoon</option>
-                    <option>Evening</option>
+                    <option value="">Morning</option>
+                    <option value="Morning">Morning</option>
+                    <option value="Afternoon">Afternoon</option>
+                    <option value="Evening">Evening</option>
                   </select>
                 </div>
 
@@ -584,6 +486,7 @@ export default function Index() {
                     placeholder="e.g. A, B, C"
                     value={form.section_name}
                     onChange={handleChange}
+                    className="h-11 rounded-lg"
                   />
                 </div>
 
@@ -598,32 +501,28 @@ export default function Index() {
                   placeholder="e.g. 40"
                   value={form.student_count}
                   onChange={handleChange}
+                  className="h-11 rounded-lg"
                 />
               </div>
 
-              {/* CHECKBOX */}
+              {/* OCTOBERIAN */}
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   name="octoberian"
                   checked={form.octoberian}
                   onChange={handleChange}
-                  className="rounded border-gray-300"
+                  className="w-4 h-4"
                 />
                 <Label className="text-sm">Octoberian</Label>
               </div>
 
-              {/* FOOTER */}
-              <DialogFooter className="pt-2">
-                <Button
-                  type="submit"
-                  className="w-full"
-                >
-                  {loading
-                    ? (isEdit ? "Saving..." : "Adding...")
-                    : (isEdit ? "Save Changes" : "Add Section")}
-                </Button>
-              </DialogFooter>
+              {/* BUTTON */}
+              <Button className="w-full h-12 rounded-xl">
+                {loading
+                  ? (isEdit ? "Saving..." : "Adding...")
+                  : (isEdit ? "Save Changes" : "Add Section")}
+              </Button>
 
             </form>
           </DialogContent>

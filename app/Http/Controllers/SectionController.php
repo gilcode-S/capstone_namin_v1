@@ -11,6 +11,34 @@ use Inertia\Inertia;
 class SectionController extends Controller
 {
     //
+
+    private function generateSectionCode($program, $year, $sem, $shift, $letter)
+    {
+        $YEAR_BASE = [
+            1 => 1,
+            2 => 3,
+            3 => 5,
+            4 => 7,
+        ];
+
+        $SHIFT_CODES = [
+            'Morning' => 'M',
+            'Afternoon' => 'D',
+            'Evening' => 'E',
+        ];
+
+        $code = $program->program_code
+            . $YEAR_BASE[$year]
+            . $SHIFT_CODES[$shift]
+            . strtoupper($letter);
+
+        if ($sem === 'Summer') {
+            $code .= '-S';
+        }
+
+        return $code;
+    }
+
     public function index(Request $request)
     {
         $view = $request->view ?? 'grid';
@@ -18,8 +46,15 @@ class SectionController extends Controller
 
         //  FILTER: SET (A / B)
         if ($request->set) {
-       
+
             $query->where('section_name', 'like', $request->set . '%');
+        }
+        if ($request->year_level) {
+            $query->where('year_level', $request->year_level);
+        }
+
+        if ($request->section) {
+            $query->where('section_name', 'like', '%' . $request->section . '%');
         }
 
         //  PROGRAM (Department)
