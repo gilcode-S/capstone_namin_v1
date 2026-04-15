@@ -29,6 +29,7 @@ class DepartmentController extends Controller
         $departmentData = $request->validate([
             'department_code' => 'required|unique:departments,department_code',
             'department_name' => 'required',
+            'domain' => 'required'
         ]);
 
         Department::create($departmentData);
@@ -54,6 +55,7 @@ class DepartmentController extends Controller
         $departmentData = $request->validate([
             'department_code' => 'required|unique:departments,department_code,' . $department->id,
             'department_name' => 'required',
+             'domain' => 'required'
         ]);
 
         $department->update($departmentData);
