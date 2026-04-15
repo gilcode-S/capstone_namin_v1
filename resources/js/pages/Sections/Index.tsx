@@ -18,6 +18,7 @@ import StatCard from '@/components/StatCard'
 interface Program {
   id: number
   program_name: string
+  program_code: string // ✅ ADD THIS
 }
 
 interface Semester {
@@ -48,6 +49,7 @@ const emptyForm = {
   student_count: '',
   shift: '',
   octoberian: false,
+  section_letter: '',
 }
 
 export default function Index() {
@@ -107,6 +109,51 @@ export default function Index() {
     })
   }
 
+  const generatePreviewCode = () => {
+    if (
+      !form.program_id ||
+      !form.year_level ||
+      !form.shift ||
+      !form.section_letter ||
+      !form.semester_id
+    ) return ''
+
+    const program = programs.find(p => p.id == form.program_id)
+    const semester = semesters.find(s => s.id == form.semester_id)
+
+    if (!program || !semester) return ''
+
+
+    const semNumberMap: any = {
+      '1st': 1,
+      '2nd': 2,
+      'summer': 3,
+    }
+
+    const semNumber = semNumberMap[semester.term.toLowerCase()] || 1
+
+    const yearBase =
+      (form.year_level - 1) * 2 + semNumber
+
+    const SHIFT_CODES: any = {
+      Morning: 'M',
+      Afternoon: 'D',
+      Evening: 'E',
+    }
+
+    let code =
+      program.program_code +
+      yearBase +
+      SHIFT_CODES[form.shift] +
+      form.section_letter
+
+    if (semester.term === 'Summer') {
+      code += '-S'
+    }
+
+    return code
+  }
+
   // OPEN CREATE
   const handleOpen = () => {
     setForm(emptyForm)
@@ -124,7 +171,8 @@ export default function Index() {
       year_level: section.year_level,
       student_count: section.student_count,
       shift: section.shift,
-      octoberian: section.octoberian ?? false
+      octoberian: section.octoberian ?? false,
+      section_letter: section.section_name.slice(-1),
     })
 
     setIsEdit(true)
@@ -185,22 +233,22 @@ export default function Index() {
     router.delete(`/section/${id}`)
   }
 
-  const mockRooms = [
-    { id: 1, name: 'Room 101' },
-    { id: 2, name: 'Room 102' },
-    { id: 3, name: 'Room 103' },
-    { id: 4, name: 'Room 104' },
-  ]
-  const timeSlots = [
-    '7:00 AM - 8:00 AM',
-    '8:00 AM - 9:00 AM',
-    '9:00 AM - 10:00 AM',
-    '10:00 AM - 11:00 AM',
-    '11:00 AM - 12:00 PM',
-    '1:00 PM - 2:00 PM',
-    '2:00 PM - 3:00 PM',
-    '3:00 PM - 4:00 PM',
-  ]
+  // const mockRooms = [
+  //   { id: 1, name: 'Room 101' },
+  //   { id: 2, name: 'Room 102' },
+  //   { id: 3, name: 'Room 103' },
+  //   { id: 4, name: 'Room 104' },
+  // ]
+  // const timeSlots = [
+  //   '7:00 AM - 8:00 AM',
+  //   '8:00 AM - 9:00 AM',
+  //   '9:00 AM - 10:00 AM',
+  //   '10:00 AM - 11:00 AM',
+  //   '11:00 AM - 12:00 PM',
+  //   '1:00 PM - 2:00 PM',
+  //   '2:00 PM - 3:00 PM',
+  //   '3:00 PM - 4:00 PM',
+  // ]
   return (
     <AppLayout breadcrumbs={[{ title: "Sections", href: '/section' }]}>
       <Head title="Sections" />
@@ -230,164 +278,164 @@ export default function Index() {
 
         {/* FILTER BAR */}
         {/* FILTER BAR (FIGMA MATCH) */}
-     <div className="bg-white border rounded-2xl p-4 mb-6 shadow-sm">
-  <p className="text-sm font-medium mb-3">Filters</p>
+        <div className="bg-white border rounded-2xl p-4 mb-6 shadow-sm">
+          <p className="text-sm font-medium mb-3">Filters</p>
 
-  <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
 
-    {/* SEARCH */}
-    <Input
-      placeholder="Search Section..."
-      value={filters.section}
-      onChange={(e) => handleFilterChange('section', e.target.value)}
-      className="h-10 rounded-lg"
-    />
+            {/* SEARCH */}
+            <Input
+              placeholder="Search Section..."
+              value={filters.section}
+              onChange={(e) => handleFilterChange('section', e.target.value)}
+              className="h-10 rounded-lg"
+            />
 
-    {/* YEAR */}
-    <select
-      value={filters.year_level || ''}
-      onChange={(e) => handleFilterChange('year_level', e.target.value)}
-      className="h-10 rounded-lg border px-3"
-    >
-      <option value="">All Year</option>
-      <option value="1">First Year</option>
-      <option value="2">Second Year</option>
-      <option value="3">Third Year</option>
-      <option value="4">Fourth Year</option>
-    </select>
+            {/* YEAR */}
+            <select
+              value={filters.year_level || ''}
+              onChange={(e) => handleFilterChange('year_level', e.target.value)}
+              className="h-10 rounded-lg border px-3"
+            >
+              <option value="">All Year</option>
+              <option value="1">First Year</option>
+              <option value="2">Second Year</option>
+              <option value="3">Third Year</option>
+              <option value="4">Fourth Year</option>
+            </select>
 
-    {/* SHIFT */}
-    <select
-      value={filters.shift}
-      onChange={(e) => handleFilterChange('shift', e.target.value)}
-      className="h-10 rounded-lg border px-3"
-    >
-      <option value="">All Shift</option>
-      <option value="Morning">Morning</option>
-      <option value="Afternoon">Afternoon</option>
-      <option value="Evening">Evening</option>
-    </select>
+            {/* SHIFT */}
+            <select
+              value={filters.shift}
+              onChange={(e) => handleFilterChange('shift', e.target.value)}
+              className="h-10 rounded-lg border px-3"
+            >
+              <option value="">All Shift</option>
+              <option value="Morning">Morning</option>
+              <option value="Afternoon">Afternoon</option>
+              <option value="Evening">Evening</option>
+            </select>
 
-    {/* DEPARTMENT */}
-    <select
-      value={filters.program}
-      onChange={(e) => handleFilterChange('program', e.target.value)}
-      className="h-10 rounded-lg border px-3"
-    >
-      <option value="">All Departments</option>
-      {programs.map(p => (
-        <option key={p.id} value={p.id}>
-          {p.program_name}
-        </option>
-      ))}
-    </select>
+            {/* DEPARTMENT */}
+            <select
+              value={filters.program}
+              onChange={(e) => handleFilterChange('program', e.target.value)}
+              className="h-10 rounded-lg border px-3"
+            >
+              <option value="">All Departments</option>
+              {programs.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.program_name}
+                </option>
+              ))}
+            </select>
 
-    {/* PROGRAM */}
-    <select className="h-10 rounded-lg border px-3">
-      <option>All Program</option>
-    </select>
+            {/* PROGRAM */}
+            <select className="h-10 rounded-lg border px-3">
+              <option>All Program</option>
+            </select>
 
-  </div>
-</div>
+          </div>
+        </div>
 
         <div className="bg-white border rounded-2xl shadow-sm">
 
-  {/* HEADER */}
-  <div className="p-5 border-b">
-    <h2 className="font-semibold text-lg">Section List</h2>
-    <p className="text-sm text-gray-500">
-      Provides a summary of sections, including course, year level, and student capacity.
-    </p>
-  </div>
+          {/* HEADER */}
+          <div className="p-5 border-b">
+            <h2 className="font-semibold text-lg">Section List</h2>
+            <p className="text-sm text-gray-500">
+              Provides a summary of sections, including course, year level, and student capacity.
+            </p>
+          </div>
 
-  {/* TABLE */}
-  <div className="overflow-x-auto">
-    <table className="w-full text-sm">
+          {/* TABLE */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
 
-      <thead className="text-gray-500 text-xs uppercase border-b">
-        <tr>
-          <th className="px-6 py-3 text-left">Section</th>
-          <th className="px-6 py-3 text-left">Department</th>
-          <th className="px-6 py-3 text-left">Program</th>
-          <th className="px-6 py-3 text-left">Shift</th>
-          <th className="px-6 py-3 text-left">Year</th>
-          <th className="px-6 py-3 text-left">Capacity</th>
-          <th className="px-6 py-3 text-center">Action</th>
-        </tr>
-      </thead>
+              <thead className="text-gray-500 text-xs uppercase border-b">
+                <tr>
+                  <th className="px-6 py-3 text-left">Section</th>
+                  <th className="px-6 py-3 text-left">Department</th>
+                  <th className="px-6 py-3 text-left">Program</th>
+                  <th className="px-6 py-3 text-left">Shift</th>
+                  <th className="px-6 py-3 text-left">Year</th>
+                  <th className="px-6 py-3 text-left">Capacity</th>
+                  <th className="px-6 py-3 text-center">Action</th>
+                </tr>
+              </thead>
 
-      <tbody>
-        {sections.data.map((sec) => (
-          <tr key={sec.id} className="border-t hover:bg-gray-50">
+              <tbody>
+                {sections.data.map((sec) => (
+                  <tr key={sec.id} className="border-t hover:bg-gray-50">
 
-            {/* SECTION */}
-            <td className="px-6 py-4 font-medium">
-              {sec.section_name}
-            </td>
+                    {/* SECTION */}
+                    <td className="px-6 py-4 font-medium">
+                      {sec.section_name}
+                    </td>
 
-            {/* DEPARTMENT */}
-            <td className="px-6 py-4">
-              <span className="px-2 py-1 bg-gray-100 rounded-md text-xs">
-                {sec.program?.program_name}
-              </span>
-            </td>
+                    {/* DEPARTMENT */}
+                    <td className="px-6 py-4">
+                      <span className="px-2 py-1 bg-gray-100 rounded-md text-xs">
+                        {sec.program?.program_name}
+                      </span>
+                    </td>
 
-            {/* PROGRAM */}
-            <td className="px-6 py-4">
-              <span className="px-2 py-1 bg-gray-100 rounded-md text-xs">
-                {sec.program?.program_name}
-              </span>
-            </td>
+                    {/* PROGRAM */}
+                    <td className="px-6 py-4">
+                      <span className="px-2 py-1 bg-gray-100 rounded-md text-xs">
+                        {sec.program?.program_name}
+                      </span>
+                    </td>
 
-            {/* SHIFT */}
-            <td className="px-6 py-4">
-              <span className="px-2 py-1 bg-gray-200 rounded-full text-xs">
-                {sec.shift}
-              </span>
-            </td>
+                    {/* SHIFT */}
+                    <td className="px-6 py-4">
+                      <span className="px-2 py-1 bg-gray-200 rounded-full text-xs">
+                        {sec.shift}
+                      </span>
+                    </td>
 
-            {/* YEAR */}
-            <td className="px-6 py-4 text-gray-600">
-              {sec.year_level === 1 ? 'First Year' :
-               sec.year_level === 2 ? 'Second Year' :
-               sec.year_level === 3 ? 'Third Year' : 'Fourth Year'}
-            </td>
+                    {/* YEAR */}
+                    <td className="px-6 py-4 text-gray-600">
+                      {sec.year_level === 1 ? 'First Year' :
+                        sec.year_level === 2 ? 'Second Year' :
+                          sec.year_level === 3 ? 'Third Year' : 'Fourth Year'}
+                    </td>
 
-            {/* CAPACITY */}
-            <td className="px-6 py-4">
-              {sec.student_count || 0}
-            </td>
+                    {/* CAPACITY */}
+                    <td className="px-6 py-4">
+                      {sec.student_count || 0}
+                    </td>
 
-            {/* ACTION */}
-            <td className="px-6 py-4 text-center">
-              <div className="flex justify-center gap-2">
+                    {/* ACTION */}
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex justify-center gap-2">
 
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleOpenEdit(sec)}
-                >
-                  <Pencil size={14} />
-                </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenEdit(sec)}
+                        >
+                          <Pencil size={14} />
+                        </Button>
 
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => handleDelete(sec.id)}
-                >
-                  <Trash2 size={14} />
-                </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDelete(sec.id)}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
 
-              </div>
-            </td>
+                      </div>
+                    </td>
 
-          </tr>
-        ))}
-      </tbody>
+                  </tr>
+                ))}
+              </tbody>
 
-    </table>
-  </div>
-</div>
+            </table>
+          </div>
+        </div>
 
         <Pagination links={sections.links} />
 
@@ -436,7 +484,7 @@ export default function Index() {
                     onChange={handleChange}
                     className="w-full h-11 rounded-lg border px-3"
                   >
-                    <option value="">First Year</option>
+                    <option value="">Select Year</option>
                     <option value="1">1st Year</option>
                     <option value="2">2nd Year</option>
                     <option value="3">3rd Year</option>
@@ -453,7 +501,7 @@ export default function Index() {
                     onChange={handleChange}
                     className="w-full h-11 rounded-lg border px-3"
                   >
-                    <option value="">Second Semester</option>
+                    <option value="">Semester</option>
                     {semesters.map(sem => (
                       <option key={sem.id} value={sem.id}>
                         {sem.term}
@@ -462,32 +510,45 @@ export default function Index() {
                   </select>
                 </div>
 
-                {/* SHIFT */}
-                <div>
-                  <Label>Shift</Label>
-                  <select
-                    name="shift"
-                    value={form.shift}
-                    onChange={handleChange}
-                    className="w-full h-11 rounded-lg border px-3"
-                  >
-                    <option value="">Morning</option>
-                    <option value="Morning">Morning</option>
-                    <option value="Afternoon">Afternoon</option>
-                    <option value="Evening">Evening</option>
-                  </select>
-                </div>
+          {/* SHIFT */}
+<div>
+  <Label>Shift</Label>
+  <select
+    name="shift"
+    value={form.shift}
+    onChange={handleChange}
+    className="w-full h-11 rounded-lg border px-3"
+  >
+    <option value="">Select Shift</option>
+    <option value="Morning">Morning</option>
+    <option value="Afternoon">Afternoon</option>
+    <option value="Evening">Evening</option>
+  </select>
+</div>
 
-                {/* SECTION */}
-                <div>
-                  <Label>Section</Label>
-                  <Input
-                    name="section_name"
-                    placeholder="e.g. A, B, C"
-                    value={form.section_name}
-                    onChange={handleChange}
-                    className="h-11 rounded-lg"
-                  />
+{/* SECTION LETTER */}
+<div>
+  <Label>Section Letter</Label>
+  <Input
+    name="section_letter"
+    placeholder="A, B, C"
+    maxLength={1}
+    value={form.section_letter}
+    onChange={(e) =>
+      setForm({
+        ...form,
+        section_letter: e.target.value.toUpperCase()
+      })
+    }
+    className="h-11 rounded-lg"
+  />
+</div>
+
+                <div className="col-span-2 bg-gray-50 border rounded-lg p-3">
+                  <p className="text-xs text-gray-500">Section Code Preview</p>
+                  <p className="text-lg font-bold tracking-wide">
+                    {generatePreviewCode() || '—'}
+                  </p>
                 </div>
 
               </div>

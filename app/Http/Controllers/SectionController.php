@@ -12,14 +12,16 @@ class SectionController extends Controller
 {
     //
 
-    private function generateSectionCode($program, $year, $sem, $shift, $letter)
+    private function generateSectionCode($program, $year, $semesterId, $shift, $letter)
     {
-        $YEAR_BASE = [
-            1 => 1,
-            2 => 3,
-            3 => 5,
-            4 => 7,
+        $semNumberMap = [
+            '1st' => 1,
+            '2nd' => 2,
+            'summer' => 3,
         ];
+
+        $semNumber = $semNumberMap[strtolower($semesterId->term)] ?? 1;
+        $yearBase = ($year - 1) * 2 + $semNumber;
 
         $SHIFT_CODES = [
             'Morning' => 'M',
@@ -28,11 +30,11 @@ class SectionController extends Controller
         ];
 
         $code = $program->program_code
-            . $YEAR_BASE[$year]
+            . $yearBase
             . $SHIFT_CODES[$shift]
             . strtoupper($letter);
 
-        if ($sem === 'Summer') {
+        if ($semesterId === 'Summer') {
             $code .= '-S';
         }
 
@@ -96,16 +98,33 @@ class SectionController extends Controller
         $validated = $request->validate([
             'program_id' => 'required|exists:programs,id',
             'semester_id' => 'required|exists:semesters,id',
-            'section_name' => 'required|string|max:10',
             'year_level' => 'required|integer',
-            'student_count' => 'nullable|integer',
             'shift' => 'required|string',
-            'octoberian' => 'nullable|boolean',
+            'section_letter' => 'required|string|max:1',
+            'student_count' => 'nullable|integer',
         ]);
 
-        Section::create($validated);
+        $program = Programs::find($validated['program_id']);
+        $semester = Semester::find($validated['semester_id']);
 
-        return redirect()->back()->with('success', 'Section Created');
+        $sectionCode = $this->generateSectionCode(
+            $program,
+            $validated['year_level'],
+            $semester, // ✅ PASS MODEL
+            $validated['shift'],
+            $validated['section_letter']
+        );
+
+        Section::create([
+            'program_id' => $validated['program_id'],
+            'semester_id' => $validated['semester_id'],
+            'year_level' => $validated['year_level'],
+            'shift' => $validated['shift'],
+            'student_count' => $validated['student_count'],
+            'section_name' => $sectionCode,
+        ]);
+
+        return back()->with('success', 'Section Created');
     }
 
     public function update(Request $request, Section $section)
