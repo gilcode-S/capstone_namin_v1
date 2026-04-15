@@ -52,7 +52,12 @@ const emptyForm = {
     year_level: '',
     semester: '',
     prerequisites: [],
-    preferred_day: ''
+
+    preferred_teacher: '',
+    preferred_day: '',
+    preferred_shift: '',
+
+    domain: '' // for minor
 }
 export default function Index() {
 
@@ -149,8 +154,17 @@ export default function Index() {
         e.preventDefault()
         setLoading(true)
 
+        // ✅ CLEANUP LOGIC (PUT HERE)
+        const payload = {
+            ...form,
+            program_id: form.subject_type === 'minor' ? null : form.program_id,
+            hours_per_week: Number(form.hours_per_week), // ✅ FIX
+            year_level: Number(form.year_level),
+            semester: Number(form.semester),
+        }
+
         if (isEdit && editId) {
-            router.put(`/subject/${editId}`, form, {
+            router.put(`/subject/${editId}`, payload, {
                 preserveScroll: true,
                 onSuccess: () => {
                     setLoading(false)
@@ -159,7 +173,7 @@ export default function Index() {
                 onError: () => setLoading(false)
             })
         } else {
-            router.post('/subject', form, {
+            router.post('/subject', payload, {
                 preserveScroll: true,
                 onSuccess: () => {
                     setLoading(false)
@@ -490,22 +504,45 @@ export default function Index() {
                                 </div>
 
                                 {/* PROGRAM */}
-                                <div className="col-span-1 md:col-span-2 lg:col-span-3">
-                                    <Label>Program</Label>
-                                    <select
-                                        name="program_id"
-                                        value={form.program_id}
-                                        onChange={handleChange}
-                                        className="w-full h-11 rounded-lg border px-3"
-                                    >
-                                        <option value="">*If Major* Select program</option>
-                                        {programs.map((p: any) => (
-                                            <option key={p.id} value={p.id}>
-                                                {p.program_name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
+                                {/* PROGRAM (ONLY MAJOR) */}
+                                {form.subject_type === 'major' && (
+                                    <div className="col-span-3">
+                                        <Label>Program</Label>
+                                        <select
+                                            name="program_id"
+                                            value={form.program_id}
+                                            onChange={handleChange}
+                                            className="w-full h-11 rounded-lg border px-3"
+                                        >
+                                            <option value="">Select Program</option>
+                                            {programs.map((p: any) => (
+                                                <option key={p.id} value={p.id}>
+                                                    {p.program_name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                                {/* DOMAIN (ONLY MINOR) */}
+                                {form.subject_type === 'minor' && (
+                                    <div className="col-span-3">
+                                        <Label>Domain</Label>
+                                        <select
+                                            name="domain"
+                                            value={form.domain}
+                                            onChange={handleChange}
+                                            className="w-full h-11 rounded-lg border px-3"
+                                        >
+                                            <option value="">Select Domain</option>
+                                            <option>Computer Science / IT</option>
+                                            <option>Business / Management</option>
+                                            <option>Tourism / Hospitality</option>
+                                            <option>Criminology / Law</option>
+                                            <option>General Education</option>
+                                            <option>Engineering</option>
+                                        </select>
+                                    </div>
+                                )}
 
                                 {/* PREREQUISITES */}
                                 <div className="col-span-2">
@@ -585,6 +622,7 @@ export default function Index() {
                                         <option value="">Select room type</option>
                                         <option value="lecture">Classroom</option>
                                         <option value="lab">Laboratory</option>
+                                        <option value="pe">PE Room</option>
                                     </select>
                                 </div>
 
@@ -604,23 +642,55 @@ export default function Index() {
                             </div>
 
                             {isAdvance && (
-                                <div className="mt-2">
-                                    <Label>Preferred Day to Schedule</Label>
-                                    <select
-                                        name="preferred_day"
-                                        value={form.preferred_day}
-                                        onChange={handleChange}
-                                        className="w-full h-11 rounded-lg border px-3"
-                                    >
-                                        <option value="">Select Day (Monday to Sunday)</option>
-                                        <option value="monday">Monday</option>
-                                        <option value="tuesday">Tuesday</option>
-                                        <option value="wednesday">Wednesday</option>
-                                        <option value="thursday">Thursday</option>
-                                        <option value="friday">Friday</option>
-                                        <option value="saturday">Saturday</option>
-                                        <option value="sunday">Sunday</option>
-                                    </select>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                                    {/* TEACHER */}
+                                    <div>
+                                        <Label>Preferred Teacher</Label>
+                                        <Input
+                                            name="preferred_teacher"
+                                            value={form.preferred_teacher}
+                                            onChange={handleChange}
+                                            placeholder="Optional"
+                                            className="h-11 rounded-lg"
+                                        />
+                                    </div>
+
+                                    {/* DAY */}
+                                    <div>
+                                        <Label>Preferred Day</Label>
+                                        <select
+                                            name="preferred_day"
+                                            value={form.preferred_day}
+                                            onChange={handleChange}
+                                            className="w-full h-11 rounded-lg border px-3"
+                                        >
+                                            <option value="">Any</option>
+                                            <option value="monday">Monday</option>
+                                            <option value="tuesday">Tuesday</option>
+                                            <option value="wednesday">Wednesday</option>
+                                            <option value="thursday">Thursday</option>
+                                            <option value="friday">Friday</option>
+                                            <option value="saturday">Saturday</option>
+                                            <option value="sunday">Sunday</option>
+                                        </select>
+                                    </div>
+
+                                    {/* SHIFT */}
+                                    <div>
+                                        <Label>Preferred Shift</Label>
+                                        <select
+                                            name="preferred_shift"
+                                            value={form.preferred_shift}
+                                            onChange={handleChange}
+                                            className="w-full h-11 rounded-lg border px-3"
+                                        >
+                                            <option value="">Any</option>
+                                            <option value="morning">Morning</option>
+                                            <option value="afternoon">Afternoon</option>
+                                            <option value="evening">Evening</option>
+                                        </select>
+                                    </div>
                                 </div>
                             )}
 

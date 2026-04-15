@@ -9,16 +9,10 @@ use Inertia\Inertia;
 
 class SubjectController extends Controller
 {
-    //
-
     public function index(Request $request)
     {
-        // return Inertia::render('Subjects/Index', [
-        //     'subjects' => Subject::with("program")->latest()->get(),
-        //     'programs' => Programs::all(),
-        // ]);
-
         $query = Subject::with(['program', 'prerequisites']);
+
         if ($request->search) {
             $query->where(function ($q) use ($request) {
                 $q->where('subject_name', 'like', '%' . $request->search . '%')
@@ -41,6 +35,7 @@ class SubjectController extends Controller
         if ($request->year_level) {
             $query->where('year_level', $request->year_level);
         }
+
         if ($request->subject_type) {
             $query->where('subject_type', $request->subject_type);
         }
@@ -67,11 +62,10 @@ class SubjectController extends Controller
         ]);
     }
 
-
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'program_id' => 'required|exists:programs,id',
+            'program_id' => 'nullable|exists:programs,id',
             'subject_code' => 'required|string|max:20',
             'subject_name' => 'required|string|max:150',
             'subject_type' => 'required|in:major,minor',
@@ -79,21 +73,42 @@ class SubjectController extends Controller
             'room_type' => 'nullable|string|max:50',
             'year_level' => 'required|integer|min:1|max:5',
             'semester' => 'required|integer|min:1|max:3',
+
             'prerequisites' => 'nullable|array',
             'prerequisites.*' => 'exists:subjects,id',
-           // 'preferred_day' => 'nullable|string',
-        ]);
-        $validated['units'] = $validated['hours_per_week'];
-        $subject = Subject::create($validated);
-        $subject->prerequisites()->sync(array_unique($request->prerequisites ?? []));
 
-        return redirect()->back()->with('success', 'Subject created');
+            // ✅ NEW
+            'preferred_teacher' => 'nullable|string|max:100',
+            'preferred_day' => 'nullable|string|max:20',
+            'preferred_shift' => 'nullable|string|max:20',
+            'domain' => 'nullable|string|max:100',
+        ]);
+
+        // ✅ enforce program only for major
+        if ($request->subject_type === 'major' && !$request->program_id) {
+            return back()->withErrors([
+                'program_id' => 'Program is required for major subjects.'
+            ]);
+        }
+
+        $validated['units'] = $validated['hours_per_week'];
+
+        $subject = Subject::create($validated);
+        if ($validated['subject_type'] === 'major' && $subject->program) {
+            $subject->domain = $subject->program->domain ?? null;
+            $subject->save();
+        }
+        $subject->prerequisites()->sync(
+            array_unique($request->prerequisites ?? [])
+        );
+
+        return back()->with('success', 'Subject created');
     }
 
     public function update(Request $request, Subject $subject)
     {
         $validated = $request->validate([
-            'program_id' => 'required|exists:programs,id',
+            'program_id' => 'nullable|exists:programs,id',
             'subject_code' => 'required|string|max:20',
             'subject_name' => 'required|string|max:150',
             'subject_type' => 'required|in:major,minor',
@@ -101,20 +116,41 @@ class SubjectController extends Controller
             'room_type' => 'nullable|string|max:50',
             'year_level' => 'required|integer|min:1|max:5',
             'semester' => 'required|integer|min:1|max:3',
+
             'prerequisites' => 'nullable|array',
             'prerequisites.*' => 'exists:subjects,id',
-            //'preferred_day' => 'nullable|string',
+
+            // ✅ NEW
+            'preferred_teacher' => 'nullable|string|max:100',
+            'preferred_day' => 'nullable|string|max:20',
+            'preferred_shift' => 'nullable|string|max:20',
+
+            'domain' => 'nullable|string|max:100',
         ]);
+
+        if ($request->subject_type === 'major' && !$request->program_id) {
+            return back()->withErrors([
+                'program_id' => 'Program is required for major subjects.'
+            ]);
+        }
+
         $validated['units'] = $validated['hours_per_week'];
+
         $subject->update($validated);
-        $subject->prerequisites()->sync(array_unique($request->prerequisites ?? []));
-        return redirect()->back()->with('success', 'subject updated');
+        if ($validated['subject_type'] === 'major' && $subject->program) {
+            $subject->domain = $subject->program->domain ?? null;
+            $subject->save();
+        }
+        $subject->prerequisites()->sync(
+            array_unique($request->prerequisites ?? [])
+        );
+
+        return back()->with('success', 'Subject updated');
     }
 
     public function destroy(Subject $subject)
     {
         $subject->delete();
-
-        return redirect()->back()->with('success', 'subject deleted');
+        return back()->with('success', 'Subject deleted');
     }
 }
