@@ -41,6 +41,9 @@ class SubjectController extends Controller
         if ($request->year_level) {
             $query->where('year_level', $request->year_level);
         }
+        if ($request->subject_type) {
+            $query->where('subject_type', $request->subject_type);
+        }
 
         return Inertia::render('Subjects/Index', [
             'subjects' => $query->latest()->paginate(15)->withQueryString(),
@@ -78,10 +81,11 @@ class SubjectController extends Controller
             'semester' => 'required|integer|min:1|max:3',
             'prerequisites' => 'nullable|array',
             'prerequisites.*' => 'exists:subjects,id',
+           // 'preferred_day' => 'nullable|string',
         ]);
         $validated['units'] = $validated['hours_per_week'];
         $subject = Subject::create($validated);
-        $subject->prerequisites()->sync($request->prerequisites ?? []);
+        $subject->prerequisites()->sync(array_unique($request->prerequisites ?? []));
 
         return redirect()->back()->with('success', 'Subject created');
     }
@@ -99,10 +103,11 @@ class SubjectController extends Controller
             'semester' => 'required|integer|min:1|max:3',
             'prerequisites' => 'nullable|array',
             'prerequisites.*' => 'exists:subjects,id',
+            //'preferred_day' => 'nullable|string',
         ]);
         $validated['units'] = $validated['hours_per_week'];
         $subject->update($validated);
-        $subject->prerequisites()->sync($request->prerequisites ?? []);
+        $subject->prerequisites()->sync(array_unique($request->prerequisites ?? []));
         return redirect()->back()->with('success', 'subject updated');
     }
 

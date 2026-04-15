@@ -562,11 +562,13 @@ export default function Index() {
                                         >
                                             <option value="">+ Add prerequisite</option>
 
-                                            {allSubjects.map((s: any) => (
-                                                <option key={s.id} value={s.id}>
-                                                    {s.subject_code} - {s.subject_name}
-                                                </option>
-                                            ))}
+                                            {allSubjects
+                                                .filter((s: any) => s.id !== editId) // prevent self
+                                                .map((s: any) => (
+                                                    <option key={s.id} value={s.id}>
+                                                        {s.subject_code} - {s.subject_name}
+                                                    </option>
+                                                ))}
                                         </select>
                                     </div>
                                 </div>

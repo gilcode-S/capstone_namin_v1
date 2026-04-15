@@ -17,13 +17,17 @@ return new class extends Migration
             $table->foreignId('program_id')->constrained()->cascadeOnDelete();
             $table->foreignId('subject_id')->constrained()->cascadeOnDelete();
 
-            $table->integer('year_level'); // 1,2,3,4
-            $table->integer('semester');   // 1,2
+            $table->integer('year_level'); // 1–4
+            $table->integer('semester');   // 1–2
+
+            // 🔥 CORRECT UNIQUE (WITH SEMESTER)
             $table->unique([
                 'program_id',
                 'subject_id',
                 'year_level',
+                'semester'
             ]);
+
             $table->timestamps();
         });
     }

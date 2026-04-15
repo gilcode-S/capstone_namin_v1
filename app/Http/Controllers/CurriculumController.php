@@ -12,69 +12,114 @@ use Inertia\Inertia;
 class CurriculumController extends Controller
 {
     public function index(Request $request)
-    {
-        $departmentId = $request->department_id ?? Department::first()?->id;
-        $programId = $request->program_id ?? Programs::first()?->id;
-        
+{
+    $departmentId = $request->department_id ?? Department::first()?->id;
 
-        $curriculum = Curriculum::with(['subject', 'program.department'])
-            ->where('program_id', $programId)
-            ->whereHas('program.department', function ($q) use ($departmentId) {
-                $q->where('id', $departmentId);
-            })
-            ->get()
-            ->groupBy('year_level')
-            ->map(function ($yearGroup) {
+    // ✅ get programs under selected department
+    $programs = Programs::where('department_id', $departmentId)->get();
 
-                $semesters = $yearGroup->groupBy('semester');
+    // ✅ default program = first program of that department
+    $programId = $request->program_id ?? $programs->first()?->id;
 
-                return collect([1, 2])->mapWithKeys(function ($sem) use ($semesters) {
+    $curriculum = Curriculum::with(['subject', 'program.department'])
+        ->where('program_id', $programId)
+        ->get()
+        ->groupBy('year_level')
+        ->map(function ($yearGroup) {
 
-                    $semGroup = $semesters->get($sem, collect());
+            $semesters = $yearGroup->groupBy('semester');
 
-                    return [
-                        $sem => [
-                            'major' => $semGroup->filter(
-                                fn($c) => optional($c->subject)->subject_type === 'major'
-                            )->values(),
+            return collect([1, 2])->mapWithKeys(function ($sem) use ($semesters) {
 
-                            'minor' => $semGroup->filter(
-                                fn($c) => optional($c->subject)->subject_type === 'minor'
-                            )->values(),
-                        ]
-                    ];
-                });
+                $semGroup = $semesters->get($sem, collect());
+
+                return [
+                    $sem => [
+                        'major' => $semGroup->filter(
+                            fn($c) => optional($c->subject)->subject_type === 'major'
+                        )->values(),
+
+                        'minor' => $semGroup->filter(
+                            fn($c) => optional($c->subject)->subject_type === 'minor'
+                        )->values(),
+                    ]
+                ];
             });
+        });
 
-        return Inertia::render('Curriculum/Index', [
-            'curriculum' => $curriculum,
-            'departments' => Department::all(),
-            'programs' => Programs::all(),
-            'subjects' => Subject::all(),
-            'selectedDepartment' => (int) $departmentId,
-            'selectedProgram' => (int) $programId,
-        ]);
+    return Inertia::render('Curriculum/Index', [
+        'curriculum' => $curriculum,
+        'departments' => Department::all(),
+
+        // ✅ ONLY programs of selected department
+        'programs' => $programs,
+
+        'subjects' => Subject::all(),
+        'selectedDepartment' => (int) $departmentId,
+        'selectedProgram' => (int) $programId,
+    ]);
+}
+
+   public function store(Request $request)
+{
+    $validated = $request->validate([
+        'program_id' => 'required|exists:programs,id',
+        'subject_id' => 'required|exists:subjects,id',
+        'year_level' => 'required|integer|min:1|max:4',
+        'semester' => 'required|integer|in:1,2',
+        'ignore_prereq' => 'nullable|boolean', // ✅ NEW
+    ]);
+
+    // ✅ Prevent duplicate
+    $exists = Curriculum::where([
+        'program_id' => $validated['program_id'],
+        'subject_id' => $validated['subject_id'],
+        'year_level' => $validated['year_level'],
+        'semester' => $validated['semester'],
+    ])->exists();
+
+    if ($exists) {
+        return back()->with('error', 'Subject already exists in curriculum.');
     }
 
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'program_id' => 'required|exists:programs,id',
-            'subject_id' => 'required|exists:subjects,id',
-            'year_level' => 'required|integer|min:1|max:4',
-            'semester' => 'required|integer|in:1,2',
-        ]);
+    // ✅ GET SUBJECT + PREREQUISITES
+    $subject = Subject::with('prerequisites')->find($validated['subject_id']);
 
-        $exists = Curriculum::where($validated)->exists();
+    // ✅ ONLY VALIDATE if NOT ignored
+    if (!$request->ignore_prereq) {
 
-        if ($exists) {
-            return back()->with('error', 'Subject already exists in curriculum.');
+        foreach ($subject->prerequisites as $pre) {
+
+            $hasPrerequisite = Curriculum::where([
+                'program_id' => $validated['program_id'],
+                'subject_id' => $pre->id,
+            ])
+            ->where(function ($q) use ($validated) {
+                $q->where('year_level', '<', $validated['year_level'])
+                  ->orWhere(function ($q2) use ($validated) {
+                      $q2->where('year_level', $validated['year_level'])
+                         ->where('semester', '<', $validated['semester']);
+                  });
+            })
+            ->exists();
+
+            if (!$hasPrerequisite) {
+                return back()->with('error', 
+                    "Missing prerequisite: {$pre->subject_code} must be added earlier."
+                );
+            }
         }
-
-        Curriculum::create($validated);
-
-        return back()->with('success', 'Subject added to curriculum.');
     }
+
+    Curriculum::create([
+        'program_id' => $validated['program_id'],
+        'subject_id' => $validated['subject_id'],
+        'year_level' => $validated['year_level'],
+        'semester' => $validated['semester'],
+    ]);
+
+    return back()->with('success', 'Subject added to curriculum.');
+}
 
     public function update(Request $request, $id)
     {
