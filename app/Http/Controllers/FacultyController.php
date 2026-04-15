@@ -204,6 +204,10 @@ class FacultyController extends Controller
 
             'qualification_level' => 'nullable|string',
             'years_experience' => 'nullable|integer|min:0',
+
+            'degree' => 'nullable|in:Bachelor,Master,PhD',
+            'domains' => 'nullable|array',
+            'domains.*' => 'string',
         ]);
 
         $faculty = Faculty::create($validated);
@@ -249,6 +253,10 @@ class FacultyController extends Controller
 
             'qualification_level' => 'nullable|string',
             'years_experience' => 'nullable|integer|min:0',
+
+            'degree' => 'nullable|in:Bachelor,Master,PhD',
+            'domains' => 'nullable|array',
+            'domains.*' => 'string',
         ]);
 
         $faculty->update($validated);

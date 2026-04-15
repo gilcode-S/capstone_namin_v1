@@ -23,11 +23,15 @@ class Faculty extends Model
         'max_load_units',
         'status',
         'qualification_level',
-        'years_experience'
+        'years_experience',
+
+        'degree',
+        'domains'
     ];
 
     protected $casts = [
-        'preferred_timeslots' => 'array'
+        'preferred_timeslots' => 'array',
+        'domains' => 'array'
     ];
     public function department()
     {

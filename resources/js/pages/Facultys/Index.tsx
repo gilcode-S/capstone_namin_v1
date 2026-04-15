@@ -1,6 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react'
-import { Pencil, Plus, Trash2, Users } from 'lucide-react'
-import { useState } from 'react'
+import { Clock, Pencil, Plus, Trash2, Users } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import Pagination from '@/components/Pagination'
 import { Button } from '@/components/ui/button'
 import {
@@ -71,7 +71,10 @@ const emptyForm = {
   availabilities: [] as string[],
   shifts: [] as number[],
   qualificataion_level: '',
-  years_experience: ''
+  years_experience: '',
+
+  degree: '',
+  domains: []
 }
 
 export default function Index() {
@@ -107,6 +110,21 @@ export default function Index() {
   const [isEditAvailability, setIsEditAvailability] = useState(false)
   const [editAvailabilityIndex, setEditAvailabilityIndex] = useState<number | null>(null)
 
+
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      router.get('/faculty', {
+        search,
+        department: departmentFilter
+      }, {
+        preserveState: true,
+        replace: true
+      })
+    }, 400)
+
+    return () => clearTimeout(delay)
+  }, [search])
+
   /* ---------------------------
      OPEN CREATE
   ----------------------------*/
@@ -132,11 +150,14 @@ export default function Index() {
       years_experience: faculty.years_experience,
       max_load_units: faculty.max_load_units,
       status: faculty.status,
- 
+
       availability: faculty.availabilities?.map(a => a.day_of_week) || [],
 
 
-      shifts: faculty.shifts?.map(s => s.id) || []
+      shifts: faculty.shifts?.map(s => s.id) || [],
+
+      degree: faculty.degree || '',
+      domains: faculty.domains || [],
     })
 
     setIsEdit(true)
@@ -282,7 +303,7 @@ export default function Index() {
       availability: form.availability || []
     }
 
-    console.log("PAYLOAD:", payload) 
+    console.log("PAYLOAD:", payload)
 
     if (isEdit && editId) {
       router.put(`/faculty/${editId}`, payload, {
@@ -307,6 +328,17 @@ export default function Index() {
         }
       })
     }
+  }
+
+  const handleFilterChange = (key: string, value: string) => {
+    router.get('/faculty', {
+      search,
+      department: departmentFilter,
+      [key]: value
+    }, {
+      preserveState: true,
+      replace: true
+    })
   }
 
   /* ---------------------------
@@ -380,40 +412,72 @@ export default function Index() {
       <div className="p-6">
 
 
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center">
-            <Users className="mr-2 text-blue-500" size={28} />
-            <h1 className="text-2xl font-bold">Faculty Management</h1>
+        {/* HEADER */}
+        <div className="flex items-start justify-between">
+
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">
+              Faculty Management
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Manage faculty members, their subjects, and availability for options scheduling
+            </p>
           </div>
 
-          <Button onClick={handleOpen} className="gap-2">
-            <Plus size={18} />
-            Add Teacher
+          <Button onClick={handleOpen} className="gap-2" className="bg-black text-white rounded-xl px-4 py-2 shadow-sm hover:bg-gray-900">
+            + Add Faculty
           </Button>
+
         </div>
 
         {/* SUMMARY CARDS */}
-        <div className="grid md:grid-cols-3 gap-4 mb-6">
 
-          <div className="rounded-xl border p-4 bg-white shadow-sm">
-            <p className="text-sm text-muted-foreground">Total Teachers</p>
-            <h2 className="text-2xl font-bold">{stats?.total ?? 0}</h2>
-            <p className="text-xs text-muted-foreground">Active faculty members</p>
+        {/* STATS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+
+          {/* TOTAL TEACHERS */}
+          <div className="bg-white border rounded-2xl p-5 flex justify-between items-start shadow-sm">
+
+            <div>
+              <p className="text-sm text-gray-500">Total Teachers</p>
+              <h2 className="text-2xl font-semibold mt-2">
+                {stats?.total ?? 0}
+              </h2>
+              <p className="text-xs text-gray-400 mt-1">
+                Active faculty members
+              </p>
+            </div>
+
+            {/* ICON */}
+            <div className="text-gray-400">
+              <Users size={20} />
+            </div>
+
           </div>
 
-          <div className="rounded-xl border p-4 bg-white shadow-sm">
-            <p className="text-sm text-muted-foreground">Average Workloads</p>
-            <h2 className="text-2xl font-bold">{stats?.avg_load ?? 0}%</h2>
-            <p className="text-xs text-muted-foreground">Overall Utilization</p>
-          </div>
+          {/* AVERAGE WORKLOAD */}
+          <div className="bg-white border rounded-2xl p-5 flex justify-between items-start shadow-sm">
 
-          <div className="rounded-xl border p-4 bg-white shadow-sm">
-            <p className="text-sm text-muted-foreground">Subjects Covered</p>
-            <h2 className="text-2xl font-bold">{stats?.subjects ?? 0}</h2>
-            <p className="text-xs text-muted-foreground">Unique subjects</p>
+            <div>
+              <p className="text-sm text-gray-500">Average Workloads</p>
+              <h2 className="text-2xl font-semibold mt-2">
+                {stats?.avg_load ?? 0}%
+              </h2>
+              <p className="text-xs text-gray-400 mt-1">
+                Overall Utilization
+              </p>
+            </div>
+
+            {/* ICON */}
+            <div className="text-gray-400">
+              <Clock size={20} />
+            </div>
+
           </div>
 
         </div>
+
+
 
         {/* FILTERS */}
         <div className="rounded-xl border p-4 mb-6 bg-white shadow-sm">
@@ -424,7 +488,7 @@ export default function Index() {
             <Input
               placeholder="Search Teachers or Subjects..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
             />
 
             {/* DEPARTMENT FILTER */}
@@ -615,7 +679,7 @@ export default function Index() {
         <Pagination links={faculties.links} />
 
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-w-xl rounded-2xl p-0 overflow-hidden">
+          <DialogContent className="max-w-3xl rounded-2xl p-0">
 
             {/* HEADER */}
             <div className="p-6 border-b">
@@ -697,6 +761,56 @@ export default function Index() {
                   </option>
                 ))}
               </select>
+
+              {/* DEGREE */}
+              <select
+                name="degree"
+                value={form.degree}
+                onChange={handleChange}
+                className="w-full border rounded-md px-3 py-2"
+              >
+                <option value="">Select Degree</option>
+                <option value="Bachelor">Bachelor</option>
+                <option value="Master">Master</option>
+                <option value="PhD">PhD</option>
+              </select>
+
+
+              {/* DOMAINS CAN TEACH */}
+              <div>
+                <Label>Domains Can Teach</Label>
+
+                <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+
+                  {[
+                    "Computer Science / IT",
+                    "Business / Management",
+                    "Tourism / Hospitality",
+                    "Criminology / Law",
+                    "General Education"
+                  ].map(domain => (
+                    <label key={domain} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        value={domain}
+                        checked={form.domains?.includes(domain)}
+                        onChange={(e) => {
+                          const checked = e.target.checked
+
+                          setForm(prev => ({
+                            ...prev,
+                            domains: checked
+                              ? [...(prev.domains || []), domain]
+                              : prev.domains.filter((d: string) => d !== domain)
+                          }))
+                        }}
+                      />
+                      {domain}
+                    </label>
+                  ))}
+
+                </div>
+              </div>
 
               {/* QUALIFICATION */}
               <div className="grid grid-cols-2 gap-3">
@@ -882,6 +996,6 @@ export default function Index() {
         </Dialog>
 
       </div>
-    </AppLayout>
+    </AppLayout >
   )
 }
