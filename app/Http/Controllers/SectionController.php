@@ -53,7 +53,7 @@ class SectionController extends Controller
 
         // YEAR
         if ($request->year_level) {
-            $query->where('year_level', $request->year_level);
+            $query->where('year_level', (int) $request->year_level);
         }
 
         // PROGRAM
@@ -82,10 +82,12 @@ class SectionController extends Controller
             'filters' => $request->only(['set', 'program', 'shift', 'section', 'year_level']),
 
             'stats' => [
-                'total_classes' => 0,
-                'weekly_hour' => 0,
-                'active_rooms' => 0,
-                'total_sections' => Section::count()
+                'total_sections' => Section::count(),
+                'total_students' => Section::sum('student_count'),
+
+                'total_morning' => Section::where('shift', 'Morning')->count(),
+                'total_afternoon' => Section::where('shift', 'Afternoon')->count(),
+                'total_evening' => Section::where('shift', 'Evening')->count(),
             ]
         ]);
     }
