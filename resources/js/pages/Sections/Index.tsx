@@ -80,6 +80,7 @@ export default function Index() {
     program: initialFilters?.program || '',
     shift: initialFilters?.shift || '',
     section: initialFilters?.section || '',
+    year_level: initialFilters?.year_level || '',
   })
 
   // const [filters, setFilter] = useState({
@@ -329,12 +330,6 @@ export default function Index() {
                 </option>
               ))}
             </select>
-
-            {/* PROGRAM */}
-            <select className="h-10 rounded-lg border px-3">
-              <option>All Program</option>
-            </select>
-
           </div>
         </div>
 
@@ -510,39 +505,39 @@ export default function Index() {
                   </select>
                 </div>
 
-          {/* SHIFT */}
-<div>
-  <Label>Shift</Label>
-  <select
-    name="shift"
-    value={form.shift}
-    onChange={handleChange}
-    className="w-full h-11 rounded-lg border px-3"
-  >
-    <option value="">Select Shift</option>
-    <option value="Morning">Morning</option>
-    <option value="Afternoon">Afternoon</option>
-    <option value="Evening">Evening</option>
-  </select>
-</div>
+                {/* SHIFT */}
+                <div>
+                  <Label>Shift</Label>
+                  <select
+                    name="shift"
+                    value={form.shift}
+                    onChange={handleChange}
+                    className="w-full h-11 rounded-lg border px-3"
+                  >
+                    <option value="">Select Shift</option>
+                    <option value="Morning">Morning</option>
+                    <option value="Afternoon">Afternoon</option>
+                    <option value="Evening">Evening</option>
+                  </select>
+                </div>
 
-{/* SECTION LETTER */}
-<div>
-  <Label>Section Letter</Label>
-  <Input
-    name="section_letter"
-    placeholder="A, B, C"
-    maxLength={1}
-    value={form.section_letter}
-    onChange={(e) =>
-      setForm({
-        ...form,
-        section_letter: e.target.value.toUpperCase()
-      })
-    }
-    className="h-11 rounded-lg"
-  />
-</div>
+                {/* SECTION LETTER */}
+                <div>
+                  <Label>Section Letter</Label>
+                  <Input
+                    name="section_letter"
+                    placeholder="A, B, C"
+                    maxLength={1}
+                    value={form.section_letter}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        section_letter: e.target.value.toUpperCase()
+                      })
+                    }
+                    className="h-11 rounded-lg"
+                  />
+                </div>
 
                 <div className="col-span-2 bg-gray-50 border rounded-lg p-3">
                   <p className="text-xs text-gray-500">Section Code Preview</p>

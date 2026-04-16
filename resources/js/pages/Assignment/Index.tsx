@@ -125,7 +125,7 @@ export default function Index() {
             subject_id: String(a.subject.id),
             faculty_id: String(a.faculty.id)
         })
-        
+
 
         setIsEdit(true)
         setEditId(a.id)
@@ -361,7 +361,7 @@ export default function Index() {
                             {/* FACULTY */}
 
                             <div>
-                                <Label>Faculty</Label>
+                                <Label>Faculty (Optional)</Label>
 
                                 <ComboBox
                                     items={facultyOptions}
@@ -371,6 +371,10 @@ export default function Index() {
                                         setForm({ ...form, faculty_id: value })
                                     }
                                 />
+
+                                <p className="text-xs text-gray-500">
+                                    Leave blank for auto-assignment
+                                </p>
 
                             </div>
 

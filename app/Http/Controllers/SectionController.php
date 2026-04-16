@@ -46,32 +46,29 @@ class SectionController extends Controller
         $view = $request->view ?? 'grid';
         $query = Section::with('program', 'semester');
 
-        //  FILTER: SET (A / B)
-        if ($request->set) {
-
-            $query->where('section_name', 'like', $request->set . '%');
-        }
-        if ($request->year_level) {
-            $query->where('year_level', $request->year_level);
-        }
-
+        // SEARCH (section name)
         if ($request->section) {
             $query->where('section_name', 'like', '%' . $request->section . '%');
         }
 
-        //  PROGRAM (Department)
+        // YEAR
+        if ($request->year_level) {
+            $query->where('year_level', $request->year_level);
+        }
+
+        // PROGRAM
         if ($request->program) {
             $query->where('program_id', $request->program);
         }
 
-        //  SHIFT
+        // SHIFT
         if ($request->shift) {
             $query->where('shift', $request->shift);
         }
 
-        //  SECTION NAME (exact match)
-        if ($request->section) {
-            $query->where('section_name', $request->section);
+        // SECTION LETTER (A, B, C, D)
+        if ($request->set) {
+            $query->where('section_name', 'like', '%' . strtoupper($request->set));
         }
 
         return Inertia::render('Sections/Index', [
@@ -82,7 +79,7 @@ class SectionController extends Controller
 
             'view' => $view,
 
-            'filters' => $request->only(['set', 'program', 'shift', 'section']),
+            'filters' => $request->only(['set', 'program', 'shift', 'section', 'year_level']),
 
             'stats' => [
                 'total_classes' => 0,

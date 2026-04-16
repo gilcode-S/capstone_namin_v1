@@ -1,42 +1,41 @@
-use Illuminate\Database\Seeder;
-use App\Models\Department;
-use App\Models\Room;
+<?php
 
-class RoomSeeder extends Seeder
+namespace Database\Seeders;
+
+use App\Models\Programs;
+use App\Models\Room;
+use App\Models\Department;
+use Illuminate\Database\Seeder;
+
+class SectionSeeder extends Seeder
 {
     public function run(): void
     {
-        $departments = Department::all();
-
-        if ($departments->isEmpty()) {
-            $this->command->error('Run DepartmentSeeder first.');
-            return;
-        }
-
-        $buildings = ['F', 'C', 'V'];
-        $floors = [1, 2, 3];
-        $roomsPerFloor = 4;
-
-        foreach ($buildings as $building) {
-            foreach ($floors as $floor) {
-                for ($i = 1; $i <= $roomsPerFloor; $i++) {
-
-                    $department = $departments->random();
-
-                    $roomNumber = $floor . str_pad($i, 2, '0', STR_PAD_LEFT);
-                    $roomName = $building . $roomNumber;
-
-                    $isLab = $i % 2 == 0;
-
-                    Room::create([
-                        'department_id' => $department->id,
-                        'room_name' => $roomName,
-                        'room_type' => $isLab ? 'computer_lab' : 'lecture',
-                        'capacity' => $isLab ? rand(25, 40) : rand(35, 60),
-                        'status' => 'active'
-                    ]);
-                }
-            }
-        }
+        Room::insert([
+            [
+                'department_id' => 1,
+                'room_name' => 'Room 101',
+                'resource_type' => 'lecture',
+                'capacity' => 40,
+                'building' => 'Main',
+                'floor' => 1,
+                'equipment' => json_encode(['projector']),
+                'resource_status' => 'available',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'department_id' => 1,
+                'room_name' => 'Lab 201',
+                'resource_type' => 'lab',
+                'capacity' => 30,
+                'building' => 'Science',
+                'floor' => 2,
+                'equipment' => json_encode(['computers']),
+                'resource_status' => 'available',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        ]);
     }
 }

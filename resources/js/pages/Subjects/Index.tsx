@@ -311,6 +311,7 @@ export default function Index() {
                                     <th className="px-6 py-3 text-left">Room Type</th>
                                     <th className="px-6 py-3 text-left">Prerequisites</th>
                                     <th className="px-6 py-3 text-left">Program</th>
+                                    {/* <th className="px-6 py-3 text-left">Actions</th> */}
                                 </tr>
                             </thead>
 
@@ -385,6 +386,31 @@ export default function Index() {
                                         <td className="px-6 py-4 text-gray-700">
                                             {subject.program?.program_name ?? 'None'}
                                         </td>
+
+                                        {/* ACTIONS */}
+                                        {/* <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2">
+
+                                            
+                                                <button
+                                                    onClick={() => handleOpenEdit(subject)}
+                                                    className="text-blue-600 hover:text-blue-800"
+                                                    title="Edit"
+                                                >
+                                                    <Pencil size={18} />
+                                                </button>
+
+                                          
+                                                <button
+                                                    onClick={() => handleDelete(subject.id)}
+                                                    className="text-red-600 hover:text-red-800"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+
+                                            </div>
+                                        </td> */}
 
                                     </tr>
                                 )) : (

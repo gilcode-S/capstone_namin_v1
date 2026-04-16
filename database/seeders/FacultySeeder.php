@@ -2,40 +2,67 @@
 
 namespace Database\Seeders;
 
-use App\Models\Department;
-use App\Models\Faculty;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
+use App\Models\Faculty;
+use App\Models\Department;
+use App\Models\Shift;
+use App\Models\FacultyAvailability;
 
 class FacultySeeder extends Seeder
 {
     public function run(): void
     {
-        $departments = Department::all();
+        $shifts = Shift::pluck('id')->toArray();
+        $departments = Department::pluck('id')->toArray();
 
-        if ($departments->isEmpty()) {
-            $this->command->error("No departments found! Run DepartmentSeeder first.");
-            return;
-        }
+        $domainsList = [
+            "Computer Science / IT",
+            "Business / Management",
+            "Tourism / Hospitality",
+            "Criminology / Law",
+            "General Education"
+        ];
 
-        $firstNames = ['John', 'Maria', 'Jose', 'Ana', 'Carlos', 'Elena', 'Mark', 'Sophia', 'David', 'Luna'];
-        $lastNames = ['Reyes', 'Santos', 'Lopez', 'Garcia', 'Cruz', 'Torres', 'Martinez', 'Delgado', 'Navarro', 'Flores'];
+        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-        for ($i = 1; $i <= 30; $i++) {
-            $department = $departments->random(); // pick random department
-            $firstName = $firstNames[array_rand($firstNames)];
-            $lastName = $lastNames[array_rand($lastNames)];
+        for ($i = 1; $i <= 20; $i++) {
 
-            Faculty::create([
-                'department_id' => $department->id,
-                'faculty_code' => 'FAC-' . Str::upper(Str::random(5)),
-                'first_name' => $firstName,
-                'last_name' => $lastName,
-                'email' => strtolower($firstName . '.' . $lastName . $i . '@example.com'),
-                'employment_type' => (rand(0, 1) ? 'full_time' : 'part_time'),
-                'max_load_units' => 21,
+            $faculty = Faculty::create([
+                'department_id' => fake()->randomElement($departments),
+                'faculty_code' => 'FAC-' . str_pad($i, 3, '0', STR_PAD_LEFT),
+                'first_name' => fake()->firstName(),
+                'last_name' => fake()->lastName(),
+                'email' => fake()->unique()->safeEmail(),
+
+                // ✅ MUST MATCH ENUM
+                'employment_type' => fake()->randomElement(['full_time', 'part_time']),
+
+                'max_load_units' => fake()->numberBetween(12, 24),
                 'status' => 'active',
+
+                'qualification_level' => fake()->randomElement(['Bachelor', 'Master', 'PhD']),
+                'years_experience' => fake()->numberBetween(1, 15),
+
+                'degree' => fake()->randomElement(['Bachelor', 'Master', 'PhD']),
+
+                // ✅ ARRAY FIELD
+                'domains' => fake()->randomElements($domainsList, rand(1, 2)),
             ]);
+
+            // ✅ ADD AVAILABILITY (2–4 random days)
+            $randomDays = collect($days)->random(rand(2, 4));
+
+            foreach ($randomDays as $day) {
+                FacultyAvailability::create([
+                    'faculty_id' => $faculty->id,
+                    'day_of_week' => $day,
+                    'start_time' => '08:00:00',
+                    'end_time' => '17:00:00',
+                ]);
+            }
+            $randomShifts = collect($shifts)->random(rand(1, 2));
+
+            $faculty->shifts()->attach($randomShifts);
         }
     }
 }
