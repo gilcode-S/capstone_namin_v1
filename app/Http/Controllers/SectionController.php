@@ -34,7 +34,7 @@ class SectionController extends Controller
             . $SHIFT_CODES[$shift]
             . strtoupper($letter);
 
-        if ($semesterId === 'Summer') {
+        if ($semesterId === 'summer') {
             $code .= '-S';
         }
 

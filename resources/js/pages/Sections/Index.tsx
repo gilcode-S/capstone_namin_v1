@@ -147,7 +147,7 @@ export default function Index() {
       SHIFT_CODES[form.shift] +
       form.section_letter
 
-    if (semester.term === 'Summer') {
+    if (semester.term === 'summer') {
       code += '-S'
     }
 
