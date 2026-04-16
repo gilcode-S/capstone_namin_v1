@@ -26,7 +26,8 @@ class Subject extends Model
         'preferred_teacher',
         'preferred_day',
         'preferred_shift',
-        'domain'
+        'domain',
+        'room_type_required',
     ];
 
     public function isMajor(): bool

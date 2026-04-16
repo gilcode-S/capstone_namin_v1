@@ -620,9 +620,9 @@ export default function Index() {
                                         className="w-full h-11 rounded-lg border px-3"
                                     >
                                         <option value="">Select room type</option>
-                                        <option value="lecture">Classroom</option>
-                                        <option value="lab">Laboratory</option>
-                                        <option value="pe">PE Room</option>
+                                        <option value="classroom">Classroom</option>
+                                        <option value="laboratory">Computer Lab</option>
+                                        <option value="pe_room">PE Room</option>
                                     </select>
                                 </div>
 

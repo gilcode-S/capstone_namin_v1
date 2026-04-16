@@ -70,7 +70,7 @@ class SubjectController extends Controller
             'subject_name' => 'required|string|max:150',
             'subject_type' => 'required|in:major,minor',
             'hours_per_week' => 'required|integer|min:1',
-            'room_type' => 'nullable|string|max:50',
+            'room_type' => 'nullable|in:classroom,laboratory,pe_room',
             'year_level' => 'required|integer|min:1|max:5',
             'semester' => 'required|integer|min:1|max:3',
 

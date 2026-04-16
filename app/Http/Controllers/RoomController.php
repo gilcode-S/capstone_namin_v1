@@ -19,7 +19,7 @@ class RoomController extends Controller
             'department',
             'schedules.timeslot'
         ])->orderBy('room_name', 'asc');
-        
+
         // ✅ STATUS FILTER
         if ($request->status) {
             $query->where(function ($q) use ($request) {
@@ -88,9 +88,9 @@ class RoomController extends Controller
             'room_name' => 'required|string|max:50|unique:rooms,room_name',
 
             // NEW
-            'resource_type' => 'required|in:classroom,laboratory,auditorium',
+            'resource_type' => 'required|in:classroom,laboratory,pe_room',
             'capacity' => 'required|integer|min:1',
-           'department_id' => 'nullable|exists:departments,id',
+            'department_id' => 'nullable|exists:departments,id',
 
             'building' => 'nullable|string',
             'floor' => 'nullable|string',
@@ -128,7 +128,7 @@ class RoomController extends Controller
         $validated = $request->validate([
             'room_name' => 'required|string|max:50|unique:rooms,room_name,' . $room->id,
 
-            'resource_type' => 'required|in:classroom,laboratory,auditorium',
+            'resource_type' => 'required|in:classroom,laboratory,pe_room',
             'capacity' => 'required|integer|min:1',
             'department_id' => 'nullable|exists:departments,id',
 

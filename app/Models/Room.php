@@ -30,8 +30,17 @@ class Room extends Model
         return $this->belongsTo(Department::class);
     }
 
-    public function schedules() 
+    public function schedules()
     {
         return $this->hasMany(Schedule::class);
+    }
+
+    public function isValidForSubject($subject): bool
+    {
+        if ($subject->room_type) {
+            return $this->resource_type === $subject->room_type;
+        }
+
+        return true;
     }
 }

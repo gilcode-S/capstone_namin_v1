@@ -447,8 +447,8 @@ export default function Index() {
                         >
                             <option value="">All Types</option>
                             <option value="classroom">Classroom</option>
-                            <option value="laboratory">Laboratory</option>
-                            <option value="auditorium">Auditorium</option>
+                            <option value="laboratory">Computer Lab</option>
+                            <option value="pe_room">PE room</option>
                         </select>
 
                     </div>
@@ -652,8 +652,8 @@ export default function Index() {
                                 >
                                     <option value="">Select type</option>
                                     <option value="classroom">Classroom</option>
-                                    <option value="laboratory">Laboratory</option>
-                                    <option value="auditorium">Auditorium</option>
+                                    <option value="laboratory">Computer Lab</option>
+                                    <option value="pe_room">PE Room</option>
                                 </select>
                             </div>
                             <div>
@@ -700,9 +700,9 @@ export default function Index() {
                                         className="border rounded px-3 py-2"
                                     >
                                         <option value="">Building</option>
-                                        <option value="A">Building A</option>
-                                        <option value="B">Building B</option>
                                         <option value="C">Building C</option>
+                                        <option value="F">Building F</option>
+                                        <option value="V">Building V</option>
                                     </select>
 
                                     {/* FLOOR */}
@@ -716,6 +716,7 @@ export default function Index() {
                                         <option value="1">Floor 1</option>
                                         <option value="2">Floor 2</option>
                                         <option value="3">Floor 3</option>
+                                        <option value="4">Floor 4</option>
                                     </select>
 
                                 </div>
