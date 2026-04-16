@@ -10,28 +10,40 @@ class SubjectSeeder extends Seeder
 {
     public function run(): void
     {
-        $programs = Programs::pluck('id')->toArray();
+        $program = Programs::where('program_code', 'BC')->first();
+
+        if (!$program) {
+            throw new \Exception('BSCS program not found. Please seed programs first.');
+        }
 
         $names = [
-            'Programming', 'Database Systems', 'Operating Systems',
-            'Web Development', 'Software Engineering',
-            'Data Structures', 'Algorithms', 'Networking',
-            'Information Security', 'Artificial Intelligence',
-            'Human Computer Interaction', 'Mobile Development'
+            'Programming',
+            'Database Systems',
+            'Operating Systems',
+            'Web Development',
+            'Software Engineering',
+            'Data Structures',
+            'Algorithms',
+            'Networking',
+            'Information Security',
+            'Artificial Intelligence',
+            'Human Computer Interaction',
+            'Mobile Development'
         ];
 
-        $roomTypes = ['lecture', 'lab', 'pe'];
+        $roomTypes = ['lecture', 'lab'];
 
         for ($i = 1; $i <= 40; $i++) {
 
             $type = fake()->randomElement(['major', 'minor']);
 
             Subject::create([
+                // ✅ ONLY BSCS for major
                 'program_id' => $type === 'major'
-                    ? fake()->randomElement($programs)
+                    ? $program->id
                     : null,
 
-                'subject_code' => 'SUBJ-' . str_pad($i, 3, '0', STR_PAD_LEFT),
+                'subject_code' => 'CS-' . str_pad($i, 3, '0', STR_PAD_LEFT),
 
                 'subject_name' => fake()->randomElement($names) . " " . rand(1, 3),
 
@@ -45,16 +57,12 @@ class SubjectSeeder extends Seeder
                 'year_level' => rand(1, 4),
                 'semester' => rand(1, 2),
 
-                // 🔥 IMPORTANT FOR ASSIGNMENT LOGIC
                 'preferred_shift' => fake()->randomElement(['morning', 'afternoon', 'evening']),
-                'preferred_day' => fake()->randomElement(['monday','tuesday','wednesday','thursday','friday']),
+                'preferred_day' => fake()->randomElement(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']),
                 'preferred_teacher' => null,
 
-                'domain' => fake()->randomElement([
-                    "Computer Science / IT",
-                    "Business / Management",
-                    "General Education"
-                ]),
+                // ✅ More realistic domain
+                'domain' => "Computer Science / IT",
             ]);
         }
     }

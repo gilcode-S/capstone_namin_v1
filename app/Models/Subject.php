@@ -29,7 +29,10 @@ class Subject extends Model
         'domain',
         'room_type_required',
     ];
-
+    public function preferredTeacher()
+    {
+        return $this->belongsTo(Faculty::class, 'preferred_teacher_id');
+    }
     public function isMajor(): bool
     {
         return $this->subject_type === 'major';

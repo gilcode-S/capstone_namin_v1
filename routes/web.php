@@ -34,8 +34,13 @@ Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('section', SectionController::class);
 Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('subject', SubjectController::class);
-Route::middleware(['auth', 'role:super admin,registrar'])
-    ->resource('assignments', SectionSubjectAssignmentController::class);
+
+Route::post('/assignments/auto-assign', [SectionSubjectAssignmentController::class, 'autoAssign']);
+
+Route::resource('assignments', SectionSubjectAssignmentController::class);
+// Route::post('/assignments/auto-assign', [SectionSubjectAssignmentController::class, 'autoAssign']);
+// Route::middleware(['auth', 'role:super admin,registrar'])
+//     ->resource('assignments', SectionSubjectAssignmentController::class);
 Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('curriculum', CurriculumController::class);
 Route::get('/academics', [DepartmentController::class, 'index']);

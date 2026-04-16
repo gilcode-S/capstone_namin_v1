@@ -78,7 +78,7 @@ class SubjectController extends Controller
             'prerequisites.*' => 'exists:subjects,id',
 
             // ✅ NEW
-            'preferred_teacher' => 'nullable|string|max:100',
+            'preferred_teacher_id' => 'nullable|exists:faculties,id',
             'preferred_day' => 'nullable|string|max:20',
             'preferred_shift' => 'nullable|string|max:20',
             'domain' => 'nullable|string|max:100',
@@ -121,7 +121,7 @@ class SubjectController extends Controller
             'prerequisites.*' => 'exists:subjects,id',
 
             // ✅ NEW
-            'preferred_teacher' => 'nullable|string|max:100',
+            'preferred_teacher_id' => 'nullable|exists:faculties,id',
             'preferred_day' => 'nullable|string|max:20',
             'preferred_shift' => 'nullable|string|max:20',
 

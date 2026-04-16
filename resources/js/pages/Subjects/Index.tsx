@@ -311,7 +311,7 @@ export default function Index() {
                                     <th className="px-6 py-3 text-left">Room Type</th>
                                     <th className="px-6 py-3 text-left">Prerequisites</th>
                                     <th className="px-6 py-3 text-left">Program</th>
-                                    {/* <th className="px-6 py-3 text-left">Actions</th> */}
+                                    <th className="px-6 py-3 text-left">Actions</th>
                                 </tr>
                             </thead>
 
@@ -388,7 +388,7 @@ export default function Index() {
                                         </td>
 
                                         {/* ACTIONS */}
-                                        {/* <td className="px-6 py-4">
+                                        <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">
 
                                             
@@ -410,7 +410,7 @@ export default function Index() {
                                                 </button>
 
                                             </div>
-                                        </td> */}
+                                        </td>
 
                                     </tr>
                                 )) : (

@@ -13,28 +13,31 @@ class FacultySeeder extends Seeder
     public function run(): void
     {
         $shifts = Shift::pluck('id')->toArray();
-        $departments = Department::pluck('id')->toArray();
+
+        // ✅ ONLY CS DEPARTMENT
+        $department = Department::where('department_name', 'Computer Science')->first();
+
+        if (!$department) {
+            throw new \Exception('Computer Science department not found.');
+        }
 
         $domainsList = [
-            "Computer Science / IT",
-            "Business / Management",
-            "Tourism / Hospitality",
-            "Criminology / Law",
-            "General Education"
+            "Computer Science / IT"
         ];
 
-        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
         for ($i = 1; $i <= 20; $i++) {
 
             $faculty = Faculty::create([
-                'department_id' => fake()->randomElement($departments),
-                'faculty_code' => 'FAC-' . str_pad($i, 3, '0', STR_PAD_LEFT),
+                'department_id' => $department->id, // ✅ FIXED
+
+                'faculty_code' => 'CS-FAC-' . str_pad($i, 3, '0', STR_PAD_LEFT),
+
                 'first_name' => fake()->firstName(),
                 'last_name' => fake()->lastName(),
                 'email' => fake()->unique()->safeEmail(),
 
-                // ✅ MUST MATCH ENUM
                 'employment_type' => fake()->randomElement(['full_time', 'part_time']),
 
                 'max_load_units' => fake()->numberBetween(12, 24),
@@ -45,11 +48,11 @@ class FacultySeeder extends Seeder
 
                 'degree' => fake()->randomElement(['Bachelor', 'Master', 'PhD']),
 
-                // ✅ ARRAY FIELD
-                'domains' => fake()->randomElements($domainsList, rand(1, 2)),
+                // ✅ PURE CS DOMAIN
+                'domains' => ["Computer Science / IT"],
             ]);
 
-            // ✅ ADD AVAILABILITY (2–4 random days)
+            // ✅ AVAILABILITY
             $randomDays = collect($days)->random(rand(2, 4));
 
             foreach ($randomDays as $day) {
@@ -60,8 +63,9 @@ class FacultySeeder extends Seeder
                     'end_time' => '17:00:00',
                 ]);
             }
-            $randomShifts = collect($shifts)->random(rand(1, 2));
 
+            // ✅ SHIFTS
+            $randomShifts = collect($shifts)->random(rand(1, 2));
             $faculty->shifts()->attach($randomShifts);
         }
     }

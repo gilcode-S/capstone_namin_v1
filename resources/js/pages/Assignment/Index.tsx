@@ -204,10 +204,29 @@ export default function Index() {
                         </h1>
                     </div>
 
-                    <Button onClick={handleOpen} className="gap-2">
-                        <Plus size={18} />
-                        Add Assignment
-                    </Button>
+                    <div className='flex items-center justify-center gap-2'>
+
+                        <Button
+                            
+                            onClick={() => {
+                                if (!confirm("Auto assign all subjects for this section?")) return
+
+                                router.post('/assignments/auto-assign', {
+                                    schedule_version_id: form.schedule_version_id,
+                                    section_id: form.section_id
+                                })
+                            }}
+                        >
+                            ⚡ Auto Assign All
+                        </Button>
+
+                        <Button onClick={handleOpen} className="gap-2">
+                            <Plus size={18} />
+                            Add Assignment
+                        </Button>
+                    </div>
+
+
                 </div>
 
                 {/* TABLE */}
