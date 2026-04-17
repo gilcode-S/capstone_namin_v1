@@ -10,28 +10,22 @@ class RoomSeeder extends Seeder
 {
     public function run(): void
     {
-        // ✅ GET CS DEPARTMENT ONLY
+        // ✅ CS ONLY
         $department = Department::where('department_name', 'Computer Science')->first();
 
         if (!$department) {
-            throw new \Exception('Computer Science department not found.');
+            throw new \Exception('Computer Science department not found');
         }
 
-        // ✅ ROOM TYPES
-        $types = ['classroom', 'laboratory'];
+        $equipmentClassroom = ['Projector', 'Whiteboard', 'Chairs'];
+        $equipmentLab = ['Computers', 'Projector', 'Aircon', 'LAN Ports'];
+        $equipmentPE = ['Speakers', 'Mats', 'Open Space'];
 
-        // ✅ BUILDINGS
-        $buildings = ['C', 'F'];
+        // =========================
+        // 🏫 40 CLASSROOMS
+        // =========================
+        for ($i = 1; $i <= 40; $i++) {
 
-        // ✅ EQUIPMENT PER TYPE
-        $equipmentMap = [
-            'classroom' => ['Projector', 'Whiteboard', 'Chairs'],
-            'laboratory' => ['Computers', 'Projector', 'Aircon'],
-            'pe_room' => ['Mats', 'Speakers']
-        ];
-
-        // ✅ CREATE CLASSROOMS (C101–C110)
-        for ($i = 1; $i <= 10; $i++) {
             Room::create([
                 'department_id' => $department->id,
 
@@ -44,18 +38,25 @@ class RoomSeeder extends Seeder
                 'building' => 'C',
                 'floor' => rand(1, 4),
 
-                'equipment' => $equipmentMap['classroom'],
+                'equipment' => $equipmentClassroom,
 
-                'resource_status' => fake()->randomElement(['available', 'occupied', 'maintenance']),
+                'resource_status' => fake()->randomElement([
+                    'available', 'available', 'available',
+                    'occupied',
+                    'maintenance'
+                ]),
             ]);
         }
 
-        // ✅ CREATE LABS (Lab1–Lab5)
-        for ($i = 1; $i <= 5; $i++) {
+        // =========================
+        // 💻 15 LABORATORIES
+        // =========================
+        for ($i = 1; $i <= 15; $i++) {
+
             Room::create([
                 'department_id' => $department->id,
 
-                'room_name' => 'Lab ' . $i,
+                'room_name' => 'LAB-' . str_pad($i, 2, '0', STR_PAD_LEFT),
 
                 'resource_type' => 'laboratory',
 
@@ -64,28 +65,37 @@ class RoomSeeder extends Seeder
                 'building' => 'F',
                 'floor' => rand(1, 3),
 
-                'equipment' => $equipmentMap['laboratory'],
+                'equipment' => $equipmentLab,
 
-                'resource_status' => fake()->randomElement(['available', 'occupied', 'maintenance']),
+                'resource_status' => fake()->randomElement([
+                    'available', 'available', 'available',
+                    'occupied',
+                    'maintenance'
+                ]),
             ]);
         }
 
-        // ✅ OPTIONAL PE ROOM (shared)
-        Room::create([
-            'department_id' => $department->id,
+        // =========================
+        // 🏃 5 PE / MULTI ROOMS
+        // =========================
+        for ($i = 1; $i <= 5; $i++) {
 
-            'room_name' => 'PE Room 1',
+            Room::create([
+                'department_id' => $department->id,
 
-            'resource_type' => 'pe_room',
+                'room_name' => 'PE-' . str_pad($i, 2, '0', STR_PAD_LEFT),
 
-            'capacity' => 50,
+                'resource_type' => 'pe_room',
 
-            'building' => 'F',
-            'floor' => 1,
+                'capacity' => rand(40, 80),
 
-            'equipment' => $equipmentMap['pe_room'],
+                'building' => 'G',
+                'floor' => 1,
 
-            'resource_status' => 'available',
-        ]);
+                'equipment' => $equipmentPE,
+
+                'resource_status' => 'available',
+            ]);
+        }
     }
 }

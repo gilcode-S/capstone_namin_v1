@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react'
-import { Plus, Trash2, Pencil, ClipboardList } from 'lucide-react'
+import { Plus, Trash2, Pencil, ClipboardList, Zap } from 'lucide-react'
 import { useState } from 'react'
 import Pagination from '@/components/Pagination'
 import { Button } from '@/components/ui/button'
@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/select"
 
 import AppLayout from '@/layouts/app-layout'
-
 
 interface Semester {
     id: number
@@ -71,30 +70,26 @@ const emptyForm = {
 export default function Index() {
 
     const { assignments, sections, subjects, faculties, versions } =
-        usePage().props as unknown as {
-            assignments: {
-                data: Assignment[],
-                links: any[],
-            },
-            sections: Section[],
-            subjects: Subject[],
-            faculties: Faculty[],
-            versions: Version[]
-        }
-    const subjectOptions = subjects.map((s) => ({
+        usePage().props as any
+
+    const subjectOptions = subjects.map((s: Subject) => ({
         value: String(s.id),
         label: `${s.subject_code} — ${s.subject_name}`
     }))
 
-    const facultyOptions = faculties.map((f) => ({
+    const facultyOptions = faculties.map((f: Faculty) => ({
         value: String(f.id),
         label: `${f.first_name} ${f.last_name}`
     }))
-    const sectionOptions = sections.map((s) => ({
+
+    const sectionOptions = sections.map((s: Section) => ({
         value: String(s.id),
         label: `${s.section_name}`
     }))
 
+    /* =========================
+        STATES
+    ========================= */
     const [open, setOpen] = useState(false)
     const [form, setForm] = useState<any>(emptyForm)
     const [loading, setLoading] = useState(false)
@@ -102,10 +97,15 @@ export default function Index() {
     const [isEdit, setIsEdit] = useState(false)
     const [editId, setEditId] = useState<number | null>(null)
 
-    /* --------------------------
-    OPEN CREATE
-    ---------------------------*/
+    // ✅ NEW: Auto Assign state
+    const [autoAssign, setAutoAssign] = useState({
+        schedule_version_id: '',
+        section_id: ''
+    })
 
+    /* =========================
+        OPEN / CLOSE
+    ========================= */
     const handleOpen = () => {
         setForm(emptyForm)
         setIsEdit(false)
@@ -113,12 +113,7 @@ export default function Index() {
         setOpen(true)
     }
 
-    /* --------------------------
-    OPEN EDIT
-    ---------------------------*/
-
     const handleOpenEdit = (a: Assignment) => {
-
         setForm({
             schedule_version_id: String(a.version.id),
             section_id: String(a.section.id),
@@ -126,26 +121,10 @@ export default function Index() {
             faculty_id: String(a.faculty.id)
         })
 
-
         setIsEdit(true)
         setEditId(a.id)
         setOpen(true)
     }
-
-    /* --------------------------
-    INPUT CHANGE
-    ---------------------------*/
-
-    const handleChange = (e: any) => {
-        setForm({
-            ...form,
-            [e.target.name]: e.target.value
-        })
-    }
-
-    /* --------------------------
-    CLOSE
-    ---------------------------*/
 
     const handleClose = () => {
         setForm(emptyForm)
@@ -154,10 +133,9 @@ export default function Index() {
         setOpen(false)
     }
 
-    /* --------------------------
-    SUBMIT
-    ---------------------------*/
-
+    /* =========================
+        SUBMIT SINGLE
+    ========================= */
     const handleSubmit = (e: any) => {
         e.preventDefault()
         setLoading(true)
@@ -179,10 +157,23 @@ export default function Index() {
         }
     }
 
-    /* --------------------------
-    DELETE
-    ---------------------------*/
+    /* =========================
+        AUTO ASSIGN ALL
+    ========================= */
+    const handleAutoAssign = () => {
+        if (!autoAssign.schedule_version_id || !autoAssign.section_id) {
+            alert("Please select version and section")
+            return
+        }
 
+        if (!confirm("Auto assign ALL subjects for this section?")) return
+
+        router.post('/assignments/auto-assign', autoAssign)
+    }
+
+    /* =========================
+        DELETE
+    ========================= */
     const handleDelete = (id: number) => {
         if (!confirm("Delete this assignment?")) return
         router.delete(`/assignments/${id}`)
@@ -195,7 +186,6 @@ export default function Index() {
             <div className="p-6">
 
                 {/* HEADER */}
-
                 <div className="flex justify-between items-center mb-6">
                     <div className="flex items-center">
                         <ClipboardList className="mr-2 text-indigo-500" size={28} />
@@ -204,33 +194,53 @@ export default function Index() {
                         </h1>
                     </div>
 
-                    <div className='flex items-center justify-center gap-2'>
-
-                        <Button
-                            
-                            onClick={() => {
-                                if (!confirm("Auto assign all subjects for this section?")) return
-
-                                router.post('/assignments/auto-assign', {
-                                    schedule_version_id: form.schedule_version_id,
-                                    section_id: form.section_id
-                                })
-                            }}
-                        >
-                            ⚡ Auto Assign All
-                        </Button>
-
+                    <div className="flex gap-2">
                         <Button onClick={handleOpen} className="gap-2">
                             <Plus size={18} />
                             Add Assignment
                         </Button>
                     </div>
+                </div>
 
+                {/* =========================
+                    AUTO ASSIGN PANEL
+                ========================= */}
+                <div className="flex flex-wrap gap-3 mb-6 bg-white p-4 border rounded-lg shadow-sm">
 
+                    <Select
+                        value={autoAssign.schedule_version_id}
+                        onValueChange={(value) =>
+                            setAutoAssign({ ...autoAssign, schedule_version_id: value })
+                        }
+                    >
+                        <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Select Version" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {versions.map((v: Version) => (
+                                <SelectItem key={v.id} value={String(v.id)}>
+                                    Version {v.version_number}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <ComboBox
+                        items={sectionOptions}
+                        value={autoAssign.section_id}
+                        placeholder="Select Section"
+                        onChange={(value) =>
+                            setAutoAssign({ ...autoAssign, section_id: value })
+                        }
+                    />
+
+                    <Button onClick={handleAutoAssign} className="gap-2">
+                        <Zap size={16} />
+                        Auto Assign All
+                    </Button>
                 </div>
 
                 {/* TABLE */}
-
                 <div className="overflow-x-auto rounded-lg shadow border">
                     <table className="min-w-full">
 
@@ -245,19 +255,11 @@ export default function Index() {
                         </thead>
 
                         <tbody>
-
-                            {assignments.data.length > 0 ? assignments.data.map(a => (
-
+                            {assignments.data.map((a: Assignment) => (
                                 <tr key={a.id} className="border-t">
 
                                     <td className="px-4 py-2">
-                                        <div className="font-semibold">
-                                            Version {a.version.version_number}
-                                        </div>
-
-                                        <div className="text-sm text-gray-500">
-                                            SY {a.version.semester.school_year} • {a.version.semester.term}
-                                        </div>
+                                        Version {a.version.version_number}
                                     </td>
 
                                     <td className="px-4 py-2">
@@ -273,47 +275,27 @@ export default function Index() {
                                     </td>
 
                                     <td className="px-4 py-2 text-center">
-
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="mr-2"
-                                            onClick={() => handleOpenEdit(a)}
-                                        >
-                                            <Pencil size={16} />
+                                        <Button size="sm" onClick={() => handleOpenEdit(a)}>
+                                            <Pencil size={14} />
                                         </Button>
 
-                                        <Button
-                                            size="sm"
-                                            variant="destructive"
-                                            onClick={() => handleDelete(a.id)}
-                                        >
-                                            <Trash2 size={16} />
+                                        <Button size="sm" variant="destructive" onClick={() => handleDelete(a.id)}>
+                                            <Trash2 size={14} />
                                         </Button>
-
                                     </td>
 
                                 </tr>
-
-                            )) : (
-
-                                <tr>
-                                    <td colSpan={5} className="text-center py-6 text-gray-500">
-                                        No assignments yet
-                                    </td>
-                                </tr>
-
-                            )}
-
+                            ))}
                         </tbody>
 
                     </table>
                 </div>
-                <Pagination links={assignments.links} />
-                {/* MODAL */}
 
+                <Pagination links={assignments.links} />
+
+                {/* MODAL */}
                 <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogContent className="max-h-[80vh] overflow-y-auto" >
+                    <DialogContent>
 
                         <DialogHeader>
                             <DialogTitle>
@@ -323,98 +305,52 @@ export default function Index() {
 
                         <form onSubmit={handleSubmit} className="space-y-4">
 
-                            {/* VERSION */}
+                            <Select
+                                value={form.schedule_version_id}
+                                onValueChange={(v) => setForm({ ...form, schedule_version_id: v })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Version" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {versions.map((v: Version) => (
+                                        <SelectItem key={v.id} value={String(v.id)}>
+                                            Version {v.version_number}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
 
-                            <div>
-                                <Label>Schedule Version</Label>
-                                <Select
-                                    value={String(form.schedule_version_id)}
-                                    onValueChange={(value) =>
-                                        setForm({ ...form, schedule_version_id: value })
-                                    }
-                                >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select Version" />
-                                    </SelectTrigger>
+                            <ComboBox
+                                items={sectionOptions}
+                                value={form.section_id}
+                                placeholder="Section"
+                                onChange={(v) => setForm({ ...form, section_id: v })}
+                            />
 
-                                    <SelectContent className="max-h-60">
-                                        {versions.map((v) => (
-                                            <SelectItem key={v.id} value={String(v.id)}>
-                                                {v.semester.school_year} | {v.semester.term} | Version {v.version_number}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            <ComboBox
+                                items={subjectOptions}
+                                value={form.subject_id}
+                                placeholder="Subject"
+                                onChange={(v) => setForm({ ...form, subject_id: v })}
+                            />
 
-                            {/* SECTION */}
+                            <ComboBox
+                                items={facultyOptions}
+                                value={form.faculty_id}
+                                placeholder="Faculty (Optional)"
+                                onChange={(v) => setForm({ ...form, faculty_id: v })}
+                            />
 
-                            <div>
-                                <Label>Section</Label>
-
-                                <ComboBox
-                                    items={sectionOptions}
-                                    value={form.section_id}
-                                    placeholder="Select Section"
-                                    onChange={(value) =>
-                                        setForm({ ...form, section_id: value })
-                                    }
-                                />
-                            </div>
-                            {/* SUBJECT */}
-
-                            <div>
-                                <Label>Subject</Label>
-
-                                <ComboBox
-                                    items={subjectOptions}
-                                    value={form.subject_id}
-                                    placeholder="Select Subject"
-                                    onChange={(value) =>
-                                        setForm({ ...form, subject_id: value })
-                                    }
-                                />
-
-                            </div>
-
-                            {/* FACULTY */}
-
-                            <div>
-                                <Label>Faculty (Optional)</Label>
-
-                                <ComboBox
-                                    items={facultyOptions}
-                                    value={form.faculty_id}
-                                    placeholder="Select Faculty"
-                                    onChange={(value) =>
-                                        setForm({ ...form, faculty_id: value })
-                                    }
-                                />
-
-                                <p className="text-xs text-gray-500">
-                                    Leave blank for auto-assignment
-                                </p>
-
-                            </div>
+                            <p className="text-xs text-gray-500">
+                                Leave faculty empty for auto-assign
+                            </p>
 
                             <DialogFooter>
-
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={handleClose}
-                                >
-                                    Cancel
-                                </Button>
-
+                                <Button type="button" onClick={handleClose}>Cancel</Button>
                                 <Button type="submit">
-
-                                    {loading
-                                        ? (isEdit ? "Saving..." : "Adding...")
-                                        : (isEdit ? "Save Changes" : "Add Assignment")}
-
+                                    {loading ? "Saving..." : "Save"}
                                 </Button>
-
                             </DialogFooter>
 
                         </form>

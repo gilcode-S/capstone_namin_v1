@@ -138,25 +138,55 @@ class ScheduleController extends Controller
 
     public function index()
     {
+        $schedules = Schedule::with([
+            'assignment.section.program.department',
+            'assignment.subject',
+            'assignment.faculty',
+            'room',
+            'timeslot',
+            'version.semester'
+        ])->get();
+
+        // 🔥 SUMMARY CALCULATIONS
+
+        $totalClasses = $schedules->count();
+
+        $activeRooms = $schedules->pluck('room_id')->unique()->count();
+
+        $totalSections = $schedules
+            ->pluck('assignment.section.id')
+            ->unique()
+            ->count();
+
+        // WEEKLY HOURS (REAL COMPUTATION)
+        $weeklyHours = $schedules->reduce(function ($total, $schedule) {
+
+            $start = strtotime($schedule->timeslot->start_time);
+            $end = strtotime($schedule->timeslot->end_time);
+
+            $hours = ($end - $start) / 3600;
+
+            return $total + $hours;
+        }, 0);
+
         return Inertia::render('Schedules/Index', [
 
-            'schedules' => Schedule::with([
-                'assignment.section.program.department',
-                'assignment.subject',
-                'assignment.faculty',
-                'room',
-                'timeslot',
-                'version.semester'
-            ])->get(),
+            'schedules' => $schedules,
+
+            'summary' => [
+                'total_classes' => $totalClasses,
+                'weekly_hours' => $weeklyHours,
+                'active_rooms' => $activeRooms,
+                'total_sections' => $totalSections,
+            ],
 
             'departments' => Department::with('programs')->get(),
-
             'programs' => Programs::with('department')->get(),
-
             'sections' => Section::with('program')->get(),
-
             'faculty' => Faculty::all(),
-            'rooms' => Room::all(),
+            'rooms' => Room::all()->groupBy('building')->map(function ($rooms) {
+                return $rooms->values();
+            }),
             'timeslots' => TimeSlot::all(),
             'versions' => ScheduleVersion::with('semester')->get(),
 

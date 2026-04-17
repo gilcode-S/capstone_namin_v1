@@ -37,66 +37,60 @@ def greedy_timeslot(assignments, timeslots):
     result = {}
 
     # -----------------------------
-    # Group timeslots by day
+    # NORMALIZE TIMESLOTS
+    # -----------------------------
+    for t in timeslots:
+        if not t.get("day_of_week"):
+            raise ValueError(f"Timeslot {t['id']} missing day_of_week")
+
+        t["day"] = t["day_of_week"]  # ONE STANDARD FIELD
+
+    # -----------------------------
+    # GROUP BY DAY
     # -----------------------------
     timeslots_by_day = defaultdict(list)
-
     for t in timeslots:
-        day = t.get("day") or t.get("day_of_week") or t.get("dayOfWeek")
-
-        if not day:
-            raise ValueError("Timeslot missing day field")
-
-        t["day"] = day  # normalize
-        timeslots_by_day[day].append(t)
+        timeslots_by_day[t["day"]].append(t)
 
     # -----------------------------
-    # Track load per day
-    # -----------------------------
-    day_load = {day: 0 for day in timeslots_by_day.keys()}
-
-    # -----------------------------
-    # Sort assignments (priority)
+    # SORT ASSIGNMENTS (important)
+    # prioritize ones WITH faculty first
     # -----------------------------
     assignments_sorted = sorted(
         assignments,
-        key=lambda x: (
-            x.get("faculty_id") is None,
-            x["section_id"]
-        )
+        key=lambda a: (a.get("faculty_id") is None)
     )
 
+    print(f"Assignments: {len(assignments_sorted)}")
+    print(f"Timeslots: {len(timeslots)}")
+
     # -----------------------------
-    # Assign timeslots
+    # MAIN ASSIGNMENT LOOP
     # -----------------------------
     for a in assignments_sorted:
+
         a_id = a["id"]
         section = a["section_id"]
         faculty = a.get("faculty_id")
 
-        sorted_days = sorted(day_load.keys(), key=lambda d: day_load[d])
-
         assigned = False
 
-        for day in sorted_days:
+        # shuffle days for fairness
+        days = list(timeslots_by_day.keys())
+        random.shuffle(days)
+
+        for day in days:
+
             day_slots = timeslots_by_day[day][:]
             random.shuffle(day_slots)
 
             for t in day_slots:
 
-                # -----------------------------
-                # REAL CONFLICT CHECK
-                # -----------------------------
                 conflict = False
 
-                # faculty conflict
-                if faculty:
-                    for used in faculty_schedule[faculty]:
-                        if used["day"] == day and is_overlap(used, t):
-                            conflict = True
-                            break
-
-                # section conflict
+                # -----------------------------
+                # SECTION CONFLICT
+                # -----------------------------
                 for used in section_schedule[section]:
                     if used["day"] == day and is_overlap(used, t):
                         conflict = True
@@ -106,14 +100,16 @@ def greedy_timeslot(assignments, timeslots):
                     continue
 
                 # -----------------------------
-                # LIMIT per day (balance)
+                # FACULTY CONFLICT
                 # -----------------------------
                 if faculty:
-                    daily_count = sum(
-                        1 for s in faculty_schedule[faculty] if s["day"] == day
-                    )
-                    if daily_count >= 4:
-                        continue
+                    for used in faculty_schedule[faculty]:
+                        if used["day"] == day and is_overlap(used, t):
+                            conflict = True
+                            break
+
+                if conflict:
+                    continue
 
                 # -----------------------------
                 # ASSIGN
@@ -125,14 +121,31 @@ def greedy_timeslot(assignments, timeslots):
                 if faculty:
                     faculty_schedule[faculty].append(t)
 
-                day_load[day] += 1
+                print(f"✅ Assigned A{a_id} → Timeslot {t['id']} ({day})")
+
                 assigned = True
                 break
 
             if assigned:
                 break
 
-    print("Day distribution:", day_load)
+        # -----------------------------
+        # FALLBACK (IMPORTANT)
+        # -----------------------------
+        if not assigned:
+            print(f"⚠️ Could not assign A{a_id}, forcing random slot")
+
+            t = random.choice(timeslots)
+
+            result[a_id] = t["id"]
+
+            section_schedule[section].append(t)
+
+            if faculty:
+                faculty_schedule[faculty].append(t)
+
+    print("✅ Total assigned:", len(result))
+
     return result
 
 

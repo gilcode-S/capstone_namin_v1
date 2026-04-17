@@ -1,522 +1,266 @@
-import { Head, router, usePage } from '@inertiajs/react'
-import { Plus, Trash2, CalendarDays, LayoutGrid, List } from 'lucide-react'
+import { Head, usePage } from '@inertiajs/react'
 import { useState } from 'react'
-import TimetableGrid from '@/components/TimetableGrid'
-import { Button } from '@/components/ui/button'
-import ComboBox from '@/components/ui/combobox'
-
-
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogFooter,
-    DialogTitle
-} from '@/components/ui/dialog'
-
-import { Label } from '@/components/ui/label'
 import AppLayout from '@/layouts/app-layout'
-
-interface Semester {
-    id: number
-    school_year: number
-    term: string
-}
-
-interface Version {
-    id: number
-    version_number: number
-    semester: Semester
-}
-
-interface Section {
-    id: number
-    section_name: string
-    program: Program
-}
-
-interface Subject {
-    id: number
-    subject_code: string
-    subject_name: string
-}
-
-interface Faculty {
-    id: number
-    first_name: string
-    last_name: string
-}
-
-interface Assignment {
-    id: number
-    section: Section
-    subject: Subject
-    faculty: Faculty
-}
-
-interface Room {
-    id: number
-    room_name: string
-}
-
-interface Timeslot {
-    id: number
-    day_of_week: string
-    start_time: string
-    end_time: string
-}
-
-interface Schedule {
-    id: number
-    version: Version
-    assignment: Assignment
-    room: Room
-    timeslot: Timeslot
-}
-interface Department {
-    id: number
-    department_name: string
-}
-interface Program {
-    id: number
-    program_name: string
-    department_id: number
-}
-
-const emptyForm = {
-    schedule_version_id: '',
-    assignment_id: '',
-    room_id: '',
-    time_slot_id: ''
-}
+import { Button } from '@/components/ui/button'
 
 export default function Index() {
 
-    const { schedules, assignments, rooms, timeslots, versions, sections, faculty, departments, programs } =
-        usePage().props as unknown as {
-            schedules: Schedule[],
-            assignments: Assignment[],
-            rooms: Room[],
-            timeslots: Timeslot[],
-            versions: Version[],
-            sections: Section[],
-            faculty: Faculty[],
-            departments: Department[],
-            programs: Program[]
-        }
+    const {
+        schedules,
+        rooms,
+        timeslots,
+        summary,
+    } = usePage().props as any
 
-    const [view, setView] = useState<'timetable' | 'table'>('timetable')
+    const [tab, setTab] = useState<'grid' | 'section' | 'teacher'>('grid')
 
-    const assignmentOptions = assignments.map(a => ({
-        value: String(a.id),
-        label: `${a.section.section_name} — ${a.subject.subject_code} — ${a.faculty.first_name}`
-    }))
+    const roomsByBuilding = rooms
 
-    const roomOptions = rooms.map(r => ({
-        value: String(r.id),
-        label: r.room_name
-    }))
+    const uniqueTimes = [...new Set(timeslots.map((t: any) => t.start_time))]
+    const days = [...new Set(timeslots.map((t: any) => t.day_of_week))]
 
-    const timeslotOptions = timeslots.map(t => ({
-        value: String(t.id),
-        label: `${t.day_of_week} ${t.start_time} - ${t.end_time}`
-    }))
+    // ================= TIME GROUPING =================
+    const getPeriod = (time: string) => {
+        const [hourPart, modifier] = time.split(' ')
+        let hour = parseInt(hourPart.split(':')[0])
 
-    const [open, setOpen] = useState(false)
-    const [form, setForm] = useState<any>(emptyForm)
-    const [loading, setLoading] = useState(false)
-    // 
-    const [departmentId, setDepartmentId] = useState<number | null>(null)
-    const [programId, setProgramId] = useState<number | null>(null)
-    const [sectionId, setSectionId] = useState<number | null>(null)
-    const [facultyId, setFacultyId] = useState<number | null>(null)
-    const [roomId, setRoomId] = useState<number | null>(null)
+        if (modifier === 'PM' && hour !== 12) hour += 12
+        if (modifier === 'AM' && hour === 12) hour = 0
 
-    const filteredSchedules = schedules.filter((s) => {
-        const dept = s.assignment?.section?.program?.department_id
-        const prog = s.assignment?.section?.program?.id
-        const sec = s.assignment?.section?.id
-        const fac = s.assignment?.faculty?.id
-        const rm = s.room?.id
+        if (hour < 12) return 'Morning'
+        if (hour < 17) return 'Afternoon'
+        return 'Evening'
+    }
 
-        if (departmentId && dept !== departmentId) return false
-        if (programId && prog !== programId) return false
-        if (sectionId && sec !== sectionId) return false
-        if (facultyId && fac !== facultyId) return false
-        if (roomId && rm !== roomId) return false
+    const groupedTimes = {
+        Morning: uniqueTimes.filter(t => getPeriod(t) === 'Morning'),
+        Afternoon: uniqueTimes.filter(t => getPeriod(t) === 'Afternoon'),
+        Evening: uniqueTimes.filter(t => getPeriod(t) === 'Evening'),
+    }
 
-        return true
+    // ================= FAST LOOKUP =================
+    const scheduleMap: any = {}
+
+    schedules.forEach((s: any) => {
+        const key = `${s.timeslot.day_of_week}-${s.timeslot.start_time}-${s.room.room_name}`
+        scheduleMap[key] = s
     })
-
-    const handleOpen = () => {
-        setForm(emptyForm)
-        setOpen(true)
-    }
-
-    const handleChange = (e: any) => {
-        setForm({
-            ...form,
-            [e.target.name]: e.target.value
-        })
-    }
-
-    const handleSubmit = (e: any) => {
-        e.preventDefault()
-
-        setLoading(true)
-
-        router.post('/schedules', form, {
-            onSuccess: () => {
-                setLoading(false)
-                setOpen(false)
-            }
-        })
-    }
-
-    const handleDelete = (id: number) => {
-        if (!confirm('Delete this schedule?')) return
-        router.delete(`/schedules/${id}`)
-    }
-
-
 
     return (
         <AppLayout breadcrumbs={[{ title: "Schedules", href: "/schedules" }]}>
+
             <Head title="Schedules" />
 
-            <div className="p-6">
+            <div className="p-6 space-y-6 bg-[#f5f7f6] min-h-screen">
 
-                {/* HEADER */}
+                {/* ================= HEADER ================= */}
+                <div className="bg-white rounded-xl p-6 border">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h1 className="text-2xl font-semibold">Schedule Viewer</h1>
+                            <p className="text-sm text-gray-500">
+                                View and analyze the optimized class schedules
+                            </p>
+                        </div>
 
-                <div className="flex justify-between items-center mb-6">
-
-                    <div className="flex items-center">
-                        <CalendarDays className="mr-2 text-blue-500" size={28} />
-                        <h1 className="text-2xl font-bold">
-                            Schedule Management
-                        </h1>
+                        <div className="flex gap-2">
+                            <Button variant="outline">Export PDF</Button>
+                            <Button variant="outline">Advanced Filters</Button>
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-
-                        <Button onClick={handleOpen} className="gap-2">
-                            <Plus size={18} />
-                            Add Schedule
-                        </Button>
-
-
+                    <div className="grid grid-cols-4 gap-4 mt-6">
+                        <Card title="Total Classes" value={summary.total_classes} />
+                        <Card title="Weekly Hours" value={summary.weekly_hours} />
+                        <Card title="Active Rooms" value={summary.active_rooms} />
+                        <Card title="Total Section" value={summary.total_sections} />
                     </div>
-
                 </div>
 
-                {/* VIEW SWITCH */}
-
-                <div className="flex gap-2 mb-6">
-
-                    <Button
-                        variant={view === 'timetable' ? 'default' : 'outline'}
-                        onClick={() => setView('timetable')}
-                        className="flex items-center gap-2"
-                    >
-                        <LayoutGrid size={16} />
-                        Timetable
-                    </Button>
-
-                    <Button
-                        variant={view === 'table' ? 'default' : 'outline'}
-                        onClick={() => setView('table')}
-                        className="flex items-center gap-2"
-                    >
-                        <List size={16} />
-                        Table
-                    </Button>
-
+                {/* ================= TABS ================= */}
+                <div className="bg-gray-200 rounded-full p-1 flex">
+                    {['grid', 'section', 'teacher'].map((t: any) => (
+                        <button
+                            key={t}
+                            onClick={() => setTab(t)}
+                            className={`flex-1 py-2 rounded-full text-sm transition ${
+                                tab === t
+                                    ? 'bg-white shadow font-semibold'
+                                    : 'text-gray-500'
+                            }`}
+                        >
+                            {t === 'grid' ? 'GRID' : t === 'section' ? 'By Section' : 'By Teacher'}
+                        </button>
+                    ))}
                 </div>
-                <div className="flex gap-4 mb-6 flex-wrap">
 
-                    {/* Department */}
+                {/* ================= GRID ================= */}
+                {tab === 'grid' && (
+                    <div className="bg-white border rounded-xl overflow-auto">
 
-                    <select
-                        className="border rounded px-3 py-2"
-                        onChange={(e) => {
-                            const value = e.target.value ? Number(e.target.value) : null
-                            setDepartmentId(value)
-                            setProgramId(null)
-                            setSectionId(null)
-                        }}
-                    >
+                        <div className="min-w-max">
 
-                        <option value="">All Departments</option>
+                            {/* SET HEADER */}
+                            <div className="sticky top-0 z-40 bg-white border-b text-center font-semibold py-3">
+                                SET A
+                            </div>
 
-                        {departments.map(d => (
-                            <option key={d.id} value={d.id}>
-                                {d.department_name}
-                            </option>
-                        ))}
+                            {Object.entries(roomsByBuilding).map(([building, rooms]: any) => (
 
-                    </select>
+                                <div key={building} className="border-b">
 
+                                    {/* BUILDING */}
+                                    <div className="sticky top-[48px] z-30 bg-gray-50 border-b text-center py-2 font-semibold">
+                                        BUILDING {building}
+                                    </div>
 
-                    {/* Program */}
+                                    {days.map(day => (
 
-                    <select
-                        className="border rounded px-3 py-2"
-                        onChange={(e) => {
-                            const value = e.target.value ? Number(e.target.value) : null
-                            setProgramId(value)
-                            setSectionId(null)
-                        }}
-                    >
+                                        <div key={day} className="border-b">
 
-                        <option value="">All Programs</option>
-
-                        {programs
-                            .filter(p => !departmentId || p.department_id === departmentId)
-                            .map(p => (
-                                <option key={p.id} value={p.id}>
-                                    {p.program_name}
-                                </option>
-                            ))}
-
-                    </select>
-
-
-                    {/* Section */}
-
-                    <select
-                        className="border rounded px-3 py-2"
-                        onChange={(e) => {
-                            const value = e.target.value ? Number(e.target.value) : null
-                            setSectionId(value)
-                        }}
-                    >
-
-                        <option value="">All Sections</option>
-
-                        {sections
-                            .filter(s => !programId || s.program?.id === programId)
-                            .map(s => (
-                                <option key={s.id} value={s.id}>
-                                    {s.section_name}
-                                </option>
-                            ))}
-
-                    </select>
-                    <select
-                        className="border rounded px-3 py-2"
-                        onChange={(e) => {
-                            const value = e.target.value ? Number(e.target.value) : null
-                            setFacultyId(value)
-                        }}
-                    >
-                        <option value="">All Faculty</option>
-                        {faculty.map(f => (
-                            <option key={f.id} value={f.id}>
-                                {f.first_name} {f.last_name}
-                            </option>
-                        ))}
-                    </select>
-
-                    {/* Room Filter */}
-                    <select
-                        className="border rounded px-3 py-2"
-                        onChange={(e) => {
-                            const value = e.target.value ? Number(e.target.value) : null
-                            setRoomId(value)
-                        }}
-                    >
-                        <option value="">All Rooms</option>
-                        {rooms.map(r => (
-                            <option key={r.id} value={r.id}>
-                                {r.room_name}
-                            </option>
-                        ))}
-                    </select>
-
-                </div>
-                {/* TIMETABLE VIEW */}
-
-                {view === 'timetable' && (
-                    <TimetableGrid
-                        schedules={filteredSchedules}
-                        timeslots={timeslots}
-                    />
-                )}
-
-                {/* TABLE VIEW */}
-
-                {view === 'table' && (
-
-                    <div className="overflow-x-auto rounded-lg border shadow">
-
-                        <table className="min-w-full">
-
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="px-4 py-2 text-left">Version</th>
-                                    <th className="px-4 py-2 text-left">Section</th>
-                                    <th className="px-4 py-2 text-left">Subject</th>
-                                    <th className="px-4 py-2 text-left">Faculty</th>
-                                    <th className="px-4 py-2 text-left">Room</th>
-                                    <th className="px-4 py-2 text-left">Time</th>
-                                    <th className="px-4 py-2 text-center">Actions</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-
-                                {filteredSchedules.length > 0 ? filteredSchedules.map(s => (
-
-                                    <tr key={s.id} className="border-t">
-
-                                        <td className="px-4 py-2">
-                                            <div className="font-semibold">
-                                                Version {s.version.version_number}
-                                            </div>
-
-                                            <div className="text-sm text-gray-500">
-                                                SY {s.version.semester.school_year} • {s.version.semester.term}
-                                            </div>
-                                        </td>
-
-                                        <td className="px-4 py-2">
-                                            {s.assignment.section.section_name}
-                                        </td>
-
-                                        <td className="px-4 py-2">
-                                            {s.assignment.subject.subject_code} — {s.assignment.subject.subject_name}
-                                        </td>
-
-                                        <td className="px-4 py-2">
-                                            {s.assignment.faculty.first_name} {s.assignment.faculty.last_name}
-                                        </td>
-
-                                        <td className="px-4 py-2">
-                                            {s.room.room_name}
-                                        </td>
-
-                                        <td className="px-4 py-2">
-                                            {s.timeslot.day_of_week} {s.timeslot.start_time} - {s.timeslot.end_time}
-                                        </td>
-
-                                        <td className="px-4 py-2 text-center">
-
-                                            <Button
-                                                size="sm"
-                                                variant="destructive"
-                                                onClick={() => handleDelete(s.id)}
+                                            {/* HEADER ROW */}
+                                            <div
+                                                className="grid sticky top-[80px] z-20 bg-gray-100 border-b"
+                                                style={{
+                                                    gridTemplateColumns: `120px repeat(${rooms.length}, 180px)`
+                                                }}
                                             >
-                                                <Trash2 size={16} />
-                                            </Button>
+                                                <div className="sticky left-0 z-30 bg-gray-100 border-r p-2 font-semibold text-center">
+                                                    {day.toUpperCase()}
+                                                </div>
 
-                                        </td>
+                                                {rooms.map((r: any) => (
+                                                    <div key={r.id} className="border-r p-2 text-center font-medium">
+                                                        {r.room_name}
+                                                    </div>
+                                                ))}
+                                            </div>
 
-                                    </tr>
+                                            {/* PERIODS */}
+                                            {Object.entries(groupedTimes).map(([period, times]: any) => (
 
-                                )) : (
+                                                <div key={period}>
 
-                                    <tr>
-                                        <td colSpan={7} className="text-center py-6 text-gray-500">
-                                            No schedules created yet
-                                        </td>
-                                    </tr>
+                                                    {/* PERIOD HEADER */}
+                                                    <div
+                                                        className="grid bg-gray-200 border-b text-xs font-semibold"
+                                                        style={{
+                                                            gridTemplateColumns: `120px repeat(${rooms.length}, 180px)`
+                                                        }}
+                                                    >
+                                                        <div className="sticky left-0 z-20 bg-gray-200 border-r p-2 text-center">
+                                                            {period.toUpperCase()}
+                                                        </div>
 
-                                )}
+                                                        {rooms.map((r: any) => (
+                                                            <div key={r.id} className="border-r" />
+                                                        ))}
+                                                    </div>
 
-                            </tbody>
+                                                    {/* TIME ROWS */}
+                                                    {times.map((time: string) => (
 
-                        </table>
+                                                        <div
+                                                            key={time}
+                                                            className="grid border-b"
+                                                            style={{
+                                                                gridTemplateColumns: `120px repeat(${rooms.length}, 180px)`
+                                                            }}
+                                                        >
 
-                    </div>
+                                                            {/* TIME */}
+                                                            <div className="sticky left-0 z-10 bg-white border-r p-2 text-sm text-center">
+                                                                {time}
+                                                            </div>
 
-                )}
+                                                            {/* CELLS */}
+                                                            {rooms.map((r: any) => {
 
-                {/* CREATE MODAL */}
+                                                                const sched = scheduleMap[`${day}-${time}-${r.room_name}`]
 
-                <Dialog open={open} onOpenChange={setOpen}>
+                                                                return (
+                                                                    <div
+                                                                        key={r.id}
+                                                                        className="border-r p-2 min-h-[80px] flex flex-col justify-center items-center text-xs"
+                                                                    >
+                                                                        {sched ? (
+                                                                            <>
+                                                                                <div className="font-semibold text-center">
+                                                                                    {sched.assignment.faculty.first_name}
+                                                                                </div>
 
-                    <DialogContent>
+                                                                                <div className="text-gray-500 text-[10px] text-center">
+                                                                                    {sched.assignment.section.section_name}
+                                                                                </div>
 
-                        <DialogHeader>
-                            <DialogTitle>Create Schedule</DialogTitle>
-                        </DialogHeader>
+                                                                                <div className="text-[9px] text-gray-400 text-center">
+                                                                                    {sched.assignment.subject.subject_code}
+                                                                                </div>
+                                                                            </>
+                                                                        ) : (
+                                                                            <span className="text-gray-300">—</span>
+                                                                        )}
+                                                                    </div>
+                                                                )
+                                                            })}
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
+                                                        </div>
+                                                    ))}
 
-                            <div>
-                                <Label>Schedule Version</Label>
-                                <select
-                                    name="schedule_version_id"
-                                    value={form.schedule_version_id}
-                                    onChange={handleChange}
-                                    className="w-full border rounded px-2 py-2"
-                                    required
-                                >
-                                    <option value="">Select Version</option>
+                                                </div>
+                                            ))}
 
-                                    {versions.map(v => (
-                                        <option key={v.id} value={v.id}>
-                                            SY {v.semester.school_year} | {v.semester.term} | Version {v.version_number}
-                                        </option>
+                                        </div>
                                     ))}
 
-                                </select>
-                            </div>
+                                </div>
+                            ))}
 
-                            <div>
-                                <Label>Assignment</Label>
-                                <ComboBox
-                                    items={assignmentOptions}
-                                    value={form.assignment_id}
-                                    placeholder="Select Assignment"
-                                    onChange={(value) => setForm({ ...form, assignment_id: value })}
-                                />
-                            </div>
+                        </div>
+                    </div>
+                )}
 
-                            <div>
-                                <Label>Room</Label>
-                                <ComboBox
-                                    items={roomOptions}
-                                    value={form.room_id}
-                                    placeholder="Select Room"
-                                    onChange={(value) => setForm({ ...form, room_id: value })}
-                                />
-                            </div>
-
-                            <div>
-                                <Label>Time Slot</Label>
-                                <ComboBox
-                                    items={timeslotOptions}
-                                    value={form.time_slot_id}
-                                    placeholder="Select Time Slot"
-                                    onChange={(value) => setForm({ ...form, time_slot_id: value })}
-                                />
-                            </div>
-
-                            <DialogFooter>
-
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setOpen(false)}
-                                >
-                                    Cancel
-                                </Button>
-
-                                <Button type="submit">
-                                    {loading ? "Creating..." : "Create Schedule"}
-                                </Button>
-
-                            </DialogFooter>
-
-                        </form>
-
-                    </DialogContent>
-
-                </Dialog>
+                {/* ================= SECTION TABLE ================= */}
+                {tab === 'section' && (
+                    <div className="bg-white border rounded-xl overflow-hidden">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-100">
+                                <tr>
+                                    <th className="p-2 text-left">Section</th>
+                                    <th className="p-2 text-left">Subject</th>
+                                    <th className="p-2 text-left">Faculty</th>
+                                    <th className="p-2 text-left">Room</th>
+                                    <th className="p-2 text-left">Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {schedules.map((s: any) => (
+                                    <tr key={s.id} className="border-t">
+                                        <td className="p-2">{s.assignment.section.section_name}</td>
+                                        <td className="p-2">{s.assignment.subject.subject_code}</td>
+                                        <td className="p-2">{s.assignment.faculty.first_name}</td>
+                                        <td className="p-2">{s.room.room_name}</td>
+                                        <td className="p-2">
+                                            {s.timeslot.day_of_week} {s.timeslot.start_time}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
 
             </div>
-
         </AppLayout>
+    )
+}
+
+/* ================= CARD ================= */
+function Card({ title, value }: any) {
+    return (
+        <div className="border rounded-xl p-4 bg-gray-50">
+            <p className="text-sm text-gray-500">{title}</p>
+            <p className="text-2xl font-semibold mt-2">{value}</p>
+        </div>
     )
 }

@@ -1,6 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react'
 import { Loader2, Sparkles } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import AppLayout from '@/layouts/app-layout'
 
@@ -11,7 +11,14 @@ interface Subject { id: number; subject_code: string; subject_name: string }
 interface Faculty { id: number; first_name: string; last_name: string }
 interface Assignment { id: number; section: Section; subject: Subject; faculty: Faculty }
 interface Room { id: number; room_name: string }
-interface Timeslot { id: number; day_of_week?: string; start_time?: string; end_time?: string; mode?: string | null; status?: string | null }
+interface Timeslot {
+    id: number
+    day_of_week?: string
+    start_time?: string
+    end_time?: string
+    mode?: string | null
+    status?: string | null
+}
 
 export default function Generate() {
     const { versions, timeslots, rooms, assignments } =
@@ -23,9 +30,17 @@ export default function Generate() {
         }
 
     const [generating, setGenerating] = useState(false)
-    const versionId = versions?.[0]?.id
 
-    // Normalize timeslots safely
+    // ✅ FIX: real selected version instead of versions[0]
+    const [versionId, setVersionId] = useState<number | null>(null)
+
+    // auto-select latest version (optional but recommended)
+    useEffect(() => {
+        if (versions?.length > 0 && !versionId) {
+            setVersionId(versions[versions.length - 1].id)
+        }
+    }, [versions])
+
     const normalizedTimeslots = (timeslots || []).map(t => ({
         id: t.id,
         day_of_week: t.day_of_week || t.day || "Monday",
@@ -36,7 +51,10 @@ export default function Generate() {
     }))
 
     const generateSchedule = () => {
-        if (!versionId) return
+        if (!versionId) {
+            alert("Please select a version first")
+            return
+        }
 
         setGenerating(true)
 
@@ -55,6 +73,7 @@ export default function Generate() {
         if (!versionId) return
 
         setGenerating(true)
+
         router.post(`/schedules/reset/${versionId}`, {}, {
             onFinish: () => setGenerating(false)
         })
@@ -63,18 +82,37 @@ export default function Generate() {
     return (
         <AppLayout breadcrumbs={[{ title: "Generate Schedule", href: "/generate-schedule" }]}>
             <Head title="Generate Schedule" />
+
             <div className="p-6 max-w-xl">
                 <div className="flex items-center mb-6">
                     <Sparkles className="mr-3 text-green-500" size={28} />
                     <h1 className="text-2xl font-bold">Generate Schedule</h1>
                 </div>
 
-                <div className="bg-white border rounded-lg shadow-sm p-6">
-                    <p className="text-gray-600 mb-6">
+                <div className="bg-white border rounded-lg shadow-sm p-6 space-y-4">
+                    <p className="text-gray-600">
                         Automatically generate class schedules based on assignments, rooms, and timeslots.
                     </p>
 
-                    <div className='flex items-center gap-5'>
+                    {/* ✅ VERSION SELECTOR FIX */}
+                    <div>
+                        <label className="text-sm font-medium">Select Version</label>
+
+                        <select
+                            className="w-full border p-2 rounded mt-1"
+                            value={versionId ?? ""}
+                            onChange={(e) => setVersionId(Number(e.target.value))}
+                        >
+                            <option value="">-- Select Version --</option>
+                            {versions.map(v => (
+                                <option key={v.id} value={v.id}>
+                                    Version {v.version_number}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="flex items-center gap-4">
                         <Button
                             onClick={generateSchedule}
                             disabled={generating}

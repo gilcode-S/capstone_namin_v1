@@ -11,7 +11,13 @@ class SectionSeeder extends Seeder
 {
     public function run(): void
     {
-        $programs = Programs::all();
+        // ✅ ONLY CS PROGRAM
+        $program = Programs::where('program_code', 'BC')->first();
+
+        if (!$program) {
+            throw new \Exception('BSCS program not found');
+        }
+
         $semesters = Semester::all();
 
         $shifts = [
@@ -20,33 +26,43 @@ class SectionSeeder extends Seeder
             'Evening' => 'E',
         ];
 
-        for ($i = 1; $i <= 30; $i++) {
+        $letters = ['A', 'B', 'C'];
 
-            $program = $programs->random();
-            $semester = $semesters->random();
+        foreach ($semesters as $semester) {
 
-            $year = rand(1, 4);
-            $semNumber = $semester->semester_number;
+            $semNumberMap = [
+                '1st' => 1,
+                '2nd' => 2,
+                'summer' => 3,
+            ];
 
-            $shiftName = array_rand($shifts);
-            $shiftCode = $shifts[$shiftName];
+            $semNumber = $semNumberMap[strtolower($semester->term)] ?? 1;
 
-            $sectionLetter = chr(rand(65, 68)); // A–D
+            for ($year = 1; $year <= 4; $year++) {
 
-            $yearSemCode = ($year - 1) * 2 + $semNumber;
+                $yearBase = ($year - 1) * 2 + $semNumber;
 
-            $programCode = $program->code ?? strtoupper(substr($program->name, 0, 4));
+                foreach ($shifts as $shiftName => $shiftCode) {
 
-            $sectionName = $programCode . $yearSemCode . $shiftCode . $sectionLetter;
+                    foreach ($letters as $letter) {
 
-            Section::create([
-                'program_id' => $program->id,
-                'semester_id' => $semester->id,
-                'section_name' => $sectionName,
-                'year_level' => $year,
-                'shift' => $shiftName,
-                'student_count' => rand(25, 50),
-            ]);
+                        Section::create([
+                            'program_id' => $program->id,
+                            'semester_id' => $semester->id,
+                            'year_level' => $year,
+                            'shift' => $shiftName,
+
+                            'student_count' => rand(25, 45),
+
+                            'section_name' =>
+                                $program->program_code .
+                                $yearBase .
+                                $shiftCode .
+                                $letter,
+                        ]);
+                    }
+                }
+            }
         }
     }
 }
