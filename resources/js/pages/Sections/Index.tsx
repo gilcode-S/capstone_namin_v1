@@ -18,7 +18,11 @@ import StatCard from '@/components/StatCard'
 interface Program {
   id: number
   program_name: string
-  program_code: string // ✅ ADD THIS
+  program_code: string,
+  department?: {
+    id: number
+    department_name: string
+  }
 }
 
 interface Semester {
@@ -54,7 +58,7 @@ const emptyForm = {
 
 export default function Index() {
 
-  const { sections, programs, stats, semesters, filters: initialFilters, view: initialView, } = usePage().props as unknown as {
+  const { sections, programs, stats, semesters, filters: initialFilters, view: initialView, errors, sectionLetters } = usePage().props as unknown as {
     sections: {
       data: Section[],
       links: any[],
@@ -282,96 +286,94 @@ export default function Index() {
         <div className="bg-white border rounded-2xl p-4 mb-6 shadow-sm">
           <p className="text-sm font-medium mb-3">Filters</p>
 
-       <div className="bg-white border rounded-2xl p-4 mb-6 shadow-sm">
-  <p className="text-sm font-medium mb-3">Filters</p>
+          <div className="bg-white border rounded-2xl p-4 mb-6 shadow-sm">
+            <p className="text-sm font-medium mb-3">Filters</p>
 
-  <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
 
-    {/* SEARCH */}
-    <Input
-      placeholder="Search Section..."
-      value={filters.section}
-      onChange={(e) => handleFilterChange('section', e.target.value)}
-      className="h-10 rounded-lg"
-    />
+              {/* SEARCH */}
+              <Input
+                placeholder="Search Section..."
+                value={filters.section}
+                onChange={(e) => handleFilterChange('section', e.target.value)}
+                className="h-10 rounded-lg"
+              />
 
-    {/* YEAR */}
-    <select
-      value={filters.year_level}
-      onChange={(e) => handleFilterChange('year_level', e.target.value)}
-      className="h-10 rounded-lg border px-3"
-    >
-      <option value="">All Year</option>
-      <option value="1">First Year</option>
-      <option value="2">Second Year</option>
-      <option value="3">Third Year</option>
-      <option value="4">Fourth Year</option>
-    </select>
+              {/* YEAR */}
+              <select
+                value={filters.year_level}
+                onChange={(e) => handleFilterChange('year_level', e.target.value)}
+                className="h-10 rounded-lg border px-3"
+              >
+                <option value="">All Year</option>
+                <option value="1">First Year</option>
+                <option value="2">Second Year</option>
+                <option value="3">Third Year</option>
+                <option value="4">Fourth Year</option>
+              </select>
 
-    {/* SHIFT */}
-    <select
-      value={filters.shift}
-      onChange={(e) => handleFilterChange('shift', e.target.value)}
-      className="h-10 rounded-lg border px-3"
-    >
-      <option value="">All Shift</option>
-      <option value="Morning">Morning</option>
-      <option value="Afternoon">Afternoon</option>
-      <option value="Evening">Evening</option>
-    </select>
+              {/* SHIFT */}
+              <select
+                value={filters.shift}
+                onChange={(e) => handleFilterChange('shift', e.target.value)}
+                className="h-10 rounded-lg border px-3"
+              >
+                <option value="">All Shift</option>
+                <option value="Morning">Morning</option>
+                <option value="Afternoon">Afternoon</option>
+                <option value="Evening">Evening</option>
+              </select>
 
-    {/* PROGRAM */}
-    <select
-      value={filters.program}
-      onChange={(e) => handleFilterChange('program', e.target.value)}
-      className="h-10 rounded-lg border px-3"
-    >
-      <option value="">All Departments</option>
-      {programs.map(p => (
-        <option key={p.id} value={p.id}>
-          {p.program_name}
-        </option>
-      ))}
-    </select>
+              {/* PROGRAM */}
+              <select
+                value={filters.program}
+                onChange={(e) => handleFilterChange('program', e.target.value)}
+                className="h-10 rounded-lg border px-3"
+              >
+                <option value="">All Programs</option>
+                {programs.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.program_name}
+                  </option>
+                ))}
+              </select>
 
-    {/* SECTION LETTER */}
-    <select
-      value={filters.set}
-      onChange={(e) => handleFilterChange('set', e.target.value)}
-      className="h-10 rounded-lg border px-3"
-    >
-      <option value="">All Sections</option>
-      <option value="A">Section A</option>
-      <option value="B">Section B</option>
-      <option value="C">Section C</option>
-      <option value="D">Section D</option>
-    </select>
+              {/* SECTION LETTER */}
+              <select value={filters.set}
+              onChange={(e) => handleFilterChange('set', e.target.value)}>
+              <option value="">All Sections</option>
+              {sectionLetters.map((letter: string) => (
+                <option key={letter} value={letter}>
+                  Section {letter}
+                </option>
+              ))}
+            </select>
 
-    {/* CLEAR BUTTON */}
-    <Button
-      variant="outline"
-      onClick={() => {
-        const cleared = {
-          set: '',
-          program: '',
-          shift: '',
-          section: '',
-          year_level: '',
-        }
+              {/* CLEAR BUTTON */}
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const cleared = {
+                    set: '',
+                    program: '',
+                    shift: '',
+                    section: '',
+                    year_level: '',
+                  }
 
-        setFilters(cleared)
+                  setFilters(cleared)
 
-        router.get('/section', cleared, {
-          preserveState: true,
-          replace: true,
-        })
-      }}
-    >
-      Reset
-    </Button>
+                  router.get('/section', cleared, {
+                    preserveState: true,
+                    replace: true,
+                  })
+                }}
+              >
+                Reset
+              </Button>
 
-  </div>
-</div>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white border rounded-2xl shadow-sm">
@@ -412,7 +414,7 @@ export default function Index() {
                     {/* DEPARTMENT */}
                     <td className="px-6 py-4">
                       <span className="px-2 py-1 bg-gray-100 rounded-md text-xs">
-                        {sec.program?.program_name}
+                        {sec.program?.department?.department_name}
                       </span>
                     </td>
 
@@ -578,6 +580,11 @@ export default function Index() {
                     }
                     className="h-11 rounded-lg"
                   />
+                  {errors.section_letter && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.section_letter}
+                    </p>
+                  )}
                 </div>
 
                 <div className="col-span-2 bg-gray-50 border rounded-lg p-3">

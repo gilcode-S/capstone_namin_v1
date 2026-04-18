@@ -1,11 +1,11 @@
 import { Head, router, usePage } from '@inertiajs/react'
-import { Building2, ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import AppLayout from '@/layouts/app-layout'
 
 /* ================= TYPES ================= */
@@ -24,28 +24,18 @@ interface Department {
     programs: Program[]
 }
 
-const domains = [
-    "Computer Science / IT",
-    "Business / Management",
-    "Tourism / Hospitality",
-    "Criminology / Law",
-    "General Education",
-    "Engineering"
-]
-
-/* ================= COMPONENT ================= */
+/* ================= PAGE ================= */
 
 const Index = () => {
-    const { departments } = usePage().props as unknown as { departments: Department[] }
+    const { departments } = usePage().props as { departments: Department[] }
+
+    /* ================= STATES ================= */
 
     const [openDept, setOpenDept] = useState(false)
     const [openProgram, setOpenProgram] = useState(false)
-    const [expanded, setExpanded] = useState<number[]>([])
 
-    const [selectedDept, setSelectedDept] = useState<number | null>(null)
-
-    const [isEdit, setIsEdit] = useState(false)
-    const [editId, setEditId] = useState<number | null>(null)
+    const [isEditDept, setIsEditDept] = useState(false)
+    const [editDeptId, setEditDeptId] = useState<number | null>(null)
 
     const [deptForm, setDeptForm] = useState({
         department_code: '',
@@ -59,92 +49,28 @@ const Index = () => {
         department_id: ''
     })
 
-    const [loading, setLoading] = useState(false)
+    /* ================= PROGRAM INLINE EDIT ================= */
 
-    /* ================= HANDLERS ================= */
+    const [editingProgramId, setEditingProgramId] = useState<number | null>(null)
 
-    const toggleExpand = (id: number) => {
-        setExpanded(prev =>
-            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-        )
-    }
+    const [programEditForm, setProgramEditForm] = useState({
+        program_name: '',
+        program_code: ''
+    })
 
-    const handleDeptChange = (e: any) => {
-        setDeptForm({ ...deptForm, [e.target.name]: e.target.value })
-    }
-
-    const handleProgramChange = (e: any) => {
-        setProgramForm({ ...programForm, [e.target.name]: e.target.value })
-    }
+    /* ================= ACTIONS ================= */
 
     const handleEditDept = (dept: Department) => {
         setDeptForm({
             department_code: dept.department_code,
-            department_name: dept.department_name,
+            department_name: dept.department_name.replace(" Department", ""),
             domain: dept.domain
         })
 
-        setEditId(dept.id)
-        setIsEdit(true)
+        setEditDeptId(dept.id)
+        setIsEditDept(true)
         setOpenDept(true)
     }
-
-    const resetDept = () => {
-        setOpenDept(false)
-        setIsEdit(false)
-        setEditId(null)
-
-        setDeptForm({
-            department_code: '',
-            department_name: '',
-            domain: ''
-        })
-    }
-
-    /* ================= SUBMIT ================= */
-
-    const submitDepartment = (e: any) => {
-        e.preventDefault()
-        setLoading(true)
-
-        if (isEdit && editId) {
-            router.put(`/department/${editId}`, deptForm, {
-                onSuccess: () => {
-                    setLoading(false)
-                    resetDept()
-                },
-                onError: () => setLoading(false)
-            })
-        } else {
-            router.post('/department', deptForm, {
-                onSuccess: () => {
-                    setLoading(false)
-                    resetDept()
-                },
-                onError: () => setLoading(false)
-            })
-        }
-    }
-
-    const submitProgram = (e: any) => {
-        e.preventDefault()
-        setLoading(true)
-
-        router.post('/program', programForm, {
-            onSuccess: () => {
-                setLoading(false)
-                setOpenProgram(false)
-                setProgramForm({
-                    program_name: '',
-                    program_code: '',
-                    department_id: ''
-                })
-            },
-            onError: () => setLoading(false)
-        })
-    }
-
-    /* ================= DELETE ================= */
 
     const deleteDepartment = (id: number) => {
         if (!confirm("Delete this department?")) return
@@ -156,175 +82,343 @@ const Index = () => {
         router.delete(`/program/${id}`)
     }
 
+    const submitDepartment = (e: any) => {
+        e.preventDefault()
+
+        const payload = {
+            ...deptForm,
+            department_name: deptForm.department_name + " Department"
+        }
+
+        if (isEditDept && editDeptId) {
+            router.put(`/department/${editDeptId}`, payload, {
+                onSuccess: resetDept
+            })
+        } else {
+            router.post('/department', payload, {
+                onSuccess: resetDept
+            })
+        }
+    }
+
+    const submitProgram = (e: any) => {
+        e.preventDefault()
+
+        if (!programForm.department_id) {
+            alert("Select department first")
+            return
+        }
+
+        router.post('/program', programForm, {
+            onSuccess: () => {
+                setOpenProgram(false)
+                setProgramForm({
+                    program_name: '',
+                    program_code: '',
+                    department_id: ''
+                })
+            }
+        })
+    }
+
+    const resetDept = () => {
+        setOpenDept(false)
+        setIsEditDept(false)
+        setEditDeptId(null)
+        setDeptForm({
+            department_code: '',
+            department_name: '',
+            domain: ''
+        })
+    }
+
     /* ================= UI ================= */
 
     return (
         <AppLayout breadcrumbs={[{ title: "Academic Structure", href: '/academics' }]}>
             <Head title="Academic Structure" />
 
-            <div className="p-6">
+            {/* CENTER WRAPPER */}
+            <div className="max-w-6xl mx-auto p-6 space-y-10">
 
                 {/* HEADER */}
-                <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center">
-                        <Building2 className='mr-2 text-blue-500' size={30} />
-                        <div>
-                            <h1 className='text-2xl font-bold'>Academic Structure</h1>
-                            <p className="text-sm text-gray-500">Manage departments and programs</p>
+                <div>
+                    <h1 className="text-2xl font-bold">Department & Program Management</h1>
+                    <p className="text-sm text-gray-500">
+                        Manage academic structure efficiently
+                    </p>
+                </div>
+
+                {/* ================= TOP TABLES ================= */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                    {/* DEPARTMENTS */}
+                    <div className="border rounded-xl bg-white p-4 shadow-sm">
+
+                        <div className="flex justify-between items-center mb-3">
+                            <h2 className="font-semibold">Departments</h2>
+                            <Button size="sm" onClick={() => setOpenDept(true)}>
+                                <Plus size={14} /> Add
+                            </Button>
+                        </div>
+
+                        <div className="overflow-hidden border rounded-lg">
+                            <table className="w-full text-sm table-fixed">
+
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="text-left px-4 py-3 w-[50%]">Name</th>
+                                        <th className="text-left px-4 py-3 w-[30%]">Domain</th>
+                                        <th className="text-center px-4 py-3 w-[20%]">Action</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {departments.map(d => (
+                                        <tr key={d.id} className="border-t">
+                                            <td className="px-4 py-3">{d.department_name}</td>
+                                            <td className="px-4 py-3 text-gray-500">{d.domain}</td>
+                                            <td className="px-4 py-3 text-center space-x-2">
+                                                <button onClick={() => handleEditDept(d)}>
+                                                    <Pencil size={14} />
+                                                </button>
+                                                <button onClick={() => deleteDepartment(d.id)}>
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+
+                            </table>
                         </div>
                     </div>
 
-                    <Button onClick={() => setOpenDept(true)} className='gap-2'>
-                        <Plus size={16} />
-                        Add Department
-                    </Button>
+                    {/* PROGRAMS (WITH INLINE EDIT) */}
+                    <div className="border rounded-xl bg-white p-4 shadow-sm">
+
+                        <div className="flex justify-between items-center mb-3">
+                            <h2 className="font-semibold">Programs</h2>
+                            <Button size="sm" onClick={() => setOpenProgram(true)}>
+                                <Plus size={14} /> Add
+                            </Button>
+                        </div>
+
+                        <div className="overflow-hidden border rounded-lg">
+                            <table className="w-full text-sm table-fixed">
+
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="text-left px-4 py-3 w-[55%]">Program</th>
+                                        <th className="text-left px-4 py-3 w-[25%]">Code</th>
+                                        <th className="text-center px-4 py-3 w-[20%]">Action</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {departments.flatMap(d => d.programs).map(p => (
+                                        <tr key={p.id} className="border-t">
+
+                                            {/* PROGRAM NAME */}
+                                            <td className="px-4 py-3">
+                                                {editingProgramId === p.id ? (
+                                                    <Input
+                                                        value={programEditForm.program_name}
+                                                        onChange={(e) =>
+                                                            setProgramEditForm({
+                                                                ...programEditForm,
+                                                                program_name: e.target.value
+                                                            })
+                                                        }
+                                                    />
+                                                ) : (
+                                                    p.program_name
+                                                )}
+                                            </td>
+
+                                            {/* CODE */}
+                                            <td className="px-4 py-3">
+                                                {editingProgramId === p.id ? (
+                                                    <Input
+                                                        value={programEditForm.program_code}
+                                                        onChange={(e) =>
+                                                            setProgramEditForm({
+                                                                ...programEditForm,
+                                                                program_code: e.target.value
+                                                            })
+                                                        }
+                                                    />
+                                                ) : (
+                                                    p.program_code
+                                                )}
+                                            </td>
+
+                                            {/* ACTION */}
+                                            <td className="px-4 py-3 text-center space-x-2">
+
+                                                {editingProgramId === p.id ? (
+                                                    <>
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                router.put(`/program/${p.id}`, programEditForm, {
+                                                                    onSuccess: () => setEditingProgramId(null)
+                                                                })
+                                                            }}
+                                                        >
+                                                            Save
+                                                        </Button>
+
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => setEditingProgramId(null)}
+                                                        >
+                                                            Cancel
+                                                        </Button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingProgramId(p.id)
+                                                                setProgramEditForm({
+                                                                    program_name: p.program_name,
+                                                                    program_code: p.program_code
+                                                                })
+                                                            }}
+                                                        >
+                                                            <Pencil size={14} />
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => deleteProgram(p.id)}
+                                                            className="text-red-500"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </>
+                                                )}
+
+                                            </td>
+
+                                        </tr>
+                                    ))}
+                                </tbody>
+
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
 
-                {/* EMPTY STATE */}
-                {departments.length === 0 && (
-                    <div className="text-center py-20 text-gray-400">
-                        No departments yet. Start by adding one 🚀
-                    </div>
-                )}
+                {/* ================= FIGMA CARDS ================= */}
+                <div className="space-y-6">
 
-                {/* LIST */}
-                <div className="space-y-4">
-                    {departments.map((dept) => (
-                        <div key={dept.id} className="border rounded-xl bg-white dark:bg-gray-800 shadow-sm">
+                    {departments.map(dept => (
+                        <div key={dept.id} className="border rounded-xl bg-white shadow-sm p-5">
 
-                            {/* HEADER */}
-                            <div className="flex justify-between items-center p-4">
-
-                                <div className="flex items-center gap-3 cursor-pointer" onClick={() => toggleExpand(dept.id)}>
-                                    {expanded.includes(dept.id)
-                                        ? <ChevronDown size={18} />
-                                        : <ChevronRight size={18} />
-                                    }
-
-                                    <div>
-                                        <h2 className="font-semibold">{dept.department_name}</h2>
-                                        <p className="text-xs text-gray-500">{dept.domain_category}</p>
-                                    </div>
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <h2 className="text-lg font-semibold">
+                                        {dept.department_name.replace(" Department", "")}
+                                    </h2>
+                                    <p className="text-sm text-gray-500">{dept.domain}</p>
                                 </div>
 
-                                <div className="flex gap-2">
-                                    <Button size="sm" variant="outline" onClick={() => handleEditDept(dept)}>
-                                        <Pencil size={14} />
-                                    </Button>
-
-                                    <Button size="sm" variant="destructive" onClick={() => deleteDepartment(dept.id)}>
-                                        <Trash2 size={14} />
-                                    </Button>
-                                </div>
+                                <Button
+                                    size="sm"
+                                    onClick={() => {
+                                        setProgramForm({
+                                            program_name: '',
+                                            program_code: '',
+                                            department_id: dept.id.toString()
+                                        })
+                                        setOpenProgram(true)
+                                    }}
+                                >
+                                    <Plus size={14} /> Add Program
+                                </Button>
                             </div>
 
-                            {/* EXPANDED */}
-                            {expanded.includes(dept.id) && (
-                                <div className="px-4 pb-4 border-t">
+                            <div className="overflow-hidden border rounded-lg">
+                                <table className="w-full text-sm table-fixed">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left">Program</th>
+                                            <th className="px-4 py-3 text-left">Code</th>
+                                            <th className="px-4 py-3 text-center">Action</th>
+                                        </tr>
+                                    </thead>
 
-                                    {/* PROGRAMS */}
-                                    <div className="mt-3 flex flex-wrap gap-2">
-                                        {dept.programs?.length > 0 ? (
-                                            dept.programs.map((prog) => (
-                                                <div
-                                                    key={prog.id}
-                                                    className="group flex items-center gap-2 px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900"
-                                                >
-                                                    {prog.program_code}
-
+                                    <tbody>
+                                        {dept.programs.map(p => (
+                                            <tr key={p.id} className="border-t">
+                                                <td className="px-4 py-3">{p.program_name}</td>
+                                                <td className="px-4 py-3">{p.program_code}</td>
+                                                <td className="px-4 py-3 text-center">
                                                     <button
-                                                        title="Delete program"
-                                                        onClick={() => deleteProgram(prog.id)}
-                                                        className="opacity-0 group-hover:opacity-100 transition text-red-500 hover:text-red-700"
+                                                        onClick={() => deleteProgram(p.id)}
+                                                        className="text-red-500"
                                                     >
-                                                        <Trash2 size={12} />
+                                                        <Trash2 size={14} />
                                                     </button>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <p className="text-xs text-gray-400">No programs</p>
-                                        )}
-                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                                    {/* ADD PROGRAM */}
-                                    <div className="mt-3">
-                                        <Button
-                                            size="sm"
-                                            variant="secondary"
-                                            onClick={() => {
-                                                setSelectedDept(dept.id)
-                                                setProgramForm({
-                                                    ...programForm,
-                                                    department_id: dept.id.toString()
-                                                })
-                                                setOpenProgram(true)
-                                            }}
-                                        >
-                                            + Add Program
-                                        </Button>
-                                    </div>
-
-                                </div>
-                            )}
                         </div>
                     ))}
+
                 </div>
 
-                {/* ADD / EDIT DEPARTMENT */}
+                {/* ================= MODALS ================= */}
+
+                {/* DEPARTMENT */}
                 <Dialog open={openDept} onOpenChange={setOpenDept}>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>
-                                {isEdit ? "Edit Department" : "Add Department"}
-                            </DialogTitle>
+                            <DialogTitle>{isEditDept ? "Edit Department" : "Add Department"}</DialogTitle>
                         </DialogHeader>
 
                         <form onSubmit={submitDepartment} className="space-y-4">
 
-                            <div>
-                                <Label>Department Code</Label>
-                                <Input name="department_code" value={deptForm.department_code} onChange={handleDeptChange} required />
-                            </div>
+                            <Input
+                                value={deptForm.department_code}
+                                onChange={(e) =>
+                                    setDeptForm({ ...deptForm, department_code: e.target.value })
+                                }
+                                placeholder="Department Code"
+                            />
 
-                            <div>
-                                <Label>Department Name</Label>
-                                <Input name="department_name" value={deptForm.department_name} onChange={handleDeptChange} required />
-                            </div>
+                            <Input
+                                value={deptForm.department_name}
+                                onChange={(e) =>
+                                    setDeptForm({ ...deptForm, department_name: e.target.value })
+                                }
+                                placeholder="Department Name"
+                            />
 
-                            <div>
-                                <Label>Domain Category</Label>
-                                <select
-                                    className="w-full border rounded-md px-3 py-2 text-sm"
-                                    name="domain"
-                                    value={deptForm.domain}
-                                    onChange={handleDeptChange}
-                                    required
-                                >
-                                    <option value="">Select Domain</option>
-                                    {domains.map((d) => (
-                                        <option key={d} value={d}>{d}</option>
-                                    ))}
-                                </select>
-                            </div>
+                            <Input
+                                value={deptForm.domain}
+                                onChange={(e) =>
+                                    setDeptForm({ ...deptForm, domain: e.target.value })
+                                }
+                                placeholder="Domain"
+                            />
 
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={resetDept}>
-                                    Cancel
-                                </Button>
-
-                                <Button type="submit">
-                                    {loading
-                                        ? "Saving..."
-                                        : isEdit
-                                            ? "Update Department"
-                                            : "Save"}
-                                </Button>
+                                <Button type="submit">Save</Button>
                             </DialogFooter>
+
                         </form>
                     </DialogContent>
                 </Dialog>
 
-                {/* ADD PROGRAM */}
+                {/* PROGRAM */}
                 <Dialog open={openProgram} onOpenChange={setOpenProgram}>
                     <DialogContent>
                         <DialogHeader>
@@ -333,25 +427,26 @@ const Index = () => {
 
                         <form onSubmit={submitProgram} className="space-y-4">
 
-                            <div>
-                                <Label>Program Name</Label>
-                                <Input name="program_name" value={programForm.program_name} onChange={handleProgramChange} required />
-                            </div>
+                            <Input
+                                placeholder="Program Name"
+                                value={programForm.program_name}
+                                onChange={(e) =>
+                                    setProgramForm({ ...programForm, program_name: e.target.value })
+                                }
+                            />
 
-                            <div>
-                                <Label>Program Code</Label>
-                                <Input name="program_code" value={programForm.program_code} onChange={handleProgramChange} required />
-                            </div>
+                            <Input
+                                placeholder="Program Code"
+                                value={programForm.program_code}
+                                onChange={(e) =>
+                                    setProgramForm({ ...programForm, program_code: e.target.value })
+                                }
+                            />
 
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setOpenProgram(false)}>
-                                    Cancel
-                                </Button>
-
-                                <Button type="submit">
-                                    {loading ? "Saving..." : "Save Program"}
-                                </Button>
+                                <Button type="submit">Save Program</Button>
                             </DialogFooter>
+
                         </form>
                     </DialogContent>
                 </Dialog>

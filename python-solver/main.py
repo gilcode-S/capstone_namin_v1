@@ -1,315 +1,66 @@
 from fastapi import FastAPI, Request
-from ortools.sat.python import cp_model
 import time
-from collections import defaultdict
-import random
 import datetime
+
+from core.set_mode_engine import SetModeEngine
+from core.rule_engine import RuleEngine
 
 app = FastAPI()
 
 
-# ---------------------------------
-# TIME HELPERS
-# ---------------------------------
+# -----------------------------
+# TIME PREPROCESS
+# -----------------------------
 def to_minutes(time_str):
     dt = datetime.datetime.strptime(time_str, "%I:%M %p")
     return dt.hour * 60 + dt.minute
 
 
-def is_overlap(t1, t2):
-    return max(
-        to_minutes(t1["start_time"]),
-        to_minutes(t2["start_time"])
-    ) < min(
-        to_minutes(t1["end_time"]),
-        to_minutes(t2["end_time"])
-    )
-
-
-# ---------------------------------
-# GREEDY TIMESLOT (SMART VERSION)
-# ---------------------------------
-def greedy_timeslot(assignments, timeslots):
-
-    faculty_schedule = defaultdict(list)
-    section_schedule = defaultdict(list)
-
-    result = {}
-
-    # -----------------------------
-    # NORMALIZE TIMESLOTS
-    # -----------------------------
+def preprocess_timeslots(timeslots):
     for t in timeslots:
+        t["start_min"] = to_minutes(t["start_time"])
+        t["end_min"] = to_minutes(t["end_time"])
+
         if not t.get("day_of_week"):
-            raise ValueError(f"Timeslot {t['id']} missing day_of_week")
+            t["day_of_week"] = "Monday"
 
-        t["day"] = t["day_of_week"]  # ONE STANDARD FIELD
-
-    # -----------------------------
-    # GROUP BY DAY
-    # -----------------------------
-    timeslots_by_day = defaultdict(list)
-    for t in timeslots:
-        timeslots_by_day[t["day"]].append(t)
-
-    # -----------------------------
-    # SORT ASSIGNMENTS (important)
-    # prioritize ones WITH faculty first
-    # -----------------------------
-    assignments_sorted = sorted(
-        assignments,
-        key=lambda a: (a.get("faculty_id") is None)
-    )
-
-    print(f"Assignments: {len(assignments_sorted)}")
-    print(f"Timeslots: {len(timeslots)}")
-
-    # -----------------------------
-    # MAIN ASSIGNMENT LOOP
-    # -----------------------------
-    for a in assignments_sorted:
-
-        a_id = a["id"]
-        section = a["section_id"]
-        faculty = a.get("faculty_id")
-
-        assigned = False
-
-        # shuffle days for fairness
-        days = list(timeslots_by_day.keys())
-        random.shuffle(days)
-
-        for day in days:
-
-            day_slots = timeslots_by_day[day][:]
-            random.shuffle(day_slots)
-
-            for t in day_slots:
-
-                conflict = False
-
-                # -----------------------------
-                # SECTION CONFLICT
-                # -----------------------------
-                for used in section_schedule[section]:
-                    if used["day"] == day and is_overlap(used, t):
-                        conflict = True
-                        break
-
-                if conflict:
-                    continue
-
-                # -----------------------------
-                # FACULTY CONFLICT
-                # -----------------------------
-                if faculty:
-                    for used in faculty_schedule[faculty]:
-                        if used["day"] == day and is_overlap(used, t):
-                            conflict = True
-                            break
-
-                if conflict:
-                    continue
-
-                # -----------------------------
-                # ASSIGN
-                # -----------------------------
-                result[a_id] = t["id"]
-
-                section_schedule[section].append(t)
-
-                if faculty:
-                    faculty_schedule[faculty].append(t)
-
-                print(f"✅ Assigned A{a_id} → Timeslot {t['id']} ({day})")
-
-                assigned = True
-                break
-
-            if assigned:
-                break
-
-        # -----------------------------
-        # FALLBACK (IMPORTANT)
-        # -----------------------------
-        if not assigned:
-            print(f"⚠️ Could not assign A{a_id}, forcing random slot")
-
-            t = random.choice(timeslots)
-
-            result[a_id] = t["id"]
-
-            section_schedule[section].append(t)
-
-            if faculty:
-                faculty_schedule[faculty].append(t)
-
-    print("✅ Total assigned:", len(result))
-
-    return result
+    return timeslots
 
 
-# ---------------------------------
-# VALIDATION (FOR DEBUG / DEFENSE)
-# ---------------------------------
-def validate_schedule(results, assignments, timeslots):
-    print("\n🔍 VALIDATING SCHEDULE...\n")
-
-    timeslot_map = {t["id"]: t for t in timeslots}
-    faculty_map = {a["id"]: a["faculty_id"] for a in assignments}
-
-    conflicts = 0
-
-    for i in range(len(results)):
-        for j in range(i + 1, len(results)):
-
-            r1 = results[i]
-            r2 = results[j]
-
-            f1 = faculty_map[r1["assignment_id"]]
-            f2 = faculty_map[r2["assignment_id"]]
-
-            if f1 != f2 or not f1:
-                continue
-
-            t1 = timeslot_map[r1["time_slot_id"]]
-            t2 = timeslot_map[r2["time_slot_id"]]
-
-            if t1["day_of_week"] == t2["day_of_week"] and is_overlap(t1, t2):
-                print("❌ FACULTY CONFLICT:", r1, r2)
-                conflicts += 1
-
-    print("Total conflicts:", conflicts)
+# -----------------------------
+# ENGINE INIT (NO CHANGE NOW)
+# -----------------------------
+engine = SetModeEngine()
 
 
-# ---------------------------------
-# MAIN API
-# ---------------------------------
+# -----------------------------
+# API
+# -----------------------------
 @app.post("/generate")
 async def generate_schedule(request: Request):
 
     data = await request.json()
 
-    print("=== FULL REQUEST DATA ===")
-    print(data)
+    assignments = data.get("assignments", [])
+    rooms = data.get("rooms", [])
+    timeslots = data.get("timeslots", [])
+    mode = data.get("mode", "balanced")
 
-    assignments = data.get("assignments")
-    rooms = data.get("rooms")
-    timeslots = data.get("timeslots")
-
-    # -----------------------------
-    # Normalize timeslots
-    # -----------------------------
-    for i, t in enumerate(timeslots):
-        if not (t.get("day") or t.get("day_of_week") or t.get("dayOfWeek")):
-            print(f"⚠️ Missing day at {i}, default Monday")
-            t["day_of_week"] = "Monday"
-
-    start_total = time.time()
-
-    # ---------------------------------
-    # STEP 1: GREEDY TIMESLOT
-    # ---------------------------------
-    timeslot_assignment = greedy_timeslot(assignments, timeslots)
-
-    print("Timeslots assigned:", len(timeslot_assignment))
-
-    # ---------------------------------
-    # STEP 2: CP-SAT ROOM ASSIGNMENT
-    # ---------------------------------
-    model = cp_model.CpModel()
-
-    assign_room = {}
-
-    for a in assignments:
-        a_id = a["id"]
-
-        if a_id not in timeslot_assignment:
-            continue
-
-        for r in rooms:
-            assign_room[(a_id, r["id"])] = model.NewBoolVar(
-                f"a{a_id}_r{r['id']}"
-            )
-
-    # each assignment → 1 room
-    for a in assignments:
-        a_id = a["id"]
-
-        if a_id not in timeslot_assignment:
-            continue
-
-        model.Add(
-            sum(assign_room[(a_id, r["id"])] for r in rooms) == 1
-        )
-
-    # room conflict
-    for r in rooms:
-        for t in timeslots:
-
-            vars_list = []
-
-            for a in assignments:
-                a_id = a["id"]
-
-                if timeslot_assignment.get(a_id) != t["id"]:
-                    continue
-
-                vars_list.append(assign_room[(a_id, r["id"])])
-
-            if vars_list:
-                model.Add(sum(vars_list) <= 1)
-
-    # objective
-    model.Maximize(sum(assign_room.values()))
-
-    # solve
-    solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 10
-    solver.parameters.num_search_workers = 8
+    # 🔥 IMPORTANT (keep this)
+    timeslots = preprocess_timeslots(timeslots)
 
     start = time.time()
-    status = solver.Solve(model)
-    solve_time = time.time() - start
 
-    print("CP-SAT Status:", solver.StatusName(status))
-    print("CP-SAT Time:", solve_time)
+    rule_engine = RuleEngine()
 
-    # ---------------------------------
-    # BUILD RESULT
-    # ---------------------------------
-    results = []
+    result = engine.run(
+        mode,
+        assignments,
+        rooms,
+        timeslots,
+        rule_engine
+    )
 
-    if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    result["total_time"] = time.time() - start
 
-        for a in assignments:
-            a_id = a["id"]
-
-            if a_id not in timeslot_assignment:
-                continue
-
-            for r in rooms:
-                if solver.Value(assign_room[(a_id, r["id"])]) == 1:
-                    results.append({
-                        "assignment_id": a_id,
-                        "room_id": r["id"],
-                        "time_slot_id": timeslot_assignment[a_id]
-                    })
-                    break
-
-    # ---------------------------------
-    # VALIDATE (IMPORTANT)
-    # ---------------------------------
-    validate_schedule(results, assignments, timeslots)
-
-    total_time = time.time() - start_total
-
-    print("Total time:", total_time)
-    print("Scheduled classes:", len(results))
-
-    return {
-        "total_time": total_time,
-        "cp_sat_time": solve_time,
-        "scheduled": len(results),
-        "schedule": results
-    }
+    return result

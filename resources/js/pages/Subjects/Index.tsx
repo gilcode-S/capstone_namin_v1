@@ -279,6 +279,7 @@ export default function Index() {
                             <option value="">All Room Types</option>
                             <option value="lecture">Classroom</option>
                             <option value="lab">Laboratory</option>
+                            <option value="pe_room">PE Room</option>
                         </select>
 
                     </div>
@@ -526,6 +527,7 @@ export default function Index() {
                                         <option value="">Select semester</option>
                                         <option value="1">1st</option>
                                         <option value="2">2nd</option>
+                                        <option value="3">summer</option>
                                     </select>
                                 </div>
 

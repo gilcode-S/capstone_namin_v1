@@ -24,7 +24,7 @@ class Faculty extends Model
         'status',
         'qualification_level',
         'years_experience',
-
+        'current_load',
         'degree',
         'domains'
     ];

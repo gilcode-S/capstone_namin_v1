@@ -41,7 +41,7 @@ class SubjectController extends Controller
         }
 
         return Inertia::render('Subjects/Index', [
-            'subjects' => $query->latest()->paginate(15)->withQueryString(),
+            'subjects' => $query->oldest()->paginate(15)->withQueryString(),
             'programs' => Programs::all(),
             'allSubjects' => Subject::select('id', 'subject_name', 'subject_code')->get(),
 

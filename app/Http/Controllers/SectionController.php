@@ -6,6 +6,7 @@ use App\Models\Programs;
 use App\Models\Section;
 use App\Models\Semester;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class SectionController extends Controller
@@ -44,38 +45,42 @@ class SectionController extends Controller
     public function index(Request $request)
     {
         $view = $request->view ?? 'grid';
-        $query = Section::with('program', 'semester');
 
-        // SEARCH (section name)
+        $query = Section::with(['program.department', 'semester']);
+
         if ($request->section) {
             $query->where('section_name', 'like', '%' . $request->section . '%');
         }
 
-        // YEAR
         if ($request->year_level) {
             $query->where('year_level', (int) $request->year_level);
         }
 
-        // PROGRAM
         if ($request->program) {
             $query->where('program_id', $request->program);
         }
 
-        // SHIFT
         if ($request->shift) {
             $query->where('shift', $request->shift);
         }
 
-        // SECTION LETTER (A, B, C, D)
+        // ✅ FIXED section filter (exact match last letter)
         if ($request->set) {
-            $query->where('section_name', 'like', '%' . strtoupper($request->set));
+            $query->whereRaw('RIGHT(section_name, 1) = ?', [strtoupper($request->set)]);
         }
+
+        // ✅ GET section letters dynamically
+        $sectionLetters = Section::select(
+            DB::raw('RIGHT(section_name, 1) as letter')
+        )->distinct()->pluck('letter');
 
         return Inertia::render('Sections/Index', [
             'sections' => $query->latest()->paginate(25)->withQueryString(),
 
-            'programs' => Programs::all(),
+            'programs' => Programs::with('department')->get(), // 👈 include department
             'semesters' => Semester::all(),
+
+            'sectionLetters' => $sectionLetters, // 👈 NEW
 
             'view' => $view,
 
@@ -113,6 +118,14 @@ class SectionController extends Controller
             $validated['shift'],
             $validated['section_letter']
         );
+
+        $exists = Section::where('section_name', $sectionCode)->exists();
+
+        if ($exists) {
+            return back()->withErrors([
+                'section_letter' => 'Section already exists!'
+            ]);
+        }
 
         Section::create([
             'program_id' => $validated['program_id'],
