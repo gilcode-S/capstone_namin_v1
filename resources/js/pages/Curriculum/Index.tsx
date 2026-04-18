@@ -1,13 +1,6 @@
 import { router } from '@inertiajs/react'
 import { useState } from 'react'
-
 import { Button } from '@/components/ui/button'
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog'
 import AppLayout from '@/layouts/app-layout'
 
 export default function Curriculum({
@@ -21,22 +14,20 @@ export default function Curriculum({
 
     const [activeDepartment, setActiveDepartment] = useState(selectedDepartment)
     const [activeProgram, setActiveProgram] = useState(selectedProgram)
-
-    const [open, setOpen] = useState(false)
-    const [ignorePrereq, setIgnorePrereq] = useState(false)
-
-    const [form, setForm] = useState({
-        subject_id: '',
-        year_level: 1,
-        semester: 1
-    })
+    const [editMode, setEditMode] = useState(false)
 
     // =========================
-    // FILTERED SUBJECTS
+    // ADD YEAR STATE (FIXED)
     // =========================
-    const filteredSubjects = subjects.filter(
-        (s: any) =>
-            s.program_id === activeProgram || s.subject_type === 'minor'
+    const [extraYears, setExtraYears] = useState<number[]>([])
+
+    // =========================
+    // MERGE YEARS
+    // =========================
+    const backendYears = Object.keys(curriculum || {}).map(Number)
+
+    const allYears = [...new Set([...backendYears, ...extraYears])].sort(
+        (a, b) => a - b
     )
 
     // =========================
@@ -44,9 +35,11 @@ export default function Curriculum({
     // =========================
     const handleDepartmentChange = (id: number) => {
         setActiveDepartment(id)
+        setActiveProgram(null)
 
         router.get('/curriculum', {
-            department_id: id
+            department_id: id,
+            program_id: null
         }, { preserveState: true, replace: true })
     }
 
@@ -61,7 +54,9 @@ export default function Curriculum({
 
     const deleteCurriculum = (id: number) => {
         if (confirm("Remove subject?")) {
-            router.delete(`/curriculum/${id}`)
+            router.delete(`/curriculum/${id}`, {
+                preserveScroll: true
+            })
         }
     }
 
@@ -73,26 +68,21 @@ export default function Curriculum({
             program_id: activeProgram,
             year_level: year,
             semester: sem,
-            ignore_prereq: ignorePrereq
         }, {
             preserveScroll: true,
-            onSuccess: () => {
-                router.reload({ only: ['curriculum'] })
-            }
+            onSuccess: () => router.reload({ only: ['curriculum'] })
         })
     }
 
-    const getYearLabel = (year: any) => {
-        return {
-            1: 'FIRST YEAR',
-            2: 'SECOND YEAR',
-            3: 'THIRD YEAR',
-            4: 'FOURTH YEAR'
-        }[year] || `YEAR ${year}`
-    }
+    const getYearLabel = (year: number) => ({
+        1: 'FIRST YEAR',
+        2: 'SECOND YEAR',
+        3: 'THIRD YEAR',
+        4: 'FOURTH YEAR'
+    }[year] || `YEAR ${year}`)
 
     return (
-        <AppLayout breadcrumbs={[{ title: 'Curriculum', href: '/curriculum' }]}>
+        <AppLayout>
 
             <div className="min-h-screen bg-[#eef3f1] px-10 py-8 space-y-8">
 
@@ -101,15 +91,15 @@ export default function Curriculum({
                     <div>
                         <h1 className="text-2xl font-semibold">Curriculum Guide</h1>
                         <p className="text-sm text-gray-500 max-w-xl">
-                            Structured overview of subjects, prerequisites, and scheduling flow.
+                            Structured overview of courses, prerequisites, and scheduling flow.
                         </p>
                     </div>
 
                     <Button
-                        onClick={() => setOpen(true)}
+                        onClick={() => setEditMode(!editMode)}
                         disabled={!activeProgram}
                     >
-                        + Add Subject (Modal)
+                        {editMode ? 'Done Editing' : 'Edit Curriculum'}
                     </Button>
                 </div>
 
@@ -120,6 +110,7 @@ export default function Curriculum({
                         onChange={(e) => handleDepartmentChange(Number(e.target.value))}
                         className="h-10 px-3 rounded-lg border bg-white"
                     >
+                        <option value="">Select Department</option>
                         {departments.map((d: any) => (
                             <option key={d.id} value={d.id}>
                                 {d.department_name}
@@ -129,6 +120,7 @@ export default function Curriculum({
 
                     <select
                         value={activeProgram || ''}
+                        disabled={!activeDepartment}
                         onChange={(e) => handleProgramChange(Number(e.target.value))}
                         className="h-10 px-3 rounded-lg border bg-white"
                     >
@@ -141,205 +133,223 @@ export default function Curriculum({
                     </select>
                 </div>
 
-                {/* PROGRAM TITLE */}
-                <div>
-                    <h2 className="text-xl font-semibold">
-                        {programs.find((p: any) => p.id === activeProgram)?.program_name || 'Select Program'}
-                    </h2>
-                </div>
+                {/* BLOCK IF NOT READY */}
+                {!activeDepartment || !activeProgram ? (
+                    <div className="text-center text-gray-400 py-20">
+                        Please select department and program first
+                    </div>
+                ) : (
+                    <>
+                        {/* PROGRAM TITLE + ADD YEAR */}
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-xl font-semibold">
+                                {programs.find((p: any) => p.id === activeProgram)?.program_name}
+                            </h2>
 
-                {/* CURRICULUM */}
-                <div className="space-y-6">
+                            {/* ✅ ADD YEAR BUTTON (FIXED) */}
+                            {editMode && (
+                                <button
+                                    onClick={() => {
+                                        const nextYear =
+                                            allYears.length > 0
+                                                ? Math.max(...allYears) + 1
+                                                : 1
 
-                    {Object.keys(curriculum || {}).length === 0 && (
-                        <div className="text-center text-gray-500 py-10">
-                            No curriculum available
+                                        setExtraYears([...extraYears, nextYear])
+                                    }}
+                                    className="text-sm px-3 py-1 border rounded-lg bg-white hover:bg-gray-100"
+                                >
+                                    + Add Year
+                                </button>
+                            )}
                         </div>
-                    )}
 
-                    {Object.entries(curriculum || {}).map(([year, semesters]: any) => (
-                        <div key={year} className="bg-white border rounded-2xl p-6 shadow-sm">
+                        {/* CURRICULUM */}
+                        <div className="space-y-6">
 
-                            <h3 className="text-lg font-semibold mb-5">
-                                {getYearLabel(year)}
-                            </h3>
+                            {allYears.map((year) => {
 
-                            <div className="grid md:grid-cols-2 gap-6">
+                                const semesters = curriculum?.[year] || {}
 
-                                {[1, 2].map((sem) => {
-                                    const data = semesters?.[sem]
-                                    if (!data) return null
+                                return (
+                                    <div key={year} className="bg-white border rounded-2xl p-6">
 
-                                    return (
-                                        <div key={sem} className="border rounded-xl p-5 bg-gray-50">
+                                        {/* YEAR LABEL */}
+                                        <h3 className="text-lg font-semibold mb-4">
+                                            {getYearLabel(year)}
+                                        </h3>
 
-                                            <h4 className="font-medium text-sm mb-4">
-                                                {sem === 1 ? 'FIRST SEMESTER' : 'SECOND SEMESTER'}
-                                            </h4>
+                                        {/* SEMESTERS (MAJOR / MINOR UI KEPT SAME) */}
+                                        <div className="grid md:grid-cols-2 gap-6">
 
-                                            <div className="grid grid-cols-2 gap-6 text-sm">
+                                            {[1, 2].map((sem) => {
 
-                                                {/* MINOR */}
-                                                <div>
-                                                    <p className="text-xs text-gray-400 mb-2">Minor</p>
+                                                const data = semesters?.[sem] || {
+                                                    major: [],
+                                                    minor: []
+                                                }
 
-                                                    <div className="space-y-1 mb-2">
-                                                        {data.minor?.map((sub: any) => (
-                                                            <div key={sub.id} className="flex justify-between text-xs">
-                                                                <span>
-                                                                    <b>{sub.subject.subject_code}</b> - {sub.subject.subject_name}
-                                                                </span>
+                                                return (
+                                                    <div key={sem} className="border rounded-xl p-5 bg-gray-50">
 
-                                                                <button
-                                                                    onClick={() => deleteCurriculum(sub.id)}
-                                                                    className="text-red-400 hover:text-red-600"
-                                                                >
-                                                                    ✕
-                                                                </button>
+                                                        <h4 className="font-medium text-sm mb-3">
+                                                            {sem === 1 ? 'FIRST SEMESTER' : 'SECOND SEMESTER'}
+                                                        </h4>
+
+                                                        <div className="grid grid-cols-2 gap-6 text-sm">
+
+                                                            {/* MINOR */}
+                                                            <div>
+                                                                <p className="text-xs text-gray-400 mb-2">Minor</p>
+
+                                                                {data.minor.map((sub: any) => (
+                                                                    <div key={sub.id} className="flex justify-between text-xs">
+                                                                        <span>
+                                                                            <b>{sub.subject.subject_code}</b> - {sub.subject.subject_name}
+                                                                        </span>
+
+                                                                        {editMode && (
+                                                                            <button
+                                                                                onClick={() => deleteCurriculum(sub.id)}
+                                                                                className="text-red-400"
+                                                                            >
+                                                                                ✕
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+
+                                                                {editMode && (
+                                                                    <select
+                                                                        className="w-full text-xs border rounded mt-2"
+                                                                        onChange={(e) =>
+                                                                            submitInline(e.target.value, year, sem)
+                                                                        }
+                                                                    >
+                                                                        <option value="">+ Add Minor</option>
+                                                                        {subjects
+                                                                            .filter((s: any) => s.subject_type === 'minor')
+                                                                            .map((s: any) => (
+                                                                                <option key={s.id} value={s.id}>
+                                                                                    {s.subject_code} - {s.subject_name}
+                                                                                </option>
+                                                                            ))}
+                                                                    </select>
+                                                                )}
                                                             </div>
-                                                        ))}
-                                                    </div>
 
-                                                    <select
-                                                        className="w-full text-xs border rounded px-2 py-1"
-                                                        onChange={(e) =>
-                                                            submitInline(e.target.value, Number(year), sem)
-                                                        }
-                                                    >
-                                                        <option value="">+ Add Minor</option>
-                                                        {filteredSubjects
-                                                            .filter((s: any) => s.subject_type === 'minor')
-                                                            .map((s: any) => (
-                                                                <option key={s.id} value={s.id}>
-                                                                    {s.subject_code} - {s.subject_name}
-                                                                </option>
-                                                            ))}
-                                                    </select>
-                                                </div>
+                                                            {/* MAJOR */}
+                                                            <div>
+                                                                <p className="text-xs text-gray-400 mb-2">Major</p>
 
-                                                {/* MAJOR */}
-                                                <div>
-                                                    <p className="text-xs text-gray-400 mb-2">Major</p>
+                                                                {data.major.map((sub: any) => (
+                                                                    <div key={sub.id} className="flex justify-between text-xs">
+                                                                        <span>
+                                                                            <b>{sub.subject.subject_code}</b> - {sub.subject.subject_name}
+                                                                        </span>
 
-                                                    <div className="space-y-1 mb-2">
-                                                        {data.major?.map((sub: any) => (
-                                                            <div key={sub.id} className="flex justify-between text-xs">
-                                                                <span>
-                                                                    <b>{sub.subject.subject_code}</b> - {sub.subject.subject_name}
-                                                                </span>
+                                                                        {editMode && (
+                                                                            <button
+                                                                                onClick={() => deleteCurriculum(sub.id)}
+                                                                                className="text-red-400"
+                                                                            >
+                                                                                ✕
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
 
-                                                                <button
-                                                                    onClick={() => deleteCurriculum(sub.id)}
-                                                                    className="text-red-400 hover:text-red-600"
-                                                                >
-                                                                    ✕
-                                                                </button>
+                                                                {editMode && (
+                                                                    <select
+                                                                        className="w-full text-xs border rounded mt-2"
+                                                                        onChange={(e) =>
+                                                                            submitInline(e.target.value, year, sem)
+                                                                        }
+                                                                    >
+                                                                        <option value="">+ Add Major</option>
+                                                                        {subjects
+                                                                            .filter((s: any) => s.subject_type === 'major')
+                                                                            .map((s: any) => (
+                                                                                <option key={s.id} value={s.id}>
+                                                                                    {s.subject_code} - {s.subject_name}
+                                                                                </option>
+                                                                            ))}
+                                                                    </select>
+                                                                )}
                                                             </div>
-                                                        ))}
+
+                                                        </div>
                                                     </div>
-
-                                                    <select
-                                                        className="w-full text-xs border rounded px-2 py-1"
-                                                        onChange={(e) =>
-                                                            submitInline(e.target.value, Number(year), sem)
-                                                        }
-                                                    >
-                                                        <option value="">+ Add Major</option>
-                                                        {filteredSubjects
-                                                            .filter((s: any) => s.subject_type === 'major')
-                                                            .map((s: any) => (
-                                                                <option key={s.id} value={s.id}>
-                                                                    {s.subject_code} - {s.subject_name}
-                                                                </option>
-                                                            ))}
-                                                    </select>
-                                                </div>
-
-                                            </div>
-
+                                                )
+                                            })}
                                         </div>
-                                    )
-                                })}
 
-                            </div>
-                        </div>
-                    ))}
+                                        {/* ========================= */}
+                                        {/* 🌞 SUMMER (ONLY 3RD YEAR) */}
+                                        {/* ========================= */}
+                                        {year === 3 && (
+                                            <div className="mt-6 border rounded-xl p-5 bg-gray-50">
 
-                </div>
+                                                <h4 className="font-semibold text-sm mb-3">
+                                                    SUMMER (OJT)
+                                                </h4>
 
-                {/* MODAL (OPTIONAL) */}
-                <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogContent className="max-w-md">
+                                                {(() => {
 
-                        <DialogHeader>
-                            <DialogTitle>Add Subject to Curriculum</DialogTitle>
-                        </DialogHeader>
+                                                    const data = semesters?.[3] || {
+                                                        major: [],
+                                                        minor: []
+                                                    }
 
-                        <div className="space-y-4">
+                                                    return (
+                                                        <div className="space-y-2 text-sm">
 
-                            <select
-                                className="w-full border rounded-lg px-3 py-2"
-                                onChange={(e) =>
-                                    setForm({ ...form, subject_id: e.target.value })
-                                }
-                            >
-                                <option value="">Select subject</option>
-                                {subjects.map((s: any) => (
-                                    <option key={s.id} value={s.id}>
-                                        {s.subject_code} - {s.subject_name}
-                                    </option>
-                                ))}
-                            </select>
+                                                            {[...data.major, ...data.minor].map((sub: any) => (
+                                                                <div key={sub.id} className="flex justify-between">
+                                                                    <span>
+                                                                        <b>{sub.subject.subject_code}</b> - {sub.subject.subject_name}
+                                                                    </span>
 
-                            <select
-                                className="w-full border rounded-lg px-3 py-2"
-                                onChange={(e) =>
-                                    setForm({ ...form, year_level: Number(e.target.value) })
-                                }
-                            >
-                                <option value={1}>1st Year</option>
-                                <option value={2}>2nd Year</option>
-                                <option value={3}>3rd Year</option>
-                                <option value={4}>4th Year</option>
-                            </select>
+                                                                    {editMode && (
+                                                                        <button
+                                                                            onClick={() => deleteCurriculum(sub.id)}
+                                                                            className="text-red-400"
+                                                                        >
+                                                                            ✕
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            ))}
 
-                            <select
-                                className="w-full border rounded-lg px-3 py-2"
-                                onChange={(e) =>
-                                    setForm({ ...form, semester: Number(e.target.value) })
-                                }
-                            >
-                                <option value={1}>1st Semester</option>
-                                <option value={2}>2nd Semester</option>
-                            </select>
+                                                            {editMode && (
+                                                                <select
+                                                                    className="w-full text-xs border rounded mt-2"
+                                                                    onChange={(e) =>
+                                                                        submitInline(e.target.value, year, 3)
+                                                                    }
+                                                                >
+                                                                    <option value="">+ Add OJT Subject</option>
+                                                                    {subjects.map((s: any) => (
+                                                                        <option key={s.id} value={s.id}>
+                                                                            {s.subject_code} - {s.subject_name}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            )}
 
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    checked={ignorePrereq}
-                                    onChange={(e) => setIgnorePrereq(e.target.checked)}
-                                />
-                                <span className="text-sm">
-                                    Ignore prerequisite validation
-                                </span>
-                            </div>
+                                                        </div>
+                                                    )
+                                                })()}
+                                            </div>
+                                        )}
 
-                            <Button
-                                onClick={() =>
-                                    submitInline(
-                                        form.subject_id,
-                                        form.year_level,
-                                        form.semester
-                                    )
-                                }
-                            >
-                                Add Subject
-                            </Button>
+                                    </div>
+                                )
+                            })}
 
                         </div>
-
-                    </DialogContent>
-                </Dialog>
+                    </>
+                )}
 
             </div>
         </AppLayout>
