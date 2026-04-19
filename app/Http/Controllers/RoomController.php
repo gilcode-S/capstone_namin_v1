@@ -85,6 +85,7 @@ class RoomController extends Controller
     {
         //
         $validated = $request->validate([
+          
             'room_name' => 'required|string|max:50|unique:rooms,room_name',
 
             // NEW

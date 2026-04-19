@@ -24,7 +24,7 @@ class TimeSlotController extends Controller
             'day_of_week' => 'required',
             'start_time' => 'required',
             'end_time' => 'required|after:start_time',
-            'mode' => 'required|in:f2f,online,hybrid',
+            'shift' => 'required|in:morning,afternoon,evening',
             'status' => 'required|in:active, inactive'
         ]);
 
@@ -39,7 +39,7 @@ class TimeSlotController extends Controller
             'day_of_week' => 'required',
             'start_time' => 'required',
             'end_time' => 'required|after:start_time',
-            'mode' => 'required|in:f2f,online,hybrid',
+            'shift' => 'required|in:morning,afternoon,evening',
             'status' => 'required|in:active,inactive'
         ]);
 

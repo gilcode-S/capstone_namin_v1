@@ -50,6 +50,7 @@ interface Room {
     status?: string
 }
 const emptyForm = {
+    room_number: '', // ✅ NEW
     room_name: '',
     resource_type: '',
     capacity: '',
@@ -100,7 +101,10 @@ export default function Index() {
 
     /* OPEN EDIT */
     const handleOpenEdit = (room: Room) => {
+
+        const match = room.room_name?.match(/\d+$/)
         setForm({
+            room_number: match ? match[0].slice(-2) : '',
             room_name: room.room_name,
             resource_type: room.resource_type || room.room_type,
             capacity: room.capacity,
@@ -116,6 +120,12 @@ export default function Index() {
         setOpen(true)
     }
 
+    const generateRoomCode = (building: string, floor: string, number: string) => {
+        if (!building || !floor || !number) return ''
+        const padded = number.padStart(2, '0')
+        return `${building}${floor}${padded}`
+    }
+
     /* CLOSE */
     const handleClose = () => {
         setForm(emptyForm)
@@ -128,10 +138,19 @@ export default function Index() {
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     ) => {
-        setForm({
+        const updatedForm = {
             ...form,
             [e.target.name]: e.target.value
-        })
+        }
+
+        // 🔥 AUTO GENERATE ROOM CODE
+        updatedForm.room_name = generateRoomCode(
+            updatedForm.building,
+            updatedForm.floor,
+            updatedForm.room_number
+        )
+
+        setForm(updatedForm)
     }
 
     const handleStatusFilter = (value: string) => {
@@ -613,10 +632,10 @@ export default function Index() {
 
                 {/* MODAL */}
                 <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogContent className="max-w-xl p-6">
+                    <DialogContent className="max-w-xl w-full p-0 max-h-[90vh] flex flex-col">
 
                         {/* HEADER */}
-                        <div className="space-y-1">
+                        <div className="p-6 border-b shrink-0">
                             <h2 className="text-xl font-semibold">
                                 {isEdit ? "Edit Resource" : "Add New Resource"}
                             </h2>
@@ -625,142 +644,151 @@ export default function Index() {
                             </p>
                         </div>
 
-                        {/* FORM */}
-                        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                        {/* SCROLL AREA */}
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <form id="resource-form" onSubmit={handleSubmit} className="space-y-4">
 
-                            {/* NAME */}
-                            <div>
-                                <Label>Name</Label>
-                                <Input
-                                    name="room_name"
-                                    placeholder="e.g., 01, 02, 03"
-                                    value={form.room_name}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
-
-                            {/* TYPE */}
-                            <div>
-                                <Label>Type</Label>
-                                <select
-                                    name="resource_type"
-                                    value={form.resource_type || ''}
-                                    onChange={handleChange}
-                                    className="w-full border rounded px-3 py-2"
-                                    required
-                                >
-                                    <option value="">Select type</option>
-                                    <option value="classroom">Classroom</option>
-                                    <option value="laboratory">Computer Lab</option>
-                                    <option value="pe_room">PE Room</option>
-                                </select>
-                            </div>
-                            <div>
-                                <Label>Department</Label>
-                                <select
-                                    name="department_id"
-                                    value={form.department_id}
-                                    onChange={handleChange}
-                                    className="w-full border rounded px-3 py-2"
-                                    required
-                                >
-                                    <option value="">Select department</option>
-                                    {departments.map((d: any) => (
-                                        <option key={d.id} value={d.id}>
-                                            {d.department_name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* CAPACITY */}
-                            <div>
-                                <Label>Capacity</Label>
-                                <Input
-                                    type="number"
-                                    name="capacity"
-                                    placeholder="30"
-                                    value={form.capacity}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
-
-                            {/* LOCATION (SPLIT) */}
-                            <div>
-                                <Label>Location</Label>
-                                <div className="grid grid-cols-2 gap-2">
-
-                                    {/* BUILDING */}
-                                    <select
-                                        name="building"
-                                        value={form.building || ''}
+                                {/* NAME */}
+                                <div>
+                                    <Label>Name</Label>
+                                    <Input
+                                        name="room_number"
+                                        placeholder="e.g., 01, 02, 03"
+                                        value={form.room_id}
                                         onChange={handleChange}
-                                        className="border rounded px-3 py-2"
-                                    >
-                                        <option value="">Building</option>
-                                        <option value="C">Building C</option>
-                                        <option value="F">Building F</option>
-                                        <option value="V">Building V</option>
-                                    </select>
-
-                                    {/* FLOOR */}
-                                    <select
-                                        name="floor"
-                                        value={form.floor || ''}
-                                        onChange={handleChange}
-                                        className="border rounded px-3 py-2"
-                                    >
-                                        <option value="">Floor</option>
-                                        <option value="1">Floor 1</option>
-                                        <option value="2">Floor 2</option>
-                                        <option value="3">Floor 3</option>
-                                        <option value="4">Floor 4</option>
-                                    </select>
-
+                                        required
+                                    />
                                 </div>
-                            </div>
 
-                            {/* EQUIPMENT */}
-                            <div>
-                                <Label>Equipment</Label>
-                                <textarea
-                                    placeholder="Projector, Whiteboard, Audio System..."
-                                    className="w-full border rounded px-3 py-2"
-                                    value={form.equipment_text || ''}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            equipment_text: e.target.value
-                                        })
-                                    }
-                                />
-                            </div>
+                                {/* TYPE */}
+                                <div>
+                                    <Label>Type</Label>
+                                    <select
+                                        name="resource_type"
+                                        value={form.resource_type || ''}
+                                        onChange={handleChange}
+                                        className="w-full border rounded px-3 py-2"
+                                        required
+                                    >
+                                        <option value="">Select type</option>
+                                        <option value="classroom">Classroom</option>
+                                        <option value="laboratory">Computer Lab</option>
+                                        <option value="pe_room">PE Room</option>
+                                    </select>
+                                </div>
 
-                            {/* STATUS */}
-                            <div>
-                                <Label>Status</Label>
-                                <select
-                                    name="resource_status"
-                                    value={form.resource_status || 'available'}
-                                    onChange={handleChange}
-                                    className="w-full border rounded px-3 py-2"
-                                >
-                                    <option value="available">Available</option>
-                                    <option value="occupied">Occupied</option>
-                                    <option value="maintenance">Maintenance</option>
-                                </select>
-                            </div>
+                                {/* DEPARTMENT */}
+                                {/* <div>
+                    <Label>Department</Label>
+                    <select
+                        name="department_id"
+                        value={form.department_id}  
+                        onChange={handleChange}
+                        className="w-full border rounded px-3 py-2"
+                        required
+                    >
+                        <option value="">Select department</option>
+                        {departments.map((d: any) => (
+                            <option key={d.id} value={d.id}>
+                                {d.department_name}
+                            </option>
+                        ))}
+                    </select>
+                </div> */}
 
-                            {/* BUTTON */}
-                            <Button className="w-full mt-4">
+                                {/* CAPACITY */}
+                                <div>
+                                    <Label>Capacity</Label>
+                                    <Input
+                                        type="number"
+                                        name="capacity"
+                                        placeholder="30"
+                                        value={form.capacity}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+
+                                {/* LOCATION */}
+                                <div>
+                                    <Label>Location</Label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <select
+                                            name="building"
+                                            value={form.building || ''}
+                                            onChange={handleChange}
+                                            className="border rounded px-3 py-2"
+                                        >
+                                            <option value="">Building</option>
+                                            <option value="C">Building C</option>
+                                            <option value="F">Building F</option>
+                                            <option value="V">Building V</option>
+                                        </select>
+
+                                        <select
+                                            name="floor"
+                                            value={form.floor || ''}
+                                            onChange={handleChange}
+                                            className="border rounded px-3 py-2"
+                                        >
+                                            <option value="">Floor</option>
+                                            <option value="1">Floor 1</option>
+                                            <option value="2">Floor 2</option>
+                                            <option value="3">Floor 3</option>
+                                            <option value="4">Floor 4</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {form.room_name && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Room Code: <strong>{form.room_name}</strong>
+                                    </p>
+                                )}
+
+                                {/* EQUIPMENT */}
+                                <div>
+                                    <Label>Equipment</Label>
+                                    <textarea
+                                        placeholder="Projector, Whiteboard, Audio System..."
+                                        className="w-full border rounded px-3 py-2"
+                                        value={form.equipment_text || ''}
+                                        onChange={(e) =>
+                                            setForm({
+                                                ...form,
+                                                equipment_text: e.target.value
+                                            })
+                                        }
+                                    />
+                                </div>
+
+                                {/* STATUS */}
+                                <div>
+                                    <Label>Status</Label>
+                                    <select
+                                        name="resource_status"
+                                        value={form.resource_status || 'available'}
+                                        onChange={handleChange}
+                                        className="w-full border rounded px-3 py-2"
+                                    >
+                                        <option value="available">Available</option>
+                                        <option value="occupied">Occupied</option>
+                                        <option value="maintenance">Maintenance</option>
+                                    </select>
+                                </div>
+
+                            </form>
+                        </div>
+
+                        {/* FOOTER BUTTON (fixed) */}
+                        <div className="p-6 border-t shrink-0 bg-white">
+                            <Button form="resource-form" className="w-full">
                                 {loading
                                     ? (isEdit ? "Saving..." : "Adding...")
                                     : (isEdit ? "Update Resource" : "Add Resource")}
                             </Button>
+                        </div>
 
-                        </form>
                     </DialogContent>
                 </Dialog>
 

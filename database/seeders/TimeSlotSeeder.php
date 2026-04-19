@@ -2,34 +2,54 @@
 
 namespace Database\Seeders;
 
-use App\Models\TimeSlot;
 use Illuminate\Database\Seeder;
+use App\Models\TimeSlot;
+use Carbon\Carbon;
 
 class TimeSlotSeeder extends Seeder
 {
     public function run(): void
     {
-        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-        $startHour = 7;
-        $endHour = 22; // 10 PM
+        $days = [
+            'Monday',
+            'Tuesday',
+            'Wednesday',
+            'Thursday',
+            'Friday',
+            'Saturday'
+        ];
 
         foreach ($days as $day) {
 
-            for ($hour = $startHour; $hour < $endHour; $hour++) {
+            $start = Carbon::createFromTime(7, 0);  // 7:00 AM
+            $end   = Carbon::createFromTime(22, 0); // 10:00 PM
 
-                $start = str_pad($hour, 2, '0', STR_PAD_LEFT) . ':00:00';
-                $end = str_pad($hour + 1, 2, '0', STR_PAD_LEFT) . ':00:00';
+            while ($start < $end) {
+
+                $slotStart = $start->copy();
+                $slotEnd   = $start->copy()->addHour(); // 1-hour interval
+
+                // 🔥 SHIFT LOGIC
+                $hour = $slotStart->format('H');
+
+                if ($hour < 12) {
+                    $shift = 'morning';
+                } elseif ($hour < 18) {
+                    $shift = 'afternoon';
+                } else {
+                    $shift = 'evening';
+                }
 
                 TimeSlot::create([
                     'day_of_week' => $day,
-                    'start_time' => $start,
-                    'end_time' => $end,
-                    'mode' => 'f2f',
-                    'status' => 'active'
-                ]); 
-            }
+                    'start_time'  => $slotStart->format('H:i:s'),
+                    'end_time'    => $slotEnd->format('H:i:s'),
+                    'shift'       => $shift,
+                    'status'      => 'active',
+                ]);
 
+                $start->addHour();
+            }
         }
     }
 }

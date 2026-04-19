@@ -1,5 +1,4 @@
 import { Head, router, usePage } from '@inertiajs/react'
-
 import { Plus, Pencil, Trash2, Clock } from 'lucide-react'
 import { useState } from 'react'
 import Pagination from '@/components/Pagination'
@@ -20,7 +19,7 @@ interface TimeSlot {
   day_of_week: string
   start_time: string
   end_time: string
-  mode: string
+  shift: string
   status: string
 }
 
@@ -28,7 +27,7 @@ const emptyForm = {
   day_of_week: '',
   start_time: '',
   end_time: '',
-  mode: '',
+  shift: '',
   status: 'active'
 }
 
@@ -46,7 +45,25 @@ export default function Index() {
   const [isEdit, setIsEdit] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
 
+  /* 🔥 SHIFT AUTO-DETECT */
+  const getShift = (time: string) => {
+    if (!time) return ''
+    if (time < '12:00') return 'morning'
+    if (time < '18:00') return 'afternoon'
+    return 'evening'
+  }
 
+  /* 🔥 VALIDATION */
+  const isValidSchoolTime = (time: string) => {
+    return time >= '07:00' && time <= '22:00'
+  }
+
+  /* 🔥 AUTO FIX */
+  const clampTime = (time: string) => {
+    if (time < '07:00') return '07:00'
+    if (time > '22:00') return '22:00'
+    return time
+  }
 
   /* OPEN CREATE */
   const handleOpen = () => {
@@ -60,16 +77,15 @@ export default function Index() {
   const handleOpenEdit = (slot: TimeSlot) => {
     setForm({
       day_of_week: slot.day_of_week,
-      start_time: slot.start_time.slice(0, 5), // remove seconds
-      end_time: slot.end_time.slice(0, 5),     // remove seconds
-      mode: slot.mode,
+      start_time: slot.start_time.slice(0, 5),
+      end_time: slot.end_time.slice(0, 5),
+      shift: slot.shift,
       status: slot.status
     })
 
     setIsEdit(true)
     setEditId(slot.id)
     setOpen(true)
-
   }
 
   /* CLOSE */
@@ -84,20 +100,39 @@ export default function Index() {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    setForm({
+    let updatedForm = {
       ...form,
       [e.target.name]: e.target.value
-    })
+    }
+
+    if (e.target.name === 'start_time') {
+      const clamped = clampTime(e.target.value)
+      updatedForm.start_time = clamped
+      updatedForm.shift = getShift(clamped)
+    }
+
+    if (e.target.name === 'end_time') {
+      updatedForm.end_time = clampTime(e.target.value)
+    }
+
+    setForm(updatedForm)
   }
 
   /* SUBMIT */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!isValidSchoolTime(form.start_time) || !isValidSchoolTime(form.end_time)) {
+      alert('Time must be between 7:00 AM and 10:00 PM.')
+      return
+    }
+
     if (form.start_time >= form.end_time) {
       alert('End time must be after start time.')
       return
     }
+
+    form.shift = getShift(form.start_time)
 
     setLoading(true)
 
@@ -153,7 +188,7 @@ export default function Index() {
                 <th className="px-4 py-2 text-left">Day</th>
                 <th className="px-4 py-2 text-left">Start</th>
                 <th className="px-4 py-2 text-left">End</th>
-                <th className="px-4 py-2 text-left">Mode</th>
+                <th className="px-4 py-2 text-left">Shift</th>
                 <th className="px-4 py-2 text-left">Status</th>
                 <th className="px-4 py-2 text-center">Actions</th>
               </tr>
@@ -165,7 +200,17 @@ export default function Index() {
                   <td className="px-4 py-2">{slot.day_of_week}</td>
                   <td className="px-4 py-2">{slot.start_time}</td>
                   <td className="px-4 py-2">{slot.end_time}</td>
-                  <td className="px-4 py-2 capitalize">{slot.mode}</td>
+
+                  <td className="px-4 py-2">
+                    <span className={`px-2 py-1 rounded text-white text-xs
+                      ${slot.shift === 'morning' && 'bg-yellow-500'}
+                      ${slot.shift === 'afternoon' && 'bg-orange-500'}
+                      ${slot.shift === 'evening' && 'bg-indigo-600'}
+                    `}>
+                      {slot.shift}
+                    </span>
+                  </td>
+
                   <td className="px-4 py-2">
                     <span className={
                       slot.status === 'active'
@@ -177,20 +222,13 @@ export default function Index() {
                   </td>
 
                   <td className="px-4 py-2 text-center">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mr-2"
-                      onClick={() => handleOpenEdit(slot)}
-                    >
+                    <Button size="sm" variant="outline" className="mr-2"
+                      onClick={() => handleOpenEdit(slot)}>
                       <Pencil size={16} />
                     </Button>
 
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDelete(slot.id)}
-                    >
+                    <Button size="sm" variant="destructive"
+                      onClick={() => handleDelete(slot.id)}>
                       <Trash2 size={16} />
                     </Button>
                   </td>
@@ -205,7 +243,9 @@ export default function Index() {
             </tbody>
           </table>
         </div>
+
         <Pagination links={timeSlots.links} />
+
         {/* MODAL */}
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="max-w-lg">
@@ -241,6 +281,8 @@ export default function Index() {
                 name="start_time"
                 value={form.start_time}
                 onChange={handleChange}
+                min="07:00"
+                max="22:00"
                 required
               />
 
@@ -249,24 +291,20 @@ export default function Index() {
                 name="end_time"
                 value={form.end_time}
                 onChange={handleChange}
+                min="07:00"
+                max="22:00"
                 required
               />
 
-              <div>
-                <Label>Mode</Label>
-                <select
-                  name="mode"
-                  value={form.mode}
-                  onChange={handleChange}
-                  className="w-full border rounded px-2 py-2"
-                  required
-                >
-                  <option value="">Select Mode</option>
-                  <option value="f2f">Face to Face</option>
-                  <option value="online">Online</option>
-                  <option value="hybrid">Hybrid na halimaw</option>
-                </select>
-              </div>
+              <p className="text-xs text-gray-400">
+                Allowed time: 7:00 AM – 10:00 PM
+              </p>
+
+              {form.start_time && (
+                <div className="text-sm text-gray-500">
+                  Auto Shift: <strong>{getShift(form.start_time)}</strong>
+                </div>
+              )}
 
               <div>
                 <Label>Status</Label>
@@ -282,12 +320,8 @@ export default function Index() {
               </div>
 
               <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleClose}
-                  disabled={loading}
-                >
+                <Button type="button" variant="outline"
+                  onClick={handleClose} disabled={loading}>
                   Cancel
                 </Button>
 
