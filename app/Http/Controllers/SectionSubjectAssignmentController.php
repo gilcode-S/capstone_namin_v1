@@ -7,17 +7,20 @@ use App\Models\ScheduleVersion;
 use App\Models\Section;
 use App\Models\SectionSubjectAssignment;
 use App\Models\Subject;
+use App\Services\Scheduler\ScoringService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class SectionSubjectAssignmentController extends Controller
 {
     /* =====================================================
-        AUTO ASSIGN FACULTY
+        AUTO ASSIGN FACULTY (SCORING ENGINE VERSION)
     ===================================================== */
     private function assignFaculty($subject, $faculties, $scheduleVersionId)
     {
-        // 🥇 HARD CONSTRAINT (Preferred Teacher)
+        $scoring = new ScoringService();
+
+        // 🥇 Preferred teacher (hard rule)
         if ($subject->preferred_teacher_id) {
             $preferred = $faculties->firstWhere('id', $subject->preferred_teacher_id);
 
@@ -27,31 +30,30 @@ class SectionSubjectAssignmentController extends Controller
         }
 
         $best = null;
-        $bestScore = -9999;
+        $bestScore = -1;
 
         foreach ($faculties as $faculty) {
 
-            // 🔥 CURRENT LOAD (safe calculation)
+            // 🔥 current load
             $currentLoad = $faculty->assignments()
                 ->where('schedule_version_id', $scheduleVersionId)
                 ->with('subject')
                 ->get()
                 ->sum(fn($a) => $a->subject->units ?? 0);
 
-            // ❌ Skip overloaded faculty
+            // ❌ skip overloaded
             if (
-                !is_null($faculty->max_load_units) &&
-                $faculty->max_load_units > 0 &&
+                $faculty->max_load_units &&
                 $currentLoad >= $faculty->max_load_units
             ) {
                 continue;
             }
 
-            // 🧠 SCORE COMPUTATION
-            $score = $this->computeFacultyScore($faculty, $subject, $currentLoad);
+            // 🧠 SCORING SERVICE (NEW)
+            $score = $scoring->score($faculty, $currentLoad);
 
-            // 📉 BALANCE LOAD (VERY IMPORTANT)
-            $score -= $currentLoad * 2;
+            // 📉 slight balancing penalty
+            $score -= $currentLoad * 0.5;
 
             if ($score > $bestScore) {
                 $bestScore = $score;
@@ -60,36 +62,6 @@ class SectionSubjectAssignmentController extends Controller
         }
 
         return $best;
-    }
-
-    /* =====================================================
-        SCORING LOGIC
-    ===================================================== */
-    private function computeFacultyScore($faculty, $subject, $currentLoad)
-    {
-        $score = 0;
-
-        // 🎯 Domain match (very important)
-        if ($faculty->domains && in_array($subject->domain, $faculty->domains)) {
-            $score += 10;
-        }
-
-        // 🎓 Experience boost
-        $score += ($faculty->years_experience ?? 0);
-
-        // 🎓 Qualification boost
-        if ($faculty->qualification_level === 'masteral') {
-            $score += 3;
-        }
-
-        if ($faculty->qualification_level === 'doctorate') {
-            $score += 5;
-        }
-
-        // ⚖️ Prefer less loaded teachers
-        $score += max(0, 10 - $currentLoad);
-
-        return $score;
     }
 
     /* =====================================================
@@ -113,9 +85,8 @@ class SectionSubjectAssignmentController extends Controller
     }
 
     /* =====================================================
-        STORE (AUTO ASSIGN HERE)
+        AUTO ASSIGN ALL
     ===================================================== */
-
     public function autoAssign(Request $request)
     {
         $request->validate([
@@ -125,12 +96,8 @@ class SectionSubjectAssignmentController extends Controller
         $sections = Section::all();
         $faculties = Faculty::where('status', 'active')->get();
 
-        if ($sections->isEmpty()) {
-            return back()->withErrors(['error' => 'No sections found']);
-        }
-
-        if ($faculties->isEmpty()) {
-            return back()->withErrors(['error' => 'No active faculty available']);
+        if ($sections->isEmpty() || $faculties->isEmpty()) {
+            return back()->withErrors(['error' => 'Missing data']);
         }
 
         foreach ($sections as $section) {
@@ -153,9 +120,7 @@ class SectionSubjectAssignmentController extends Controller
                     $request->schedule_version_id
                 );
 
-                if (!$faculty) {
-                    continue; // skip instead of breaking whole system
-                }
+                if (!$faculty) continue;
 
                 SectionSubjectAssignment::create([
                     'schedule_version_id' => $request->schedule_version_id,
@@ -166,26 +131,24 @@ class SectionSubjectAssignmentController extends Controller
             }
         }
 
-        return back()->with('success', 'Auto assignment for ALL sections completed!');
+        return back()->with('success', 'Auto assignment completed');
     }
 
+    /* =====================================================
+        STORE
+    ===================================================== */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'schedule_version_id' => 'required|exists:schedule_versions,id',
             'section_id' => 'required|exists:sections,id',
             'subject_id' => 'required|exists:subjects,id',
-
-            // ✅ OPTIONAL now
             'faculty_id' => 'nullable|exists:faculties,id',
         ]);
 
-        $subject = Subject::findOrFail($validated['subject_id']);
+        if (!$validated['faculty_id']) {
 
-        // ✅ AUTO ASSIGN if no faculty selected
-        if (!$request->faculty_id) {
-
-            // ✅ only ACTIVE faculty
+            $subject = Subject::findOrFail($validated['subject_id']);
             $faculties = Faculty::where('status', 'active')->get();
 
             $faculty = $this->assignFaculty(
@@ -205,7 +168,7 @@ class SectionSubjectAssignmentController extends Controller
 
         SectionSubjectAssignment::create($validated);
 
-        return back()->with('success', 'Assignment created (auto-assigned if empty)');
+        return back()->with('success', 'Assignment created');
     }
 
     /* =====================================================
@@ -213,16 +176,14 @@ class SectionSubjectAssignmentController extends Controller
     ===================================================== */
     public function update(Request $request, SectionSubjectAssignment $assignment)
     {
-        $validated = $request->validate([
+        $assignment->update($request->validate([
             'schedule_version_id' => 'required|exists:schedule_versions,id',
             'section_id' => 'required|exists:sections,id',
             'subject_id' => 'required|exists:subjects,id',
             'faculty_id' => 'required|exists:faculties,id',
-        ]);
+        ]));
 
-        $assignment->update($validated);
-
-        return redirect()->back()->with('success', 'Assignment updated');
+        return back()->with('success', 'Updated');
     }
 
     /* =====================================================
@@ -232,6 +193,6 @@ class SectionSubjectAssignmentController extends Controller
     {
         $assignment->delete();
 
-        return redirect()->back()->with('success', 'Assignment deleted');
+        return back()->with('success', 'Deleted');
     }
 }

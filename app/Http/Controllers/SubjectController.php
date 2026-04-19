@@ -81,17 +81,19 @@ class SubjectController extends Controller
             'preferred_teacher_id' => 'nullable|exists:faculties,id',
             'preferred_day' => 'nullable|string|max:20',
             'preferred_shift' => 'nullable|string|max:20',
-            'domain' => 'nullable|string|max:100',
+            'domains' => 'nullable|array',
+            'domains.*' => 'string|max:100',
         ]);
 
         // ✅ enforce program only for major
-        if ($request->subject_type === 'major' && !$request->program_id) {
-            return back()->withErrors([
-                'program_id' => 'Program is required for major subjects.'
-            ]);
-        }
+        // if ($request->subject_type === 'major' && !$request->program_id) {
+        //     return back()->withErrors([
+        //         'program_id' => 'Program is required for major subjects.'
+        //     ]);
+        // }
 
         $validated['units'] = $validated['hours_per_week'];
+        $validated['domains'] = $request->domains ?? [];
 
         $subject = Subject::create($validated);
         if ($validated['subject_type'] === 'major' && $subject->program) {
@@ -124,18 +126,18 @@ class SubjectController extends Controller
             'preferred_teacher_id' => 'nullable|exists:faculties,id',
             'preferred_day' => 'nullable|string|max:20',
             'preferred_shift' => 'nullable|string|max:20',
-
-            'domain' => 'nullable|string|max:100',
+            'domains' => 'nullable|array',
+            'domains.*' => 'string|max:100',
         ]);
 
-        if ($request->subject_type === 'major' && !$request->program_id) {
-            return back()->withErrors([
-                'program_id' => 'Program is required for major subjects.'
-            ]);
-        }
+        // if ($request->subject_type === 'major' && !$request->program_id) {
+        //     return back()->withErrors([
+        //         'program_id' => 'Program is required for major subjects.'
+        //     ]);
+        // }
 
         $validated['units'] = $validated['hours_per_week'];
-
+        $validated['domains'] = $request->domains ?? [];
         $subject->update($validated);
         if ($validated['subject_type'] === 'major' && $subject->program) {
             $subject->domain = $subject->program->domain ?? null;

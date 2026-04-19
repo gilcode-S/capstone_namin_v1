@@ -57,7 +57,7 @@ const emptyForm = {
     preferred_day: '',
     preferred_shift: '',
 
-    domain: '' // for minor
+    domains: [] // for minor
 }
 export default function Index() {
 
@@ -127,6 +127,7 @@ export default function Index() {
             semester: subject.semester,
 
             prerequisites: subject.prerequisites?.map((p: any) => p.id) || [],
+            domains: subject.domains || []
         })
 
         setIsEdit(true)
@@ -161,6 +162,7 @@ export default function Index() {
             hours_per_week: Number(form.hours_per_week), // ✅ FIX
             year_level: Number(form.year_level),
             semester: Number(form.semester),
+            domains: form.domains || []
         }
 
         if (isEdit && editId) {
@@ -392,7 +394,7 @@ export default function Index() {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">
 
-                                            
+
                                                 <button
                                                     onClick={() => handleOpenEdit(subject)}
                                                     className="text-blue-600 hover:text-blue-800"
@@ -401,7 +403,7 @@ export default function Index() {
                                                     <Pencil size={18} />
                                                 </button>
 
-                                          
+
                                                 <button
                                                     onClick={() => handleDelete(subject.id)}
                                                     className="text-red-600 hover:text-red-800"
@@ -555,20 +557,50 @@ export default function Index() {
                                 {form.subject_type === 'minor' && (
                                     <div className="col-span-3">
                                         <Label>Domain</Label>
-                                        <select
-                                            name="domain"
-                                            value={form.domain}
-                                            onChange={handleChange}
-                                            className="w-full h-11 rounded-lg border px-3"
-                                        >
-                                            <option value="">Select Domain</option>
-                                            <option>Computer Science / IT</option>
-                                            <option>Business / Management</option>
-                                            <option>Tourism / Hospitality</option>
-                                            <option>Criminology / Law</option>
-                                            <option>General Education</option>
-                                            <option>Engineering</option>
-                                        </select>
+                                        <div className="border rounded-lg p-2 flex flex-wrap gap-2">
+
+                                            {form.domains?.map((d: string) => (
+                                                <span key={d} className="bg-green-100 text-green-700 px-3 py-1 rounded-full">
+                                                    {d}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setForm({
+                                                                ...form,
+                                                                domains: form.domains.filter((x: string) => x !== d)
+                                                            })
+                                                        }
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </span>
+                                            ))}
+
+                                            <select
+                                                onChange={(e) => {
+                                                    const value = e.target.value
+
+                                                    if (!value) return
+                                                    if (!form.domains.includes(value)) {
+                                                        setForm({
+                                                            ...form,
+                                                            domains: [...form.domains, value]
+                                                        })
+                                                    }
+
+                                                    e.target.value = ""
+                                                }}
+                                                className="outline-none"
+                                            >
+                                                <option value="">+ Add domain</option>
+                                                <option>Computer Science / IT</option>
+                                                <option>Business / Management</option>
+                                                <option>Tourism / Hospitality</option>
+                                                <option>Criminology / Law</option>
+                                                <option>General Education</option>
+                                                <option>Engineering</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 )}
 

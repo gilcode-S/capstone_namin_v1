@@ -22,12 +22,14 @@ class Subject extends Model
         'room_type',
         'year_level',
         'semester',
-
+        'domains',
         'preferred_teacher',
-        'preferred_day',
+        'preferred_day',    
         'preferred_shift',
-        'domain',
         'room_type_required',
+    ];
+    protected $casts = [
+        'domains' => 'array',
     ];
     public function preferredTeacher()
     {
@@ -50,10 +52,10 @@ class Subject extends Model
         }
     }
 
-    public function getDomainAttribute()
-    {
-        return $this->program?->department?->domain;
-    }
+    // public function getDomainAttribute()
+    // {
+    //     return $this->program?->department?->domain;
+    // }
     public function department()
     {
         return $this->belongsTo(Department::class);
