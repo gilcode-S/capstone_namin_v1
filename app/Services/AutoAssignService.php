@@ -2,41 +2,69 @@
 
 namespace App\Services;
 
-use App\Models\Faculty;
-use App\Models\Subject;
+use App\Models\Section;
+use App\Services\Scheduler\ClassUnitService;
+
+use App\Services\CPSATService;
+use App\Services\ScheduleCandidateBuilderService as ServicesScheduleCandidateBuilderService;
+
+use App\Services\ScheduleWriterService as ServicesScheduleWriterService;
 
 class AutoAssignService
 {
-    protected DomainScoringService $scoringService;
+    protected ClassUnitService $classUnitService;
+    protected ServicesScheduleCandidateBuilderService $candidateBuilder;
+    protected CPSATService $cpSatService;
+    protected ServicesScheduleWriterService $writer;
 
-    public function __construct(DomainScoringService $scoringService)
-    {
-        $this->scoringService = $scoringService;
+    public function __construct(
+        ClassUnitService $classUnitService,
+        ServicesScheduleCandidateBuilderService $candidateBuilder,
+        CPSATService $cpSatService,
+        ServicesScheduleWriterService $writer
+    ) {
+        $this->classUnitService = $classUnitService;
+        $this->candidateBuilder = $candidateBuilder;
+        $this->cpSatService = $cpSatService;
+        $this->writer = $writer;
     }
 
-    public function assignBestFaculty(Subject $subject): ?Faculty
+    /**
+     * 🔥 MAIN FUNCTION (ONE CLICK GENERATE)
+     */
+    public function generateSchedule(array $sections, int $versionId)
     {
-        $faculties = Faculty::where('status', 'active')->get();
+        // STEP 4: Class Units
+        $classUnits = $this->classUnitService->generate($sections);
 
-        $bestFaculty = null;
-        $bestScore = 0;
+        $allCandidates = [];
 
-        foreach ($faculties as $faculty) {
+        // STEP 5: Candidate Builder
+        foreach ($sections as $section) {
 
-            // OPTIONAL: skip overloaded teachers
-            if ($faculty->current_load >= $faculty->max_load_units) {
-                continue;
-            }
+            $sectionUnits = array_filter($classUnits, function ($unit) use ($section) {
+                return $unit['section_id'] === $section->id;
+            });
 
-            $score = $this->scoringService
-                ->calculateTeacherScore($faculty, $subject);
+            $candidates = $this->candidateBuilder->build($section, $sectionUnits);
 
-            if ($score > $bestScore) {
-                $bestScore = $score;
-                $bestFaculty = $faculty;
-            }
+            $allCandidates = array_merge($allCandidates, $candidates);
         }
 
-        return $bestFaculty;
+        // STEP 6: CP-SAT Optimization
+        $optimized = $this->cpSatService->solve($allCandidates);
+
+        // STEP 7: Save to DB
+        $this->writer->save($optimized, $versionId, 'auto');
+
+        return $optimized;
+    }
+
+    /**
+     * KEEP THIS (optional fallback)
+     */
+    public function assignBestFaculty($subject)
+    {
+        // you can keep your old logic here if needed
     }
 }

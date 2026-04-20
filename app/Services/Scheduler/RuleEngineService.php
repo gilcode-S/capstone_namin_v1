@@ -8,21 +8,18 @@ class RuleEngineService
     {
         return array_values(array_filter($classUnits, function ($cu) {
 
-            // ❌ must have subject
             if (empty($cu['subject_id'])) return false;
-
-            // ❌ must have section
             if (empty($cu['section_id'])) return false;
 
-            // ❌ must have valid units/hours
-            if (!isset($cu['hours_per_week']) || $cu['hours_per_week'] <= 0) return false;
+            // ✅ FIXED: use correct field
+            if (!isset($cu['total_hours']) || $cu['total_hours'] <= 0) return false;
 
-            // ❌ must have domain (important for faculty matching later)
-            if (empty($cu['domain'])) return false;
+            // domains is ARRAY now (correct)
+            if (empty($cu['domains'])) return false;
 
-            // ❌ avoid broken room type
+            // fallback instead of reject
             if (empty($cu['room_type'])) {
-                $cu['room_type'] = 'Lecture'; // fallback instead of reject
+                $cu['room_type'] = 'Lecture';
             }
 
             return true;

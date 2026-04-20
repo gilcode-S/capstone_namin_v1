@@ -7,26 +7,41 @@ use App\Models\ScheduleVersion;
 use App\Models\Room;
 use App\Models\SectionSubjectAssignment;
 use App\Models\TimeSlot;
+
 class Schedule extends Model
 {
     //
     protected $fillable = [
         'schedule_version_id',
-        'assignment_id',
+        'section_id',
+        'subject_id',
+        'faculty_id',
         'room_id',
-        'time_slot_id'
+        'time_slot_id',
+        'score',
+        'status'
     ];
 
 
-    public function version() 
+    public function version()
     {
         return $this->belongsTo(ScheduleVersion::class, 'schedule_version_id');
     }
 
 
-    public function assignment()
+    public function faculty()
     {
-        return $this->belongsTo(SectionSubjectAssignment::class, 'assignment_id');
+        return $this->belongsTo(Faculty::class);
+    }
+
+    public function subject()
+    {
+        return $this->belongsTo(Subject::class);
+    }
+
+    public function section()
+    {
+        return $this->belongsTo(Section::class);
     }
 
     public function room()
