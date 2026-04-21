@@ -52,7 +52,7 @@ export default function Dashboard() {
                     <Metric icon={Users} title="Total Teachers" value={metrics.faculty} subtitle="Active faculty members" />
                     <Metric icon={Building2} title="Classrooms" value={metrics.rooms} subtitle="Available rooms & labs" />
                     <Metric icon={BookOpen} title="Subjects" value={metrics.subjects} subtitle="Courses to schedule" />
-                    <Metric icon={Clock} title="Weekly Hours" value="0" subtitle="Total teaching hours" />
+                    <Metric icon={Clock} title="Total Sections" value={metrics.sections} subtitle="Total Sections" />
 
                 </div>
 

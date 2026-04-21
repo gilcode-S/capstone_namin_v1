@@ -64,6 +64,8 @@ Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
         ->name('generate.index');
     Route::post('/schedules/generate/{versionId}', [GenerateController::class, 'generate'])
         ->name('generate.schedule');
+    Route::post('/schedules/reset/{versionId}', [GenerateController::class, 'reset'])
+        ->name('schedules.reset');
     // ✅ FIXED: VIEW CONFLICTS (needs versionId)
     Route::get('/conflicts/{versionId}', [ConflictController::class, 'index'])
         ->name('schedules.conflicts');

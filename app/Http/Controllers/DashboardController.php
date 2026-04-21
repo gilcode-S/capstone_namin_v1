@@ -37,7 +37,8 @@ class DashboardController extends Controller
            'metrics' => [
             'faculty' => Faculty::count(),
             'rooms' => Room::count(),
-            'subjects' => Subject::count()
+            'subjects' => Subject::count(),
+            'sections' => Section::count(),
            ],
 
            'optimization' => [
