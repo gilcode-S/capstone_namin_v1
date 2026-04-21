@@ -53,7 +53,7 @@ const emptyForm = {
     semester: '',
     prerequisites: [],
 
-    preferred_teacher: '',
+    preferred_teacher_id: '',
     preferred_day: '',
     preferred_shift: '',
 
@@ -61,14 +61,21 @@ const emptyForm = {
 }
 export default function Index() {
 
-    const { subjects, programs, filters, stats, allSubjects } = usePage().props as unknown as {
+    const { subjects, programs, filters, stats, allSubjects, teachers } = usePage().props as unknown as {
         subjects: {
             data: Subject[],
             links: any[]
         },
         programs: Program[],
-        filters: Filters
+        filters: Filters,
+        teachers: {
+            id: number
+            first_name: string
+            last_name: string
+            faculty_code: string
+        }[]
     }
+    console.log('teachers:', teachers);
 
     const [open, setOpen] = useState(false)
     const [form, setForm] = useState<any>(emptyForm)
@@ -162,7 +169,8 @@ export default function Index() {
             hours_per_week: Number(form.hours_per_week), // ✅ FIX
             year_level: Number(form.year_level),
             semester: Number(form.semester),
-            domains: form.domains || []
+            domains: form.domains || [],
+            preferred_teacher_id: form.preferred_teacher_id || null,
         }
 
         if (isEdit && editId) {
@@ -271,7 +279,7 @@ export default function Index() {
                         </div>
 
                         {/* ROOM TYPE */}
-                        <select
+                        {/* <select
                             value={filters.room_type || ''}
                             onChange={(e) =>
                                 handleFilterChange('room_type', e.target.value)
@@ -282,7 +290,7 @@ export default function Index() {
                             <option value="lecture">Classroom</option>
                             <option value="lab">Laboratory</option>
                             <option value="pe_room">PE Room</option>
-                        </select>
+                        </select> */}
 
                     </div>
                 </div>
@@ -313,7 +321,9 @@ export default function Index() {
                                     <th className="px-6 py-3 text-left">Unit</th>
                                     <th className="px-6 py-3 text-left">Room Type</th>
                                     <th className="px-6 py-3 text-left">Prerequisites</th>
-                                    <th className="px-6 py-3 text-left">Program</th>
+                                    <th className="px-6 py-3 text-left">
+                                        {filters.subject_type === 'minor' ? 'Domain' : 'Program'}
+                                    </th>
                                     <th className="px-6 py-3 text-left">Actions</th>
                                 </tr>
                             </thead>
@@ -430,6 +440,7 @@ export default function Index() {
                 </div>
 
                 <Pagination links={subjects.links} />
+               
                 <Dialog open={open} onOpenChange={setOpen}>
                     <DialogContent className="max-w-6xl w-full rounded-2xl p-6">
 
@@ -462,7 +473,7 @@ export default function Index() {
 
                                 {/* COURSE CODE */}
                                 <div>
-                                    <Label>Course Code</Label>
+                                    <Label>Subject Code</Label>
                                     <Input
                                         name="subject_code"
                                         value={form.subject_code}
@@ -707,13 +718,20 @@ export default function Index() {
                                     {/* TEACHER */}
                                     <div>
                                         <Label>Preferred Teacher</Label>
-                                        <Input
-                                            name="preferred_teacher"
-                                            value={form.preferred_teacher}
+                                        <select
+                                            name="preferred_teacher_id"
+                                            value={form.preferred_teacher_id}
                                             onChange={handleChange}
-                                            placeholder="Optional"
-                                            className="h-11 rounded-lg"
-                                        />
+                                            className="w-full h-11 rounded-lg border px-3"
+                                        >
+                                            <option value="">Any teacher</option>
+
+                                            {teachers.map((t: any) => (
+                                                <option key={t.id} value={t.id}>
+                                                    {t.first_name} {t.last_name}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
 
                                     {/* DAY */}

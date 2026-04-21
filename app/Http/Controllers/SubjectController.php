@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Faculty;
 use App\Models\Programs;
 use App\Models\Subject;
 use Illuminate\Http\Request;
@@ -20,9 +21,9 @@ class SubjectController extends Controller
             });
         }
 
-        if ($request->room_type) {
-            $query->where('room_type', $request->room_type);
-        }
+        // if ($request->room_type) {
+        //     $query->where('room_type', $request->room_type);
+        // }
 
         if ($request->program_id) {
             $query->where('program_id', $request->program_id);
@@ -43,8 +44,9 @@ class SubjectController extends Controller
         return Inertia::render('Subjects/Index', [
             'subjects' => $query->oldest()->paginate(15)->withQueryString(),
             'programs' => Programs::all(),
+            'teachers' => Faculty::all(),
             'allSubjects' => Subject::select('id', 'subject_name', 'subject_code')->get(),
-
+           
             'filters' => $request->only([
                 'program_id',
                 'semester',
