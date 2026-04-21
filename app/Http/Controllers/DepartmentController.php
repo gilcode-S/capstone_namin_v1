@@ -27,7 +27,7 @@ class DepartmentController extends Controller
     public function store(Request $request)
     {
         $departmentData = $request->validate([
-            'department_code' => 'required|unique:departments,department_code',
+            'department_code' => 'nullable',
             'department_name' => 'required',
             'domain' => 'required'
         ]);
@@ -53,7 +53,7 @@ class DepartmentController extends Controller
     public function update(Request $request, Department $department)
     {
         $departmentData = $request->validate([
-            'department_code' => 'required|unique:departments,department_code,' . $department->id,
+            'department_code' => 'nullable|unique:departments,department_code,' . $department->id,
             'department_name' => 'required',
              'domain' => 'required'
         ]);

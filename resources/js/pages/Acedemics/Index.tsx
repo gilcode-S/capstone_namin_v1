@@ -5,8 +5,9 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+
 import AppLayout from '@/layouts/app-layout'
+import { Label } from '@/components/ui/label'
 
 /* ================= TYPES ================= */
 
@@ -24,6 +25,20 @@ interface Department {
     programs: Program[]
 }
 
+const DOMAINS = [
+    "Computer Studies / IT",
+    "Engineering",
+    "Business & Accountancy",
+    "Education",
+    "Health Sciences",
+    "Arts & Humanities",
+    "Sciences & Mathematics",
+    "Agriculture & Fisheries",
+    "Hospitality / Tourism",
+    "Law / Security / Public Service",
+    "Maritime",
+    "Fine Arts / Design / Architecture"
+]
 /* ================= PAGE ================= */
 
 const Index = () => {
@@ -37,8 +52,10 @@ const Index = () => {
     const [isEditDept, setIsEditDept] = useState(false)
     const [editDeptId, setEditDeptId] = useState<number | null>(null)
 
+
+
     const [deptForm, setDeptForm] = useState({
-        department_code: '',
+        department_code: null as string | null,
         department_name: '',
         domain: ''
     })
@@ -55,7 +72,8 @@ const Index = () => {
 
     const [programEditForm, setProgramEditForm] = useState({
         program_name: '',
-        program_code: ''
+        program_code: '',
+        department_id: ''
     })
 
     /* ================= ACTIONS ================= */
@@ -84,6 +102,11 @@ const Index = () => {
 
     const submitDepartment = (e: any) => {
         e.preventDefault()
+
+        if (!deptForm.domain) {
+            alert("Select a domain")
+            return
+        }
 
         const payload = {
             ...deptForm,
@@ -126,7 +149,7 @@ const Index = () => {
         setIsEditDept(false)
         setEditDeptId(null)
         setDeptForm({
-            department_code: '',
+            department_code: null,
             department_name: '',
             domain: ''
         })
@@ -157,7 +180,14 @@ const Index = () => {
 
                         <div className="flex justify-between items-center mb-3">
                             <h2 className="font-semibold">Departments</h2>
-                            <Button size="sm" onClick={() => setOpenDept(true)}>
+                            <Button
+                                size="sm"
+                                onClick={() => {
+                                    resetDept()       // 🔥 clear old data
+                                    setIsEditDept(false)
+                                    setOpenDept(true)
+                                }}
+                            >
                                 <Plus size={14} /> Add
                             </Button>
                         </div>
@@ -168,7 +198,7 @@ const Index = () => {
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="text-left px-4 py-3 w-[50%]">Name</th>
-                                        <th className="text-left px-4 py-3 w-[30%]">Domain</th>
+                                        <th className="text-left px-4 py-3 w-[30%]">Field</th>
                                         <th className="text-center px-4 py-3 w-[20%]">Action</th>
                                     </tr>
                                 </thead>
@@ -262,7 +292,10 @@ const Index = () => {
                                                             size="sm"
                                                             onClick={() => {
                                                                 router.put(`/program/${p.id}`, programEditForm, {
-                                                                    onSuccess: () => setEditingProgramId(null)
+                                                                    onSuccess: () => {
+                                                                        setEditingProgramId(null)
+                                                                        router.reload({ only: ['departments'] }) // 🔥 THIS FIXES IT
+                                                                    }
                                                                 })
                                                             }}
                                                         >
@@ -284,7 +317,8 @@ const Index = () => {
                                                                 setEditingProgramId(p.id)
                                                                 setProgramEditForm({
                                                                     program_name: p.program_name,
-                                                                    program_code: p.program_code
+                                                                    program_code: p.program_code,
+                                                                    department_id: p.department_id
                                                                 })
                                                             }}
                                                         >
@@ -326,28 +360,15 @@ const Index = () => {
                                     <p className="text-sm text-gray-500">{dept.domain}</p>
                                 </div>
 
-                                <Button
-                                    size="sm"
-                                    onClick={() => {
-                                        setProgramForm({
-                                            program_name: '',
-                                            program_code: '',
-                                            department_id: dept.id.toString()
-                                        })
-                                        setOpenProgram(true)
-                                    }}
-                                >
-                                    <Plus size={14} /> Add Program
-                                </Button>
                             </div>
 
                             <div className="overflow-hidden border rounded-lg">
                                 <table className="w-full text-sm table-fixed">
-                                    <thead className="bg-gray-50">
+                                    <thead className="">
                                         <tr>
                                             <th className="px-4 py-3 text-left">Program</th>
                                             <th className="px-4 py-3 text-left">Code</th>
-                                            <th className="px-4 py-3 text-center">Action</th>
+                                            {/* <th className="px-4 py-3 text-center">Action</th> */}
                                         </tr>
                                     </thead>
 
@@ -357,12 +378,12 @@ const Index = () => {
                                                 <td className="px-4 py-3">{p.program_name}</td>
                                                 <td className="px-4 py-3">{p.program_code}</td>
                                                 <td className="px-4 py-3 text-center">
-                                                    <button
+                                                    {/* <button
                                                         onClick={() => deleteProgram(p.id)}
                                                         className="text-red-500"
                                                     >
                                                         <Trash2 size={14} />
-                                                    </button>
+                                                    </button> */}
                                                 </td>
                                             </tr>
                                         ))}
@@ -378,7 +399,16 @@ const Index = () => {
                 {/* ================= MODALS ================= */}
 
                 {/* DEPARTMENT */}
-                <Dialog open={openDept} onOpenChange={setOpenDept}>
+                <Dialog
+                    open={openDept}
+                    onOpenChange={(open) => {
+                        setOpenDept(open)
+
+                        if (!open) {
+                            resetDept() // 🔥 reset when closing
+                        }
+                    }}
+                >
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>{isEditDept ? "Edit Department" : "Add Department"}</DialogTitle>
@@ -386,13 +416,13 @@ const Index = () => {
 
                         <form onSubmit={submitDepartment} className="space-y-4">
 
-                            <Input
+                            {/* <Input
                                 value={deptForm.department_code}
                                 onChange={(e) =>
                                     setDeptForm({ ...deptForm, department_code: e.target.value })
                                 }
                                 placeholder="Department Code"
-                            />
+                            /> */}
 
                             <Input
                                 value={deptForm.department_name}
@@ -402,13 +432,20 @@ const Index = () => {
                                 placeholder="Department Name"
                             />
 
-                            <Input
+                            <select
                                 value={deptForm.domain}
                                 onChange={(e) =>
                                     setDeptForm({ ...deptForm, domain: e.target.value })
                                 }
-                                placeholder="Domain"
-                            />
+                                className="w-full border rounded-md p-2 text-sm"
+                            >
+                                <option value="">Select Domain</option>
+                                {DOMAINS.map((d) => (
+                                    <option key={d} value={d}>
+                                        {d}
+                                    </option>
+                                ))}
+                            </select>
 
                             <DialogFooter>
                                 <Button type="submit">Save</Button>
@@ -427,6 +464,9 @@ const Index = () => {
 
                         <form onSubmit={submitProgram} className="space-y-4">
 
+                            {/* DEPARTMENT DROPDOWN */}
+                            <Label>Program Name</Label>
+
                             <Input
                                 placeholder="Program Name"
                                 value={programForm.program_name}
@@ -434,7 +474,7 @@ const Index = () => {
                                     setProgramForm({ ...programForm, program_name: e.target.value })
                                 }
                             />
-
+                            <Label>Program Code</Label>
                             <Input
                                 placeholder="Program Code"
                                 value={programForm.program_code}
@@ -442,6 +482,20 @@ const Index = () => {
                                     setProgramForm({ ...programForm, program_code: e.target.value })
                                 }
                             />
+                            <select
+                                value={programForm.department_id}
+                                onChange={(e) =>
+                                    setProgramForm({ ...programForm, department_id: e.target.value })
+                                }
+                                className="w-full border rounded-md p-2 text-sm"
+                            >
+                                <option value="">Select Department</option>
+                                {departments.map((dept) => (
+                                    <option key={dept.id} value={dept.id}>
+                                        {dept.department_name.replace(" Department", "")}
+                                    </option>
+                                ))}
+                            </select>
 
                             <DialogFooter>
                                 <Button type="submit">Save Program</Button>
