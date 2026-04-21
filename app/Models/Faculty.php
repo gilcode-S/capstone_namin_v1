@@ -63,15 +63,19 @@ class Faculty extends Model
         return $this->hasMany(SectionSubjectAssignment::class);
     }
 
+    // public function schedules()
+    // {
+    //     return $this->hasManyThrough(
+    //         Schedule::class,
+    //         SectionSubjectAssignment::class,
+    //         'faculty_id',
+    //         'assignment_id',
+    //         'id',
+    //         'id'
+    //     );
+    // }
     public function schedules()
     {
-        return $this->hasManyThrough(
-            Schedule::class,
-            SectionSubjectAssignment::class,
-            'faculty_id',
-            'assignment_id',
-            'id',
-            'id'
-        );
+        return $this->hasMany(Schedule::class);
     }
 }

@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button'
 export default function Index() {
 
     const {
-        schedules,
-        rooms,
-        timeslots,
-        summary,
+        schedules = [],
+        rooms = [],
+        timeslots = [],
+        summary = {},
     } = usePage().props as any
 
     const [tab, setTab] = useState<'grid' | 'section' | 'teacher'>('grid')
@@ -21,8 +21,10 @@ export default function Index() {
 
     // ================= TIME GROUPING =================
     const getPeriod = (time: string) => {
+        if (!time) return 'Morning'
+
         const [hourPart, modifier] = time.split(' ')
-        let hour = parseInt(hourPart.split(':')[0])
+        let hour = parseInt(hourPart?.split(':')[0] ?? '0')
 
         if (modifier === 'PM' && hour !== 12) hour += 12
         if (modifier === 'AM' && hour === 12) hour = 0
@@ -42,6 +44,8 @@ export default function Index() {
     const scheduleMap: any = {}
 
     schedules.forEach((s: any) => {
+        if (!s?.timeslot || !s?.room) return
+
         const key = `${s.timeslot.day_of_week}-${s.timeslot.start_time}-${s.room.room_name}`
         scheduleMap[key] = s
     })
@@ -70,10 +74,10 @@ export default function Index() {
                     </div>
 
                     <div className="grid grid-cols-4 gap-4 mt-6">
-                        <Card title="Total Classes" value={summary.total_classes} />
-                        <Card title="Weekly Hours" value={summary.weekly_hours} />
-                        <Card title="Active Rooms" value={summary.active_rooms} />
-                        <Card title="Total Section" value={summary.total_sections} />
+                        <Card title="Total Classes" value={summary.total_classes ?? 0} />
+                        <Card title="Weekly Hours" value={summary.weekly_hours ?? 0} />
+                        <Card title="Active Rooms" value={summary.active_rooms ?? 0} />
+                        <Card title="Total Section" value={summary.total_sections ?? 0} />
                     </div>
                 </div>
 
@@ -100,7 +104,6 @@ export default function Index() {
 
                         <div className="min-w-max">
 
-                            {/* SET HEADER */}
                             <div className="sticky top-0 z-40 bg-white border-b text-center font-semibold py-3">
                                 SET A
                             </div>
@@ -109,7 +112,6 @@ export default function Index() {
 
                                 <div key={building} className="border-b">
 
-                                    {/* BUILDING */}
                                     <div className="sticky top-[48px] z-30 bg-gray-50 border-b text-center py-2 font-semibold">
                                         BUILDING {building}
                                     </div>
@@ -118,7 +120,6 @@ export default function Index() {
 
                                         <div key={day} className="border-b">
 
-                                            {/* HEADER ROW */}
                                             <div
                                                 className="grid sticky top-[80px] z-20 bg-gray-100 border-b"
                                                 style={{
@@ -136,12 +137,10 @@ export default function Index() {
                                                 ))}
                                             </div>
 
-                                            {/* PERIODS */}
                                             {Object.entries(groupedTimes).map(([period, times]: any) => (
 
                                                 <div key={period}>
 
-                                                    {/* PERIOD HEADER */}
                                                     <div
                                                         className="grid bg-gray-200 border-b text-xs font-semibold"
                                                         style={{
@@ -157,7 +156,6 @@ export default function Index() {
                                                         ))}
                                                     </div>
 
-                                                    {/* TIME ROWS */}
                                                     {times.map((time: string) => (
 
                                                         <div
@@ -168,12 +166,10 @@ export default function Index() {
                                                             }}
                                                         >
 
-                                                            {/* TIME */}
                                                             <div className="sticky left-0 z-10 bg-white border-r p-2 text-sm text-center">
                                                                 {time}
                                                             </div>
 
-                                                            {/* CELLS */}
                                                             {rooms.map((r: any) => {
 
                                                                 const sched = scheduleMap[`${day}-${time}-${r.room_name}`]
@@ -186,15 +182,15 @@ export default function Index() {
                                                                         {sched ? (
                                                                             <>
                                                                                 <div className="font-semibold text-center">
-                                                                                    {sched.assignment.faculty.first_name}
+                                                                                    {sched.faculty?.first_name ?? '—'}
                                                                                 </div>
 
                                                                                 <div className="text-gray-500 text-[10px] text-center">
-                                                                                    {sched.assignment.section.section_name}
+                                                                                    {sched.section?.section_name ?? '—'}
                                                                                 </div>
 
                                                                                 <div className="text-[9px] text-gray-400 text-center">
-                                                                                    {sched.assignment.subject.subject_code}
+                                                                                    {sched.subject?.subject_code ?? '—'}
                                                                                 </div>
                                                                             </>
                                                                         ) : (
@@ -233,15 +229,16 @@ export default function Index() {
                                     <th className="p-2 text-left">Time</th>
                                 </tr>
                             </thead>
+
                             <tbody>
                                 {schedules.map((s: any) => (
                                     <tr key={s.id} className="border-t">
-                                        <td className="p-2">{s.assignment.section.section_name}</td>
-                                        <td className="p-2">{s.assignment.subject.subject_code}</td>
-                                        <td className="p-2">{s.assignment.faculty.first_name}</td>
-                                        <td className="p-2">{s.room.room_name}</td>
+                                        <td className="p-2">{s.section?.section_name ?? '-'}</td>
+                                        <td className="p-2">{s.subject?.subject_code ?? '-'}</td>
+                                        <td className="p-2">{s.faculty?.first_name ?? '-'}</td>
+                                        <td className="p-2">{s.room?.room_name ?? '-'}</td>
                                         <td className="p-2">
-                                            {s.timeslot.day_of_week} {s.timeslot.start_time}
+                                            {s.timeslot?.day_of_week} {s.timeslot?.start_time}
                                         </td>
                                     </tr>
                                 ))}

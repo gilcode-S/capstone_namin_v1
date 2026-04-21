@@ -18,13 +18,12 @@ class FacultyController extends Controller
             'department',
             'assignments.subject',
             'schedules.timeslot',
-            'availabilities', // ✅ IMPORTANT (YOU MISSED THIS)
+            'schedules.subject', // ✅ FIX
+            'schedules.room',    // ✅ FIX
+            'availabilities',
             'shifts'
         ]);
 
-        /* ---------------------------
-           SEARCH
-        ----------------------------*/
         if ($request->search) {
             $search = $request->search;
 
@@ -37,9 +36,6 @@ class FacultyController extends Controller
             });
         }
 
-        /* ---------------------------
-           FILTER
-        ----------------------------*/
         if ($request->department) {
             $query->where('department_id', $request->department);
         }
@@ -47,92 +43,72 @@ class FacultyController extends Controller
         $faculties = $query->paginate(15)->withQueryString();
 
         return Inertia::render('Facultys/Index', [
-
             'faculties' => $faculties->through(function ($f) {
 
-                /* ---------------------------
-                   VALID SCHEDULES
-                ----------------------------*/
+                // VALID SCHEDULES
                 $validSchedules = $f->schedules->filter(function ($s) {
                     return $s->timeslot &&
                         strtotime($s->timeslot->end_time) > strtotime($s->timeslot->start_time);
                 });
 
-                /* ---------------------------
-                   TOTAL HOURS
-                ----------------------------*/
+                // TOTAL HOURS
                 $totalMinutes = $validSchedules->sum(function ($s) {
                     $start = strtotime($s->timeslot->start_time);
                     $end = strtotime($s->timeslot->end_time);
-
                     return ($end - $start) / 60;
                 });
 
                 $hours = round($totalMinutes / 60, 1);
 
-                /* ---------------------------
-                   WORKLOAD
-                ----------------------------*/
+                // WORKLOAD
                 $maxLoad = $f->max_load_units > 0 ? $f->max_load_units : 21;
 
                 $workload = $maxLoad > 0
                     ? min(100, round(($hours / $maxLoad) * 100))
                     : 0;
 
-                /* ---------------------------
-                   SUBJECTS
-                ----------------------------*/
+                // SUBJECTS
                 $subjects = $f->assignments
                     ->pluck('subject.subject_name')
                     ->filter()
                     ->unique()
                     ->values();
 
-                /* ---------------------------
-                   TEACHING DAYS (FROM SCHEDULE)
-                ----------------------------*/
+                // TEACHING DAYS
                 $days = $validSchedules
                     ->pluck('timeslot.day_of_week')
                     ->filter()
                     ->unique()
                     ->values();
 
-                /* ---------------------------
-                   AVAILABILITY (REAL FIX)
-                ----------------------------*/
-                $availability = $f->availabilities
-                    ->map(function ($a) {
-                        return [
-                            'day_of_week' => $a->day_of_week,
-                            'start_time' => $a->start_time,
-                            'end_time' => $a->end_time,
-                        ];
-                    })
-                    ->values();
+                // AVAILABILITY
+                $availability = $f->availabilities->map(function ($a) {
+                    return [
+                        'day_of_week' => $a->day_of_week,
+                        'start_time' => $a->start_time,
+                        'end_time' => $a->end_time,
+                    ];
+                })->values();
 
-                /* ---------------------------
-                   SCHEDULE FORMAT (FOR UI)
-                ----------------------------*/
+                // ✅ FIXED SCHEDULE FORMAT
                 $schedule = $validSchedules->map(function ($s) {
                     return [
-                        'day' => $s->timeslot->day_of_week,
-                        'start_time' => $s->timeslot->start_time,
-                        'end_time' => $s->timeslot->end_time,
-                        'subject' => optional($s->assignment->subject)->subject_name ?? 'N/A',
-                        'room' => optional($s->room)->room_name ?? 'N/A',
+                        'day' => $s->timeslot->day_of_week ?? null,
+                        'start_time' => $s->timeslot->start_time ?? null,
+                        'end_time' => $s->timeslot->end_time ?? null,
+                        'subject' => $s->subject->subject_name ?? 'N/A',
+                        'room' => $s->room->room_name ?? 'N/A',
                     ];
                 })->values();
 
                 return [
                     ...$f->toArray(),
 
-                    // ✅ UI DATA
                     'assigned_load' => $hours,
                     'workload_percent' => $workload,
                     'subjects' => $subjects,
                     'teaching_days' => $days,
 
-                    // ✅ IMPORTANT (FOR YOUR POPUP)
                     'availability_full' => $availability,
                     'schedule_full' => $schedule,
                 ];
@@ -147,33 +123,6 @@ class FacultyController extends Controller
 
             'stats' => [
                 'total' => Faculty::count(),
-
-                'avg_load' => round(
-                    Faculty::with('schedules.timeslot')->get()->avg(function ($f) {
-
-                        $validSchedules = $f->schedules->filter(function ($s) {
-                            return $s->timeslot &&
-                                strtotime($s->timeslot->end_time) > strtotime($s->timeslot->start_time);
-                        });
-
-                        $totalMinutes = $validSchedules->sum(function ($s) {
-                            $start = strtotime($s->timeslot->start_time);
-                            $end = strtotime($s->timeslot->end_time);
-
-                            return ($end - $start) / 60;
-                        });
-
-                        $hours = round($totalMinutes / 60, 1);
-
-                        $maxLoad = $f->max_load_units > 0 ? $f->max_load_units : 21;
-
-                        return $maxLoad > 0
-                            ? ($hours / $maxLoad) * 100
-                            : 0;
-                    }),
-                    1
-                ),
-
                 'subjects' => \App\Models\Subject::count(),
             ],
 

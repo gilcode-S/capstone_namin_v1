@@ -20,12 +20,11 @@ class ScheduleController extends Controller
     public function index()
     {
         $schedules = Schedule::with([
-            'assignment.section.program.department',
-            'assignment.subject',
-            'assignment.faculty',
+            'faculty',
+            'subject',
+            'section',
             'room',
-            'timeslot',
-            'version.semester'
+            'timeslot'
         ])->get();
 
         // 🔥 SUMMARY CALCULATIONS
@@ -34,11 +33,11 @@ class ScheduleController extends Controller
 
         $activeRooms = $schedules->pluck('room_id')->unique()->count();
 
+
         $totalSections = $schedules
-            ->pluck('assignment.section.id')
+            ->pluck('section_id')
             ->unique()
             ->count();
-
         // WEEKLY HOURS (REAL COMPUTATION)
         $weeklyHours = $schedules->reduce(function ($total, $schedule) {
 

@@ -62,15 +62,8 @@ Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
     // GENERATE UI
     Route::get('/generate-schedule', [GenerateController::class, 'index'])
         ->name('generate.index');
-
-    // GENERATE ACTION
     Route::post('/schedules/generate/{versionId}', [GenerateController::class, 'generate'])
         ->name('generate.schedule');
-
-    // RESET
-    Route::post('/schedules/reset/{versionId}', [GenerateController::class, 'reset'])
-        ->name('reset.schedule');
-
     // ✅ FIXED: VIEW CONFLICTS (needs versionId)
     Route::get('/conflicts/{versionId}', [ConflictController::class, 'index'])
         ->name('schedules.conflicts');
@@ -78,7 +71,6 @@ Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
     // RESOLVE CONFLICTS
     Route::post('/conflicts/{versionId}/resolve', [ConflictController::class, 'resolve'])
         ->name('conflicts.resolve');
-        
 });
 
 Route::middleware(['auth', 'role:staff,super admin'])

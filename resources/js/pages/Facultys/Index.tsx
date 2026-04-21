@@ -54,9 +54,10 @@ interface Faculty {
   qualification_level: string
   years_experience: number
   status: string
-  availabilities: Availability[]
+  // availabilities: Availability[]
   shifts: Shift[]
-  schedule?: Schedule[]
+  availability_full: Availability[]
+  schedule_full: Schedule[]
 }
 
 const emptyForm = {
