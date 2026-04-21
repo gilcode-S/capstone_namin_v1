@@ -167,12 +167,16 @@ class FacultyController extends Controller
     {
         $validated = $request->validate([
             'department_id' => 'required|exists:departments,id',
-            'faculty_code' => 'required|unique:faculties,faculty_code',
+            'faculty_code' => 'nullable|unique:faculties,faculty_code',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:faculties,email',
-            'employment_type' => 'nullable',
+            'email' => 'nullable|email|unique:faculties,email',
+
+            'employment_type' => 'nullable|in:full_time,part_time',
+
+            'min_hours' => 'nullable|integer|min:0', // ✅ NEW
             'max_load_units' => 'required|integer|min:1',
+
             'status' => 'required|in:active,inactive',
 
             'availability' => 'nullable|array',
@@ -181,10 +185,10 @@ class FacultyController extends Controller
             'shifts' => 'nullable|array',
             'shifts.*' => 'exists:shifts,id',
 
-            'qualification_level' => 'nullable|string',
+            // ✅ FIXED
+            'qualification_level' => 'nullable|string|max:255',
             'years_experience' => 'nullable|integer|min:0',
 
-            'degree' => 'nullable|in:Bachelor,Master,PhD',
             'domains' => 'nullable|array',
             'domains.*' => 'string',
         ]);
@@ -195,8 +199,8 @@ class FacultyController extends Controller
             foreach ($request->availability as $day) {
                 $faculty->availabilities()->create([
                     'day_of_week' => $day,
-                    'start_time' => '08:00',
-                    'end_time' => '17:00',
+                    'start_time' => '07:00',
+                    'end_time' => '22:00',
                 ]);
             }
         }
@@ -213,12 +217,16 @@ class FacultyController extends Controller
     {
         $validated = $request->validate([
             'department_id' => 'required|exists:departments,id',
-            'faculty_code' => 'required|unique:faculties,faculty_code,' . $faculty->id,
+            'faculty_code' => 'nullable|unique:faculties,faculty_code,' . $faculty->id,
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:faculties,email,' . $faculty->id,
-            'employment_type' => 'nullable',
+            'email' => 'nullable|email|unique:faculties,email,' . $faculty->id,
+
+            'employment_type' => 'nullable|in:full_time,part_time',
+
+            'min_hours' => 'nullable|integer|min:0', // ✅ NEW
             'max_load_units' => 'required|integer|min:1',
+
             'status' => 'required|in:active,inactive',
 
             'availability' => 'nullable|array',
@@ -227,10 +235,10 @@ class FacultyController extends Controller
             'shifts' => 'nullable|array',
             'shifts.*' => 'exists:shifts,id',
 
-            'qualification_level' => 'nullable|string',
+            // ✅ FIXED
+            'qualification_level' => 'nullable|string|max:255',
             'years_experience' => 'nullable|integer|min:0',
 
-            'degree' => 'nullable|in:Bachelor,Master,PhD',
             'domains' => 'nullable|array',
             'domains.*' => 'string',
         ]);
@@ -243,8 +251,8 @@ class FacultyController extends Controller
             foreach ($request->availability as $day) {
                 $faculty->availabilities()->create([
                     'day_of_week' => $day,
-                    'start_time' => '08:00',
-                    'end_time' => '17:00',
+                    'start_time' => '07:00',
+                    'end_time' => '22:00',
                 ]);
             }
         }
@@ -253,7 +261,6 @@ class FacultyController extends Controller
 
         return redirect()->back()->with('success', 'Faculty updated');
     }
-
     // ===========================
     // DELETE
     // ===========================

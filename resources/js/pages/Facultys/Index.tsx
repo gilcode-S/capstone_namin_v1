@@ -29,7 +29,7 @@ interface Availability {
 
 interface Shift {
   id: number
-  shift_name: string
+  name: string
   start_time: string
   end_time: string
 }
@@ -58,6 +58,8 @@ interface Faculty {
   shifts: Shift[]
   availability_full: Availability[]
   schedule_full: Schedule[]
+  domains: []
+  min_hours: number
 }
 
 const emptyForm = {
@@ -67,14 +69,13 @@ const emptyForm = {
   last_name: '',
   email: '',
   employment_type: '',
+  min_hours: '', // ✅ NEW
   max_load_units: 21,
   status: 'active',
-  availabilities: [] as string[],
-  shifts: [] as number[],
-  qualificataion_level: '',
+  availability: [],
+  shifts: [],
+  qualification_level: '',
   years_experience: '',
-
-  degree: '',
   domains: []
 }
 
@@ -147,17 +148,13 @@ export default function Index() {
       last_name: faculty.last_name,
       email: faculty.email,
       employment_type: faculty.employment_type,
-      qualification_level: faculty.qualification_level,
-      years_experience: faculty.years_experience,
+      qualification_level: faculty.qualification_level || '',
+      years_experience: faculty.years_experience || '',
+      min_hours: faculty.min_hours || '', // ✅ NEW
       max_load_units: faculty.max_load_units,
       status: faculty.status,
-
-      availability: faculty.availabilities?.map(a => a.day_of_week) || [],
-
-
+      availability: faculty.availability_full?.map(a => a.day_of_week) || [],
       shifts: faculty.shifts?.map(s => s.id) || [],
-
-      degree: faculty.degree || '',
       domains: faculty.domains || [],
     })
 
@@ -695,10 +692,10 @@ export default function Index() {
             {/* BODY (SCROLLABLE) */}
             <form
               onSubmit={handleSubmit}
-              className="max-h-[70vh] overflow-y-auto p-6 space-y-4 bg-gray-50"
+              className="max-h-[70vh] overflow-y-auto p-6 space-y-5 bg-[#F7F7F7]"
             >
 
-              {/* NAME */}
+              {/* FULL NAME */}
               <div className="grid grid-cols-2 gap-3">
                 <Input
                   name="first_name"
@@ -707,6 +704,7 @@ export default function Index() {
                   onChange={handleChange}
                   required
                 />
+
                 <Input
                   name="last_name"
                   placeholder="Last Name"
@@ -716,104 +714,25 @@ export default function Index() {
                 />
               </div>
 
-              {/* FACULTY CODE */}
-              <Input
-                name="faculty_code"
-                placeholder="Faculty Code (e.g. FAC-001)"
-                value={form.faculty_code}
-                onChange={handleChange}
-                required
-              />
-
-              {/* EMAIL */}
-              <Input
-                type="email"
-                name="email"
-                placeholder="Email"
-                value={form.email}
-                onChange={handleChange}
-                required
-              />
-
-              {/* EMPLOYMENT */}
-              <select
-                name="employment_type"
-                value={form.employment_type}
-                onChange={handleChange}
-                className="w-full border rounded-md px-3 py-2"
-                required
-              >
-                <option value="">Employment Type</option>
-                <option value="full_time">Full Time</option>
-                <option value="part_time">Part Time</option>
-              </select>
-
               {/* DEPARTMENT */}
-              <select
-                name="department_id"
-                value={form.department_id}
-                onChange={handleChange}
-                className="w-full border rounded-md px-3 py-2"
-              >
-                <option value="">Select Department</option>
-                {departments.map(d => (
-                  <option key={d.id} value={d.id}>
-                    {d.department_name}
-                  </option>
-                ))}
-              </select>
-
-              {/* DEGREE */}
-              <select
-                name="degree"
-                value={form.degree}
-                onChange={handleChange}
-                className="w-full border rounded-md px-3 py-2"
-              >
-                <option value="">Select Degree</option>
-                <option value="Bachelor">Bachelor</option>
-                <option value="Master">Master</option>
-                <option value="PhD">PhD</option>
-              </select>
-
-
-              {/* DOMAINS CAN TEACH */}
               <div>
-                <Label>Domains Can Teach</Label>
-
-                <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
-
-                  {[
-                    "Computer Science / IT",
-                    "Business / Management",
-                    "Tourism / Hospitality",
-                    "Criminology / Law",
-                    "General Education"
-                  ].map(domain => (
-                    <label key={domain} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        value={domain}
-                        checked={form.domains?.includes(domain)}
-                        onChange={(e) => {
-                          const checked = e.target.checked
-
-                          setForm(prev => ({
-                            ...prev,
-                            domains: checked
-                              ? [...(prev.domains || []), domain]
-                              : prev.domains.filter((d: string) => d !== domain)
-                          }))
-                        }}
-                      />
-                      {domain}
-                    </label>
+                <Label>Department</Label>
+                <select
+                  name="department_id"
+                  value={form.department_id}
+                  onChange={handleChange}
+                  className="w-full border rounded-md px-3 py-2"
+                >
+                  <option value="">Select Department</option>
+                  {departments.map(d => (
+                    <option key={d.id} value={d.id}>
+                      {d.department_name}
+                    </option>
                   ))}
-
-                </div>
+                </select>
               </div>
 
-              {/* QUALIFICATION */}
+              {/* QUALIFICATION + EXPERIENCE */}
               <div className="grid grid-cols-2 gap-3">
                 <select
                   name="qualification_level"
@@ -821,10 +740,10 @@ export default function Index() {
                   onChange={handleChange}
                   className="border rounded-md px-3 py-2"
                 >
-                  <option value="">Qualification</option>
-                  <option>Bachelor</option>
-                  <option>Master</option>
-                  <option>PhD</option>
+                  <option value="">Highest Qualification</option>
+                  <option value="Bachelor">Bachelor’s Degree</option>
+                  <option value="Master">Master’s Degree</option>
+                  <option value="Doctorate">Doctorate</option>
                 </select>
 
                 <Input
@@ -832,6 +751,25 @@ export default function Index() {
                   name="years_experience"
                   placeholder="Years Experience"
                   value={form.years_experience}
+                  onChange={handleChange}
+                />
+              </div>
+
+              {/* HOURS */}
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  type="number"
+                  name="min_hours"
+                  placeholder="Min Weekly Hours (Optional)"
+                  value={form.min_hours}
+                  onChange={handleChange}
+                />
+
+                <Input
+                  type="number"
+                  name="max_load_units"
+                  placeholder="Max Weekly Hours"
+
                   onChange={handleChange}
                 />
               </div>
@@ -856,8 +794,8 @@ export default function Index() {
 
               {/* SHIFT */}
               <div>
-                <Label>Shift (Select 2)</Label>
-                <div className="flex gap-4 mt-2 text-sm">
+                <Label>Preferred Shift (Max 2)</Label>
+                <div className="flex gap-6 mt-2 text-sm">
                   {shifts.map((shift) => (
                     <label key={shift.id} className="flex items-center gap-2">
                       <input
@@ -873,12 +811,8 @@ export default function Index() {
               </div>
 
               {/* FOOTER */}
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={handleClose}>
-                  Cancel
-                </Button>
-
-                <Button type="submit">
+              <div className="pt-4">
+                <Button className="w-full bg-black text-white">
                   {isEdit ? "Save Changes" : "Add Teacher"}
                 </Button>
               </div>
