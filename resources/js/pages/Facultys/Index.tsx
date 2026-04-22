@@ -58,8 +58,10 @@ interface Faculty {
   shifts: Shift[]
   availability_full: Availability[]
   schedule_full: Schedule[]
-  domains: []
+  domain: string
   min_hours: number
+  program: string
+  current_load: number
 }
 
 const emptyForm = {
@@ -69,14 +71,15 @@ const emptyForm = {
   last_name: '',
   email: '',
   employment_type: '',
-  min_hours: '', // ✅ NEW
-  max_load_units: 21,
+  current_load: '', // ✅ NEW
+  max_load_units: '',
   status: 'active',
   availability: [],
   shifts: [],
   qualification_level: '',
   years_experience: '',
-  domains: []
+  domain: '',
+  program: '',
 }
 
 export default function Index() {
@@ -150,12 +153,13 @@ export default function Index() {
       employment_type: faculty.employment_type,
       qualification_level: faculty.qualification_level || '',
       years_experience: faculty.years_experience || '',
-      min_hours: faculty.min_hours || '', // ✅ NEW
+      current_load: faculty.current_load || '', // ✅ NEW
       max_load_units: faculty.max_load_units,
       status: faculty.status,
       availability: faculty.availability_full?.map(a => a.day_of_week) || [],
       shifts: faculty.shifts?.map(s => s.id) || [],
-      domains: faculty.domains || [],
+      domain: faculty.domain || '',   // ✅ FIXED
+      program: faculty.program || ''  // ✅ FIXED
     })
 
     setIsEdit(true)
@@ -401,6 +405,104 @@ export default function Index() {
     h = h % 12 || 12
 
     return `${h}:00 ${ampm}`
+  }
+
+  const PROGRAMS_BY_DOMAIN: Record<string, string[]> = {
+    "Computer Studies / IT": [
+      "Computer Science",
+      "Information Technology",
+      "Information Systems",
+      "Software Engineering",
+      "Data Science"
+    ],
+
+    "Engineering": [
+      "Civil Engineering",
+      "Mechanical Engineering",
+      "Electrical Engineering",
+      "Electronics Engineering",
+      "Computer Engineering",
+      "Industrial Engineering",
+      "Chemical Engineering"
+    ],
+
+    "Business & Accountancy": [
+      "Accountancy",
+      "Business Administration",
+      "Financial Management",
+      "Marketing Management",
+      "Human Resource Management",
+      "Entrepreneurship",
+      "Office Administration"
+    ],
+
+    "Education": [
+      "Secondary Education (Major in English/Math/etc.)",
+      "Elementary Education",
+      "Special Education",
+      "Physical Education"
+    ],
+
+    "Health Sciences": [
+      "Nursing",
+      "Pharmacy",
+      "Medical Technology",
+      "Public Health",
+      "Physical Therapy",
+      "Biology (pre-med track acceptable)"
+    ],
+
+    "Arts & Humanities": [
+      "English Language / Literature",
+      "Communication",
+      "Journalism",
+      "Philosophy",
+      "History",
+      "Political Science",
+      "Sociology",
+      "Psychology"
+    ],
+
+    "Sciences & Mathematics": [
+      "Mathematics",
+      "Applied Mathematics",
+      "Physics",
+      "Chemistry",
+      "Biology",
+      "Environmental Science"
+    ],
+
+    "Agriculture & Fisheries": [
+      "Agriculture",
+      "Agricultural Engineering",
+      "Fisheries",
+      "Food Technology",
+      "Forestry"
+    ],
+
+    "Hospitality / Tourism": [
+      "Hospitality Management",
+      "Tourism Management",
+      "Culinary Arts"
+    ],
+
+    "Law / Security / Public Service": [
+      "Criminology",
+      "Legal Management",
+      "Juris Doctor (Law)"
+    ],
+
+    "Maritime": [
+      "Marine Engineering",
+      "Marine Transportation"
+    ],
+
+    "Fine Arts / Design / Architecture": [
+      "Architecture",
+      "Fine Arts",
+      "Industrial Design",
+      "Multimedia Arts"
+    ]
   }
 
   return (
@@ -713,6 +815,17 @@ export default function Index() {
                   required
                 />
               </div>
+              {/* FACULTY CODE */}
+              <div>
+                <Label>Faculty Code</Label>
+                <Input
+                  name="faculty_code"
+                  placeholder="e.g. FAC-001"
+                  value={form.faculty_code}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
 
               {/* DEPARTMENT */}
               <div>
@@ -754,14 +867,59 @@ export default function Index() {
                   onChange={handleChange}
                 />
               </div>
+              {/* DOMAIN + PROGRAM */}
+              {/* DOMAIN + PROGRAM (DEPENDENT DROPDOWN) */}
+              <div className="grid grid-cols-2 gap-3">
+
+                {/* DOMAIN */}
+                <select
+                  name="domain"
+                  value={form.domain}
+                  onChange={(e) => {
+                    setForm({
+                      ...form,
+                      domain: e.target.value,
+                      program: '' // 🔥 reset program when domain changes
+                    })
+                  }}
+                  className="border rounded-md px-3 py-2"
+                >
+                  <option value="">Select Domain</option>
+                  {Object.keys(PROGRAMS_BY_DOMAIN).map(domain => (
+                    <option key={domain} value={domain}>
+                      {domain}
+                    </option>
+                  ))}
+                </select>
+
+                {/* PROGRAM */}
+                <select
+                  name="program"
+                  value={form.program}
+                  onChange={handleChange}
+                  disabled={!form.domain} // 🔥 disable if no domain
+                  className="border rounded-md px-3 py-2"
+                >
+                  <option value="">Select Program</option>
+
+                  {form.domain &&
+                    PROGRAMS_BY_DOMAIN[form.domain]?.map(program => (
+                      <option key={program} value={program}>
+                        {program}
+                      </option>
+                    ))
+                  }
+                </select>
+
+              </div>
 
               {/* HOURS */}
               <div className="grid grid-cols-2 gap-3">
                 <Input
                   type="number"
-                  name="min_hours"
-                  placeholder="Min Weekly Hours (Optional)"
-                  value={form.min_hours}
+                  name="current_load"
+                  placeholder="Current Load (Units)"
+                  value={form.current_load}
                   onChange={handleChange}
                 />
 
@@ -769,14 +927,14 @@ export default function Index() {
                   type="number"
                   name="max_load_units"
                   placeholder="Max Weekly Hours"
-
+                  value={form.max_load_units}
                   onChange={handleChange}
                 />
               </div>
 
               {/* AVAILABILITY */}
               <div>
-                <Label>Availability</Label>
+                <Label>Availability (Min 4)</Label>
                 <div className="grid grid-cols-3 gap-2 mt-2 text-sm">
                   {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => (
                     <label key={day} className="flex items-center gap-2">

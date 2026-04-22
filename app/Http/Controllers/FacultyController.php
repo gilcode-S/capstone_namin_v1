@@ -174,7 +174,7 @@ class FacultyController extends Controller
 
             'employment_type' => 'nullable|in:full_time,part_time',
 
-            'min_hours' => 'nullable|integer|min:0', // ✅ NEW
+            'current_load' => 'nullable|integer|min:0', // ✅ NEW
             'max_load_units' => 'required|integer|min:1',
 
             'status' => 'required|in:active,inactive',
@@ -189,8 +189,8 @@ class FacultyController extends Controller
             'qualification_level' => 'nullable|string|max:255',
             'years_experience' => 'nullable|integer|min:0',
 
-            'domains' => 'nullable|array',
-            'domains.*' => 'string',
+            'program' => 'nullable|string|max:255',
+            'domain' => 'nullable|string|max:255',
         ]);
 
         $faculty = Faculty::create($validated);
@@ -224,7 +224,7 @@ class FacultyController extends Controller
 
             'employment_type' => 'nullable|in:full_time,part_time',
 
-            'min_hours' => 'nullable|integer|min:0', // ✅ NEW
+            'current_load' => 'nullable|integer|min:0', // ✅ NEW
             'max_load_units' => 'required|integer|min:1',
 
             'status' => 'required|in:active,inactive',
@@ -239,8 +239,8 @@ class FacultyController extends Controller
             'qualification_level' => 'nullable|string|max:255',
             'years_experience' => 'nullable|integer|min:0',
 
-            'domains' => 'nullable|array',
-            'domains.*' => 'string',
+            'program' => 'nullable|string|max:255',
+            'domain' => 'nullable|string|max:255',
         ]);
 
         $faculty->update($validated);

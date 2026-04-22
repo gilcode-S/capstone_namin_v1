@@ -26,12 +26,13 @@ class Faculty extends Model
         'years_experience',
         'current_load',
         'degree',
-        'domains'
+        'domain',
+        'program'
     ];
 
     protected $casts = [
         'preferred_timeslots' => 'array',
-        'domains' => 'array'
+  
     ];
     public function department()
     {
