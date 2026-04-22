@@ -12,11 +12,32 @@ use Inertia\Inertia;
 class ScheduleVersionController extends Controller
 {
     //  
-    public function index()
+    public function index(Request $request)
     {
+        $query = ScheduleVersion::with(['semester', 'creator']);
+
+        // FILTERS
+        if ($request->filled('semester_id')) {
+            $query->where('semester_id', $request->semester_id);
+        }
+
+        if ($request->filled('school_year')) {
+            $query->whereHas('semester', function ($q) use ($request) {
+                $q->where('school_year', $request->school_year);
+            });
+        }
+        if ($request->filled('version_id')) {
+            $query->where('schedule_version_id', $request->version_id);
+        }
+
         return Inertia::render("ScheduleVersions/Index", [
-            'versions' => ScheduleVersion::with(['semester', 'creator'])->orderByDesc('created_at')->get(),
+            'versions' => $query->latest()->get(),
             'semesters' => Semester::all(),
+
+            'filters' => $request->only([
+                'semester_id',
+                'school_year'
+            ])
         ]);
     }
 
