@@ -49,7 +49,8 @@ export const sidebarConfig = {
     {
       label: "System",
       items: [
-        { title: "Semester Module", href: "/semesters", icon: SquareBottomDashedScissors }
+        { title: "Semester Module", href: "/semesters", icon: SquareBottomDashedScissors },
+        { title: "Audit Logs", href: "/audit-logs", icon: ScanHeart }
       ]
     }
   ],

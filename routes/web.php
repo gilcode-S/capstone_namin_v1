@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ConflictController;
 use App\Http\Controllers\CurriculumController;
 use App\Http\Controllers\DepartmentController;
@@ -73,6 +74,10 @@ Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
     // RESOLVE CONFLICTS
     Route::post('/conflicts/{versionId}/resolve', [ConflictController::class, 'resolve'])
         ->name('conflicts.resolve');
+
+
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])
+        ->name('audit.logs');
 });
 
 Route::middleware(['auth', 'role:staff,super admin'])
