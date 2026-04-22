@@ -68,8 +68,7 @@ Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
     Route::post('/schedules/reset/{versionId}', [GenerateController::class, 'reset'])
         ->name('schedules.reset');
     // ✅ FIXED: VIEW CONFLICTS (needs versionId)
-    Route::get('/conflicts/{versionId}', [ConflictController::class, 'index'])
-        ->name('schedules.conflicts');
+
 
     // RESOLVE CONFLICTS
     Route::post('/conflicts/{versionId}/resolve', [ConflictController::class, 'resolve'])
@@ -79,6 +78,13 @@ Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
     Route::get('/audit-logs', [AuditLogController::class, 'index'])
         ->name('audit.logs');
 });
+Route::get('/conflicts', function () {
+    $version = \App\Models\ScheduleVersion::where('is_active', 1)->first();
+
+    return redirect("/conflicts/{$version->id}");
+});
+
+Route::get('/conflicts/{versionId}', [ConflictController::class, 'index']);
 
 Route::middleware(['auth', 'role:staff,super admin'])
     ->get('/schedule-versions', [ScheduleVersionController::class, 'index']);

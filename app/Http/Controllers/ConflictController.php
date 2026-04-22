@@ -20,7 +20,15 @@ class ConflictController extends Controller
 
         return Inertia::render('Schedules/Conflicts', [
             'conflicts' => $conflicts,
-            'versionId' => $versionId
+            'versionId' => $versionId,
+
+            // 🔥 ADD THESE
+            'stats' => [
+                'total' => count($conflicts),
+                'unresolved' => count($conflicts),
+                'resolved' => 0,
+            ],
+            'resolved' => [],
         ]);
     }
 
