@@ -1,21 +1,32 @@
 import { Head, usePage, router } from '@inertiajs/react'
 import { useState, useEffect } from 'react'
 import AppLayout from '@/layouts/app-layout'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 
 export default function Index() {
 
     const {
         schedules = [],
-        rooms_grouped = {},
+        sections = [],
         rooms_flat = [],
         timeslots = [],
         summary = {},
         departments = [],
         filters = {},
+        section_schedules = {},
+        teacher_schedules = {},
+        faculties = [],
+        teachers = []
     } = usePage().props as any
 
     const [tab, setTab] = useState<'grid' | 'section' | 'teacher'>('grid')
-
+    const [setMode, setSetMode] = useState<'A' | 'B'>('A')
+    const [gridKey, setGridKey] = useState(0)
+    const [selectedSection, setSelectedSection] = useState<any>(null)
+    const [sectionModalOpen, setSectionModalOpen] = useState(false)
+    const [selectedTeacher, setSelectedTeacher] = useState<any>(null)
+    const [teacherModalOpen, setTeacherModalOpen] = useState(false)
     const [form, setForm] = useState({
         department_id: filters.department_id || '',
         day: filters.day || '',
@@ -24,17 +35,56 @@ export default function Index() {
         shift: filters.shift || '',
     })
 
+    const sectionMap: any = {}
+
+    schedules.forEach((s: any) => {
+        if (!s?.timeslot || !s?.room || !s?.section) return
+
+        const key = `${s.section.section_name}-${s.timeslot.day_of_week}-${s.timeslot.start_time}`
+
+        sectionMap[key] = s
+    })
+
+    const groupedTeacherSchedule =
+        selectedTeacher
+            ? (teacher_schedules[selectedTeacher.id] || []).reduce((acc, s) => {
+                if (!acc[s.day]) acc[s.day] = []
+                acc[s.day].push(s)
+                return acc
+            }, {})
+            : {}
+    const handleFilterChange = (key, value) => {
+        const updated = {
+            ...filters,
+            [key]: value,
+        };
+
+        router.get(route('schedules.index'), updated, {
+            preserveState: true,
+            replace: true,
+        });
+    };
+
+
     // ================= AUTO SUBMIT FILTER =================
     useEffect(() => {
+        if (tab !== 'grid') return
+
         const timeout = setTimeout(() => {
             router.get('/schedules', form, {
                 preserveState: true,
+                preserveScroll: true,
                 replace: true,
+                only: ['schedules', 'summary', 'rooms_flat', 'timeslots']
             })
-        }, 400) // debounce (prevents spam requests)
+        }, 400)
 
         return () => clearTimeout(timeout)
     }, [form])
+
+    useEffect(() => {
+        setGridKey(prev => prev + 1)
+    }, [schedules.length])
 
     // ================= HARD-CODED DAYS =================
     const days = [
@@ -96,7 +146,23 @@ export default function Index() {
 
         return `${h}:${minute ?? '00'} ${ampm}`
     }
+    const groupedSectionSchedule =
+        selectedSection
+            ? (section_schedules[selectedSection.section_id] || []).reduce((acc, s) => {
+                if (!acc[s.day]) acc[s.day] = []
+                acc[s.day].push(s)
+                return acc
+            }, {})
+            : {}
+    const [search, setSearch] = useState(filters.section || '');
 
+    useEffect(() => {
+        const delay = setTimeout(() => {
+            handleFilterChange('section', search);
+        }, 400); // 400ms delay
+
+        return () => clearTimeout(delay);
+    }, [search]);
     return (
         <AppLayout breadcrumbs={[{ title: "Schedules", href: "/schedules" }]}>
 
@@ -213,15 +279,21 @@ export default function Index() {
                     {/* ================= SECTION FILTERS ================= */}
                     {tab === 'section' && (
                         <>
-                            <select className="border p-2 rounded col-span-2">
-                                <option>Section</option>
-                                {/* map sections later */}
-                            </select>
+                            <Input
+                                placeholder="Search Section..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="border p-2 rounded col-span-2"
+                            />
 
-                            <select className="border p-2 rounded">
-                                <option>Day</option>
-                                {days.map((d) => (
-                                    <option key={d} value={d}>{d}</option>
+                            <select
+                                className="border p-2 rounded"
+                                value={filters.shift || ''}
+                                onChange={(e) => handleFilterChange('shift', e.target.value)}
+                            >
+                                <option value="">Shift</option>
+                                {shifts.map((s) => (
+                                    <option key={s} value={s}>{s}</option>
                                 ))}
                             </select>
 
@@ -262,7 +334,7 @@ export default function Index() {
 
                 {/* ================= GRID VIEW ================= */}
                 {tab === 'grid' && (
-                    <div className="bg-white border rounded-xl overflow-hidden">
+                    <div key={gridKey} className="bg-white border rounded-xl overflow-hidden">
 
                         {/* HEADER */}
                         {/* <div className="p-3 text-center font-bold border-b bg-white">
@@ -392,11 +464,202 @@ export default function Index() {
                     </div>
                 )}
                 {/* ================= OTHER TABS ================= */}
-                {tab !== 'grid' && (
-                    <div className="bg-white p-6 border rounded-xl">
-                        <p className="text-gray-500">View coming soon...</p>
+                {tab === 'section' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                        {sections.length === 0 ? (
+                            <div className="text-gray-500">
+                                No sections available
+                            </div>
+                        ) : (
+                            sections.map((sec: any) => (
+                                <div
+                                    key={sec.section_id}
+                                    onClick={() => {
+                                        setSelectedSection(sec)
+                                        setSectionModalOpen(true)
+                                    }}
+                                    className="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition"
+                                >
+
+                                    {/* SECTION NAME */}
+                                    <div className="text-lg font-bold text-gray-800">
+                                        {sec.section_name}
+                                    </div>
+
+                                    {/* PROGRAM */}
+                                    <div className="text-sm text-gray-500">
+                                        {sec.program_name}
+                                    </div>
+
+                                    {/* STATS ROW */}
+                                    <div className="mt-4 flex justify-between">
+
+                                        {/* SUBJECTS */}
+                                        <div>
+                                            <div className="text-xs text-gray-400">Subjects</div>
+                                            <div className="text-lg font-semibold">
+                                                {sec.total_subjects}
+                                            </div>
+                                        </div>
+
+                                        {/* UNITS */}
+                                        <div>
+                                            <div className="text-xs text-gray-400">Units</div>
+                                            <div className="text-lg font-semibold text-blue-600">
+                                                {sec.total_units}
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            ))
+                        )}
+
                     </div>
                 )}
+                {tab === 'teacher' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                        {teachers.length === 0 ? (
+                            <div className="text-gray-500">
+                                No teachers available
+                            </div>
+                        ) : (
+                            teachers.map((t: any) => (
+                                <div
+                                    key={t.id}
+                                    onClick={() => {
+                                        // optional: open modal later
+                                        console.log(t)
+                                    }}
+                                    className="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition cursor-pointer"
+                                >
+
+                                    {/* NAME */}
+                                    <div className="text-lg font-bold text-gray-800">
+                                        {t.name}
+                                    </div>
+
+                                    {/* DEPARTMENT */}
+                                    <div className="text-sm text-gray-500">
+                                        {t.department}
+                                    </div>
+
+                                    {/* STATS ROW */}
+                                    <div className="mt-4 flex justify-between">
+
+                                        {/* SUBJECTS */}
+                                        <div>
+                                            <div className="text-xs text-gray-400">Subjects</div>
+                                            <div className="text-lg font-semibold">
+                                                {t.total_subjects}
+                                            </div>
+                                        </div>
+
+                                        {/* UNITS */}
+                                        <div>
+                                            <div className="text-xs text-gray-400">Units</div>
+                                            <div className="text-lg font-semibold text-blue-600">
+                                                {t.total_units}
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            ))
+                        )}
+
+                    </div>
+                )}
+
+                <Dialog
+                    open={sectionModalOpen}
+                    onOpenChange={(open) => {
+                        setSectionModalOpen(open)
+                        if (!open) setSelectedSection(null)
+                    }}
+                >
+                    <DialogContent className="max-w-5xl w-full h-[90vh] flex flex-col p-0 rounded-2xl">
+
+                        {selectedSection && (
+                            <div className="flex flex-col h-full bg-white">
+
+                                {/* HEADER */}
+                                <div className="p-6 border-b">
+                                    <h2 className="text-2xl font-bold">
+                                        {selectedSection.section_name}
+                                    </h2>
+
+                                    <p className="text-sm text-gray-500">
+                                        Program: {selectedSection.program_name}
+                                    </p>
+
+                                    <p className="text-sm text-gray-500">
+                                        Subjects: {selectedSection.total_subjects}
+                                    </p>
+
+                                    <p className="text-sm text-gray-500">
+                                        Units: {selectedSection.total_units}
+                                    </p>
+                                </div>
+
+                                {/* BODY */}
+                                <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+
+                                    {Object.keys(groupedSectionSchedule).length === 0 && (
+                                        <div className="text-center text-gray-500">
+                                            No schedule assigned
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-4">
+                                        {Object.entries(groupedSectionSchedule).map(([day, schedules]) => (
+                                            <div key={day} className="bg-white rounded-xl border">
+
+                                                {/* DAY */}
+                                                <div className="bg-gray-100 px-4 py-2 font-semibold">
+                                                    {day}
+                                                </div>
+
+                                                {schedules.map((s: any, i: number) => (
+                                                    <div
+                                                        key={i}
+                                                        className="flex justify-between px-4 py-3 border-t text-sm"
+                                                    >
+                                                        <span>
+                                                            {formatTime(s.start_time)} - {formatTime(s.end_time)}
+                                                        </span>
+
+                                                        <span className="font-medium">
+                                                            {s.subject}
+                                                        </span>
+
+                                                        <span className="text-gray-500">
+                                                            {s.room}
+                                                        </span>
+
+                                                        <span className="text-gray-400 text-xs">
+                                                            {s.teacher}
+                                                        </span>
+                                                    </div>
+                                                ))}
+
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        )}
+
+                    </DialogContent>
+                </Dialog>
+
+
 
             </div>
         </AppLayout>

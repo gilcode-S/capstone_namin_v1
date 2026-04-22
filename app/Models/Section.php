@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Programs;
 use App\Models\Department;
 use App\Models\Semester;
+use App\Models\Subject;
 use Illuminate\Database\Eloquent\Model;
 
 class Section extends Model
@@ -33,5 +34,9 @@ class Section extends Model
     public function semester()
     {
         return $this->belongsTo(Semester::class);
+    }
+    public function subjects()
+    {
+        return $this->belongsToMany(Subject::class, 'section_subject_assignments');
     }
 }

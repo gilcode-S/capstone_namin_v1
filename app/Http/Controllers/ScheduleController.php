@@ -58,11 +58,109 @@ class ScheduleController extends Controller
                 $q->where('shift', $request->shift);
             });
         }
+        if ($request->filled('section')) {
+            $query->whereHas('section', function ($q) use ($request) {
+                $q->where('section_name', 'like', '%' . $request->section . '%');
+            });
+        }
 
         $schedules = $query->get();
 
+        // ================= SECTIONS =================
+        // ================= SECTIONS (BASED ON FILTERED SCHEDULES) =================
+
+        // get section IDs from filtered schedules
+        $sectionsQuery = Section::with(['program']);
+
+        if ($request->filled('section')) {
+            $sectionsQuery->where('section_name', 'like', '%' . $request->section . '%');
+        }
+        
+        $sections = $sectionsQuery->get();
+
+        // apply search filter
+        if ($request->filled('section')) {
+            $sectionsQuery->where('section_name', 'like', '%' . $request->section . '%');
+        }
+
+        $sections = $sectionsQuery->get();
+        // ================= CLASS UNITS (FROM CURRICULUM) =================
+        $classUnits = app(\App\Services\Scheduler\ClassUnitService::class)
+            ->generate($sections);
+
+        // ================= SECTION SUMMARY (FOR UI) =================
+        $sectionSummary = collect($classUnits)
+            ->groupBy('section_id')
+            ->map(function ($items) {
+
+                return [
+                    'section_id' => $items[0]['section_id'],
+                    'section_name' => $items[0]['section_name'] ?? 'N/A',
+                    'program_name' => $items[0]['program_name'] ?? 'N/A',
+
+                    // 👇 your required values
+                    'total_subjects' => collect($items)
+                        ->unique('subject_id')
+                        ->count(),
+
+                    'total_units' => collect($items)
+                        ->sum('sessions_needed'),
+                ];
+            })
+            ->values();
+
+        $sectionSchedules = $schedules
+            ->groupBy('section_id')
+            ->map(function ($items) {
+                return $items->map(function ($s) {
+                    return [
+                        'day' => $s->timeslot->day_of_week,
+                        'start_time' => $s->timeslot->start_time,
+                        'end_time' => $s->timeslot->end_time,
+                        'subject' => $s->subject->subject_code ?? '',
+                        'room' => $s->room->room_name ?? '',
+                        'teacher' => $s->faculty->first_name ?? '',
+                    ];
+                });
+            });
+
+        $teacherSchedules = $schedules
+            ->groupBy('faculty_id')
+            ->map(function ($items) {
+                return $items->map(function ($s) {
+                    return [
+                        'day' => $s->timeslot->day_of_week,
+                        'start_time' => $s->timeslot->start_time,
+                        'end_time' => $s->timeslot->end_time,
+                        'subject' => $s->subject->subject_code ?? '',
+                        'section' => $s->section->section_name ?? '',
+                        'room' => $s->room->room_name ?? '',
+                    ];
+                });
+            });
+        $teachers = Faculty::with(['department', 'subjects'])->get();
+
+        $teacherSummary = $teachers->map(function ($f) {
+
+            $subjects = $f->subjects;
+
+            return [
+                'id' => $f->id,
+                'name' => $f->full_name,
+                'department' => $f->department->department_name ?? 'N/A',
+
+                'total_subjects' => $subjects->count(),
+
+                // assume each subject = units (default 3)
+                'total_units' => $subjects->sum(function ($s) {
+                    return $s->units ?? 3;
+                }),
+            ];
+        });
         return Inertia::render('Schedules/Index', [
             'schedules' => $schedules,
+            'section_schedules' => $sectionSchedules,
+            'teachers' => $teacherSummary,
 
             'summary' => [
                 'total_classes' => $schedules->count(),
@@ -71,10 +169,12 @@ class ScheduleController extends Controller
                 'total_sections' => $schedules->pluck('section_id')->unique()->count(),
             ],
 
-            // ✅ IMPORTANT FIX: split room structures
+            // ================= SECTION VIEW DATA =================
+            'sections' => $sectionSummary,
+
+            // ================= OTHER DATA =================
             'rooms_grouped' => Room::all()->groupBy('building'),
             'rooms_flat' => Room::all(),
-
             'timeslots' => TimeSlot::all(),
             'departments' => Department::all(),
 
@@ -84,6 +184,7 @@ class ScheduleController extends Controller
                 'building',
                 'floor',
                 'shift',
+                'section'
             ]),
         ]);
     }

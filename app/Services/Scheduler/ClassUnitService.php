@@ -27,6 +27,8 @@ class ClassUnitService
                 $units = max(1, $subject->units ?? 3);
 
                 $classUnits[] = [
+                    "section_name" => $section->section_name,
+                    "program_name" => $section->program->program_name ?? 'N/A',
                     "section_id" => $section->id,
                     "subject_id" => $subject->id,
                     "subject_name" => $subject->subject_name,

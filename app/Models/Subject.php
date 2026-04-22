@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Programs;
 use App\Models\Department;
+use App\Models\Section;
 use App\Models\Curriculum;
 
 class Subject extends Model
@@ -24,7 +25,7 @@ class Subject extends Model
         'semester',
         'domains',
         'preferred_teacher',
-        'preferred_day',    
+        'preferred_day',
         'preferred_shift',
         'room_type_required',
     ];
@@ -68,6 +69,10 @@ class Subject extends Model
     public function curriculums()
     {
         return $this->hasMany(Curriculum::class);
+    }
+    public function sections()
+    {
+        return $this->belongsToMany(Section::class, 'section_subject_assignments');
     }
 
     // subjects that THIS subject requires
