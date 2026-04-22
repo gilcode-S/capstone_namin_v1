@@ -1,54 +1,101 @@
-import { Head, usePage } from '@inertiajs/react'
-import { useState } from 'react'
+import { Head, usePage, router } from '@inertiajs/react'
+import { useState, useEffect } from 'react'
 import AppLayout from '@/layouts/app-layout'
-import { Button } from '@/components/ui/button'
 
 export default function Index() {
 
     const {
         schedules = [],
-        rooms = [],
+        rooms_grouped = {},
+        rooms_flat = [],
         timeslots = [],
         summary = {},
+        departments = [],
+        filters = {},
     } = usePage().props as any
 
     const [tab, setTab] = useState<'grid' | 'section' | 'teacher'>('grid')
 
-    const roomsByBuilding = rooms
+    const [form, setForm] = useState({
+        department_id: filters.department_id || '',
+        day: filters.day || '',
+        building: filters.building || '',
+        floor: filters.floor || '',
+        shift: filters.shift || '',
+    })
 
-    const uniqueTimes = [...new Set(timeslots.map((t: any) => t.start_time))]
-    const days = [...new Set(timeslots.map((t: any) => t.day_of_week))]
+    // ================= AUTO SUBMIT FILTER =================
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            router.get('/schedules', form, {
+                preserveState: true,
+                replace: true,
+            })
+        }, 400) // debounce (prevents spam requests)
 
-    // ================= TIME GROUPING =================
+        return () => clearTimeout(timeout)
+    }, [form])
+
+    // ================= HARD-CODED DAYS =================
+    const days = [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+    ]
+
+    const shifts = ['Morning', 'Afternoon', 'Evening']
+
+    // ================= SHIFT DETECTION =================
     const getPeriod = (time: string) => {
         if (!time) return 'Morning'
 
-        const [hourPart, modifier] = time.split(' ')
-        let hour = parseInt(hourPart?.split(':')[0] ?? '0')
+        let hour = 0
 
-        if (modifier === 'PM' && hour !== 12) hour += 12
-        if (modifier === 'AM' && hour === 12) hour = 0
+        // handles "HH:MM:SS" or "HH:MM AM/PM"
+        if (time.includes('AM') || time.includes('PM')) {
+            const [h, mod] = time.split(' ')
+            hour = parseInt(h.split(':')[0])
 
-        if (hour < 12) return 'Morning'
-        if (hour < 17) return 'Afternoon'
+            if (mod === 'PM' && hour !== 12) hour += 12
+            if (mod === 'AM' && hour === 12) hour = 0
+
+        } else {
+            hour = parseInt(time.split(':')[0])
+        }
+
+        if (hour >= 6 && hour < 12) return 'Morning'
+        if (hour >= 12 && hour < 18) return 'Afternoon'
         return 'Evening'
     }
 
-    const groupedTimes = {
-        Morning: uniqueTimes.filter(t => getPeriod(t) === 'Morning'),
-        Afternoon: uniqueTimes.filter(t => getPeriod(t) === 'Afternoon'),
-        Evening: uniqueTimes.filter(t => getPeriod(t) === 'Evening'),
-    }
-
-    // ================= FAST LOOKUP =================
+    // ================= SCHEDULE LOOKUP MAP =================
     const scheduleMap: any = {}
 
     schedules.forEach((s: any) => {
         if (!s?.timeslot || !s?.room) return
 
-        const key = `${s.timeslot.day_of_week}-${s.timeslot.start_time}-${s.room.room_name}`
+        const key =
+            `${s.timeslot.day_of_week}-${s.timeslot.start_time}-${s.room.room_name}`
+
         scheduleMap[key] = s
     })
+
+    const formatTime = (time: string) => {
+        if (!time) return ''
+
+        const [hour, minute] = time.split(':')
+        let h = parseInt(hour)
+
+        const ampm = h >= 12 ? 'PM' : 'AM'
+
+        if (h > 12) h = h - 12
+        if (h === 0) h = 12
+
+        return `${h}:${minute ?? '00'} ${ampm}`
+    }
 
     return (
         <AppLayout breadcrumbs={[{ title: "Schedules", href: "/schedules" }]}>
@@ -57,27 +104,13 @@ export default function Index() {
 
             <div className="p-6 space-y-6 bg-[#f5f7f6] min-h-screen">
 
-                {/* ================= HEADER ================= */}
+                {/* ================= SUMMARY ================= */}
                 <div className="bg-white rounded-xl p-6 border">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h1 className="text-2xl font-semibold">Schedule Viewer</h1>
-                            <p className="text-sm text-gray-500">
-                                View and analyze the optimized class schedules
-                            </p>
-                        </div>
-
-                        <div className="flex gap-2">
-                            <Button variant="outline">Export PDF</Button>
-                            <Button variant="outline">Advanced Filters</Button>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-4 mt-6">
+                    <div className="grid grid-cols-4 gap-4">
                         <Card title="Total Classes" value={summary.total_classes ?? 0} />
                         <Card title="Weekly Hours" value={summary.weekly_hours ?? 0} />
                         <Card title="Active Rooms" value={summary.active_rooms ?? 0} />
-                        <Card title="Total Section" value={summary.total_sections ?? 0} />
+                        <Card title="Sections" value={summary.total_sections ?? 0} />
                     </div>
                 </div>
 
@@ -87,163 +120,281 @@ export default function Index() {
                         <button
                             key={t}
                             onClick={() => setTab(t)}
-                            className={`flex-1 py-2 rounded-full text-sm transition ${
-                                tab === t
-                                    ? 'bg-white shadow font-semibold'
-                                    : 'text-gray-500'
-                            }`}
+                            className={`flex-1 py-2 rounded-full text-sm transition ${tab === t
+                                ? 'bg-white shadow font-semibold'
+                                : 'text-gray-500'
+                                }`}
                         >
-                            {t === 'grid' ? 'GRID' : t === 'section' ? 'By Section' : 'By Teacher'}
+                            {t.toUpperCase()}
                         </button>
                     ))}
                 </div>
 
-                {/* ================= GRID ================= */}
+                {/* ================= FILTERS (TAB AWARE) ================= */}
+                <div className="bg-white p-4 rounded-xl border grid grid-cols-5 gap-3">
+
+                    {/* ================= GRID FILTERS ================= */}
+                    {tab === 'grid' && (
+                        <>
+                            {/* Department */}
+                            <select
+                                className="border p-2 rounded"
+                                value={form.department_id}
+                                onChange={(e) =>
+                                    setForm({ ...form, department_id: e.target.value })
+                                }
+                            >
+                                <option value="">Department</option>
+                                {departments.map((d: any) => (
+                                    <option key={d.id} value={d.id}>
+                                        {d.name ?? d.department_name}
+                                    </option>
+                                ))}
+                            </select>
+
+                            {/* Day */}
+                            <select
+                                className="border p-2 rounded"
+                                value={form.day}
+                                onChange={(e) =>
+                                    setForm({ ...form, day: e.target.value })
+                                }
+                            >
+                                <option value="">Day</option>
+                                {days.map((d) => (
+                                    <option key={d} value={d}>{d}</option>
+                                ))}
+                            </select>
+
+                            {/* Building */}
+                            <select
+                                className="border p-2 rounded"
+                                value={form.building}
+                                onChange={(e) =>
+                                    setForm({ ...form, building: e.target.value })
+                                }
+                            >
+                                <option value="">Building</option>
+                                {[...new Set(rooms_flat.map((r: any) => r.building))].map((b: any) => (
+                                    <option key={b} value={b}>{b}</option>
+                                ))}
+                            </select>
+
+                            {/* Floor */}
+                            <select
+                                className="border p-2 rounded"
+                                value={form.floor}
+                                onChange={(e) =>
+                                    setForm({ ...form, floor: e.target.value })
+                                }
+                            >
+                                <option value="">Floor</option>
+                                {[...new Set(rooms_flat.map((r: any) => r.floor))].map((f: any) => (
+                                    <option key={f} value={f}>{f}</option>
+                                ))}
+                            </select>
+
+                            {/* Shift */}
+                            <select
+                                className="border p-2 rounded"
+                                value={form.shift}
+                                onChange={(e) =>
+                                    setForm({ ...form, shift: e.target.value })
+                                }
+                            >
+                                <option value="">Shift</option>
+                                {shifts.map((s) => (
+                                    <option key={s} value={s}>{s}</option>
+                                ))}
+                            </select>
+                        </>
+                    )}
+
+                    {/* ================= SECTION FILTERS ================= */}
+                    {tab === 'section' && (
+                        <>
+                            <select className="border p-2 rounded col-span-2">
+                                <option>Section</option>
+                                {/* map sections later */}
+                            </select>
+
+                            <select className="border p-2 rounded">
+                                <option>Day</option>
+                                {days.map((d) => (
+                                    <option key={d} value={d}>{d}</option>
+                                ))}
+                            </select>
+
+                            <select className="border p-2 rounded">
+                                <option>Shift</option>
+                                {shifts.map((s) => (
+                                    <option key={s} value={s}>{s}</option>
+                                ))}
+                            </select>
+                        </>
+                    )}
+
+                    {/* ================= TEACHER FILTERS ================= */}
+                    {tab === 'teacher' && (
+                        <>
+                            <select className="border p-2 rounded col-span-2">
+                                <option>Teacher</option>
+                                {/* map faculty later */}
+                            </select>
+
+                            <select className="border p-2 rounded">
+                                <option>Day</option>
+                                {days.map((d) => (
+                                    <option key={d} value={d}>{d}</option>
+                                ))}
+                            </select>
+
+                            <select className="border p-2 rounded">
+                                <option>Shift</option>
+                                {shifts.map((s) => (
+                                    <option key={s} value={s}>{s}</option>
+                                ))}
+                            </select>
+                        </>
+                    )}
+
+                </div>
+
+                {/* ================= GRID VIEW ================= */}
                 {tab === 'grid' && (
-                    <div className="bg-white border rounded-xl overflow-auto">
+                    <div className="bg-white border rounded-xl overflow-hidden">
 
-                        <div className="min-w-max">
+                        {/* HEADER */}
+                        {/* <div className="p-3 text-center font-bold border-b bg-white">
+            SET A
+        </div> */}
 
-                            <div className="sticky top-0 z-40 bg-white border-b text-center font-semibold py-3">
-                                SET A
-                            </div>
+                        {(() => {
 
-                            {Object.entries(roomsByBuilding).map(([building, rooms]: any) => (
+                            const activeShifts =
+                                form.shift
+                                    ? [form.shift]
+                                    : ['Morning', 'Afternoon', 'Evening']
 
-                                <div key={building} className="border-b">
+                            return activeShifts.map((shift) => {
 
-                                    <div className="sticky top-[48px] z-30 bg-gray-50 border-b text-center py-2 font-semibold">
-                                        BUILDING {building}
-                                    </div>
+                                const filteredTimes = timeslots.filter(
+                                    (t: any) => getPeriod(t.start_time) === shift
+                                )
 
-                                    {days.map(day => (
+                                const filteredRooms = rooms_flat.filter((r: any) => {
+                                    if (form.building && r.building !== form.building) return false
+                                    if (form.floor && r.floor !== form.floor) return false
+                                    return true
+                                })
 
-                                        <div key={day} className="border-b">
+                                if (!filteredTimes.length || !filteredRooms.length) return null
 
-                                            <div
-                                                className="grid sticky top-[80px] z-20 bg-gray-100 border-b"
-                                                style={{
-                                                    gridTemplateColumns: `120px repeat(${rooms.length}, 180px)`
-                                                }}
-                                            >
-                                                <div className="sticky left-0 z-30 bg-gray-100 border-r p-2 font-semibold text-center">
-                                                    {day.toUpperCase()}
-                                                </div>
+                                return (
+                                    <div key={shift} className="border-b">
 
-                                                {rooms.map((r: any) => (
-                                                    <div key={r.id} className="border-r p-2 text-center font-medium">
-                                                        {r.room_name}
+                                        {/* SHIFT HEADER */}
+                                        <div className="bg-gray-100 p-2 font-semibold text-sm">
+                                            {shift === 'Morning' && ' MORNING'}
+                                            {shift === 'Afternoon' && ' AFTERNOON'}
+                                            {shift === 'Evening' && ' EVENING'}
+                                        </div>
+
+                                        {/* SCROLL WRAPPER */}
+                                        <div className="overflow-x-auto">
+
+                                            <div className="min-w-max">
+
+                                                {/* ================= HEADER ================= */}
+                                                <div
+                                                    className="grid sticky top-0 z-20 bg-gray-200 border-b"
+                                                    style={{
+                                                        gridTemplateColumns:
+                                                            `120px repeat(${filteredRooms.length}, 180px)`
+                                                    }}
+                                                >
+
+                                                    {/* TIME HEADER (FIXED LEFT) */}
+                                                    <div className="sticky left-0 z-30 bg-gray-200 border-r p-2 text-center font-semibold">
+                                                        TIME
                                                     </div>
-                                                ))}
-                                            </div>
 
-                                            {Object.entries(groupedTimes).map(([period, times]: any) => (
-
-                                                <div key={period}>
-
-                                                    <div
-                                                        className="grid bg-gray-200 border-b text-xs font-semibold"
-                                                        style={{
-                                                            gridTemplateColumns: `120px repeat(${rooms.length}, 180px)`
-                                                        }}
-                                                    >
-                                                        <div className="sticky left-0 z-20 bg-gray-200 border-r p-2 text-center">
-                                                            {period.toUpperCase()}
-                                                        </div>
-
-                                                        {rooms.map((r: any) => (
-                                                            <div key={r.id} className="border-r" />
-                                                        ))}
-                                                    </div>
-
-                                                    {times.map((time: string) => (
-
+                                                    {/* ROOM HEADERS */}
+                                                    {filteredRooms.map((r: any) => (
                                                         <div
-                                                            key={time}
-                                                            className="grid border-b"
-                                                            style={{
-                                                                gridTemplateColumns: `120px repeat(${rooms.length}, 180px)`
-                                                            }}
+                                                            key={r.id}
+                                                            className="p-2 text-center font-semibold border-r"
                                                         >
-
-                                                            <div className="sticky left-0 z-10 bg-white border-r p-2 text-sm text-center">
-                                                                {time}
-                                                            </div>
-
-                                                            {rooms.map((r: any) => {
-
-                                                                const sched = scheduleMap[`${day}-${time}-${r.room_name}`]
-
-                                                                return (
-                                                                    <div
-                                                                        key={r.id}
-                                                                        className="border-r p-2 min-h-[80px] flex flex-col justify-center items-center text-xs"
-                                                                    >
-                                                                        {sched ? (
-                                                                            <>
-                                                                                <div className="font-semibold text-center">
-                                                                                    {sched.faculty?.first_name ?? '—'}
-                                                                                </div>
-
-                                                                                <div className="text-gray-500 text-[10px] text-center">
-                                                                                    {sched.section?.section_name ?? '—'}
-                                                                                </div>
-
-                                                                                <div className="text-[9px] text-gray-400 text-center">
-                                                                                    {sched.subject?.subject_code ?? '—'}
-                                                                                </div>
-                                                                            </>
-                                                                        ) : (
-                                                                            <span className="text-gray-300">—</span>
-                                                                        )}
-                                                                    </div>
-                                                                )
-                                                            })}
-
+                                                            {r.room_name}
                                                         </div>
                                                     ))}
 
                                                 </div>
-                                            ))}
 
+                                                {/* ================= ROWS ================= */}
+                                                {filteredTimes.map((timeSlot: any) => (
+
+                                                    <div
+                                                        key={timeSlot.id}
+                                                        className="grid border-b"
+                                                        style={{
+                                                            gridTemplateColumns:
+                                                                `120px repeat(${filteredRooms.length}, 180px)`
+                                                        }}
+                                                    >
+
+                                                        {/* TIME COLUMN (FIXED) */}
+                                                        <div className="sticky left-0 z-10 bg-white border-r p-2 text-center font-medium shadow-sm">
+                                                            {formatTime(timeSlot.start_time)}
+                                                        </div>
+
+                                                        {/* ROOM CELLS */}
+                                                        {filteredRooms.map((r: any) => {
+
+                                                            const key =
+                                                                `${timeSlot.day_of_week}-${timeSlot.start_time}-${r.room_name}`
+
+                                                            const sched = scheduleMap[key]
+
+                                                            return (
+                                                                <div
+                                                                    key={r.id}
+                                                                    className="border-r min-h-[70px] flex items-center justify-center text-xs bg-white"
+                                                                >
+                                                                    {sched ? (
+                                                                        <div className="text-center">
+                                                                            <div className="font-semibold">
+                                                                                {sched.subject?.subject_code}
+                                                                            </div>
+                                                                            <div className="text-gray-500">
+                                                                                {sched.section?.section_name}
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        '—'
+                                                                    )}
+                                                                </div>
+                                                            )
+                                                        })}
+
+                                                    </div>
+                                                ))}
+
+                                            </div>
                                         </div>
-                                    ))}
 
-                                </div>
-                            ))}
+                                    </div>
+                                )
+                            })
 
-                        </div>
+                        })()}
+
                     </div>
                 )}
-
-                {/* ================= SECTION TABLE ================= */}
-                {tab === 'section' && (
-                    <div className="bg-white border rounded-xl overflow-hidden">
-                        <table className="w-full text-sm">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="p-2 text-left">Section</th>
-                                    <th className="p-2 text-left">Subject</th>
-                                    <th className="p-2 text-left">Faculty</th>
-                                    <th className="p-2 text-left">Room</th>
-                                    <th className="p-2 text-left">Time</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {schedules.map((s: any) => (
-                                    <tr key={s.id} className="border-t">
-                                        <td className="p-2">{s.section?.section_name ?? '-'}</td>
-                                        <td className="p-2">{s.subject?.subject_code ?? '-'}</td>
-                                        <td className="p-2">{s.faculty?.first_name ?? '-'}</td>
-                                        <td className="p-2">{s.room?.room_name ?? '-'}</td>
-                                        <td className="p-2">
-                                            {s.timeslot?.day_of_week} {s.timeslot?.start_time}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                {/* ================= OTHER TABS ================= */}
+                {tab !== 'grid' && (
+                    <div className="bg-white p-6 border rounded-xl">
+                        <p className="text-gray-500">View coming soon...</p>
                     </div>
                 )}
 
@@ -257,7 +408,7 @@ function Card({ title, value }: any) {
     return (
         <div className="border rounded-xl p-4 bg-gray-50">
             <p className="text-sm text-gray-500">{title}</p>
-            <p className="text-2xl font-semibold mt-2">{value}</p>
+            <p className="text-2xl font-semibold">{value}</p>
         </div>
     )
 }

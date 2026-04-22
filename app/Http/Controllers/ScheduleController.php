@@ -17,67 +17,76 @@ use Inertia\Inertia;
 class ScheduleController extends Controller
 {
 
-    public function index()
+    public function index(Request $request)
     {
-        $schedules = Schedule::with([
+        $query = Schedule::with([
             'faculty',
             'subject',
-            'section',
+            'section.program.department',
             'room',
             'timeslot'
-        ])->get();
+        ]);
 
-        // 🔥 SUMMARY CALCULATIONS
+        // ================= FILTERS =================
 
-        $totalClasses = $schedules->count();
+        if ($request->filled('department_id')) {
+            $query->whereHas('section.program.department', function ($q) use ($request) {
+                $q->where('id', $request->department_id);
+            });
+        }
 
-        $activeRooms = $schedules->pluck('room_id')->unique()->count();
+        if ($request->filled('day')) {
+            $query->whereHas('timeslot', function ($q) use ($request) {
+                $q->where('day_of_week', $request->day);
+            });
+        }
 
+        if ($request->filled('building')) {
+            $query->whereHas('room', function ($q) use ($request) {
+                $q->where('building', $request->building);
+            });
+        }
 
-        $totalSections = $schedules
-            ->pluck('section_id')
-            ->unique()
-            ->count();
-        // WEEKLY HOURS (REAL COMPUTATION)
-        $weeklyHours = $schedules->reduce(function ($total, $schedule) {
+        if ($request->filled('floor')) {
+            $query->whereHas('room', function ($q) use ($request) {
+                $q->where('floor', $request->floor);
+            });
+        }
 
-            $start = strtotime($schedule->timeslot->start_time);
-            $end = strtotime($schedule->timeslot->end_time);
+        if ($request->filled('shift')) {
+            $query->whereHas('timeslot', function ($q) use ($request) {
+                $q->where('shift', $request->shift);
+            });
+        }
 
-            $hours = ($end - $start) / 3600;
-
-            return $total + $hours;
-        }, 0);
+        $schedules = $query->get();
 
         return Inertia::render('Schedules/Index', [
-
             'schedules' => $schedules,
 
             'summary' => [
-                'total_classes' => $totalClasses,
-                'weekly_hours' => $weeklyHours,
-                'active_rooms' => $activeRooms,
-                'total_sections' => $totalSections,
+                'total_classes' => $schedules->count(),
+                'weekly_hours' => 0,
+                'active_rooms' => $schedules->pluck('room_id')->unique()->count(),
+                'total_sections' => $schedules->pluck('section_id')->unique()->count(),
             ],
 
-            'departments' => Department::with('programs')->get(),
-            'programs' => Programs::with('department')->get(),
-            'sections' => Section::with('program')->get(),
-            'faculty' => Faculty::all(),
-            'rooms' => Room::all()->groupBy('building')->map(function ($rooms) {
-                return $rooms->values();
-            }),
-            'timeslots' => TimeSlot::all(),
-            'versions' => ScheduleVersion::with('semester')->get(),
+            // ✅ IMPORTANT FIX: split room structures
+            'rooms_grouped' => Room::all()->groupBy('building'),
+            'rooms_flat' => Room::all(),
 
-            'assignments' => SectionSubjectAssignment::with([
-                'section.program',
-                'subject',
-                'faculty'
-            ])->get()
+            'timeslots' => TimeSlot::all(),
+            'departments' => Department::all(),
+
+            'filters' => $request->only([
+                'department_id',
+                'day',
+                'building',
+                'floor',
+                'shift',
+            ]),
         ]);
     }
-
     public function store(Request $request)
     {
         $validated = $request->validate([

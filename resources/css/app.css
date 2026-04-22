@@ -193,3 +193,13 @@
 .scrollbar-track-gray-100::-webkit-scrollbar-track {
   background: #f3f4f6;
 }
+
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
