@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AnalyticController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ConflictController;
 use App\Http\Controllers\CurriculumController;
@@ -29,6 +30,9 @@ Route::get('dashboard', [DashboardController::class, 'index'])
 
 Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('department', DepartmentController::class);
+    
+Route::middleware(['auth', 'role:super admin,registrar'])
+    ->resource('analytics', AnalyticController::class);
 Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('program', ProgramController::class);
 Route::middleware(['auth', 'role:super admin,registrar'])
@@ -85,6 +89,10 @@ Route::get('/conflicts', function () {
 });
 
 Route::get('/conflicts/{versionId}', [ConflictController::class, 'index']);
+
+
+
+
 
 Route::middleware(['auth', 'role:staff,super admin'])
     ->get('/schedule-versions', [ScheduleVersionController::class, 'index']);

@@ -17,6 +17,16 @@ export const sidebarConfig = {
 
   "super admin": [
     {
+      label: "Analytics",
+      items: [
+        {
+          title: "Analytics",
+          href: "/analytics",
+          icon: ChartNoAxesColumnIncreasingIcon
+        }
+      ]
+    },
+    {
       label: "Academics",
       items: [
         { title: "Academics", href: "/academics", icon: Layers },
@@ -45,6 +55,7 @@ export const sidebarConfig = {
         { title: "Conflict Detection", href: "/conflicts", icon: AlertCircle } // ✅ FIXED
       ]
     },
+  
 
     {
       label: "System",
