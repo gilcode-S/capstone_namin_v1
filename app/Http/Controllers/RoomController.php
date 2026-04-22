@@ -44,6 +44,17 @@ class RoomController extends Controller
         if ($request->tab && $request->tab !== 'utilization') {
             $query->where('resource_type', $request->tab);
         }
+        if ($request->building) {
+            $query->where('building', $request->building);
+        }
+
+        if ($request->floor) {
+            $query->where('floor', $request->floor);
+        }
+
+        if ($request->type) {
+            $query->where('resource_type', $request->type);
+        }
 
         return Inertia::render('Rooms/Index', [
             'rooms' => $query->paginate(15),
@@ -85,7 +96,7 @@ class RoomController extends Controller
     {
         //
         $validated = $request->validate([
-          
+
             'room_name' => 'required|string|max:50|unique:rooms,room_name',
 
             // NEW

@@ -84,9 +84,11 @@ export default function Index() {
     const [editId, setEditId] = useState<number | null>(null)
     const [statusFilter, setStatusFilter] = useState('')
     const [typeFilter, setTypeFilter] = useState(filters?.type || '')
-    const [activeTab, setActiveTab] = useState<'all' | 'idle'>('all')
+    const [activeTab, setActiveTab] = useState<'all' | 'idle' | 'utilization'>('all')
     const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
     const [viewOpen, setViewOpen] = useState(false)
+    const [buildingFilter, setBuildingFilter] = useState('')
+    const [floorFilter, setFloorFilter] = useState('')
 
     useEffect(() => {
         setStatusFilter(filters?.status || '')
@@ -153,13 +155,21 @@ export default function Index() {
         setForm(updatedForm)
     }
 
-    const handleStatusFilter = (value: string) => {
-        setStatusFilter(value)
+    const handleFilters = (newFilters: any) => {
+        const updated = {
+            status: statusFilter,
+            type: typeFilter,
+            building: buildingFilter,
+            floor: floorFilter,
+            ...newFilters
+        }
 
-        router.get('/rooms', {
-            status: value,
-            type: typeFilter
-        }, {
+        // update local states
+        if (newFilters.type !== undefined) setTypeFilter(newFilters.type)
+        if (newFilters.building !== undefined) setBuildingFilter(newFilters.building)
+        if (newFilters.floor !== undefined) setFloorFilter(newFilters.floor)
+
+        router.get('/rooms', updated, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
@@ -225,7 +235,14 @@ export default function Index() {
 
         return days
     }
-
+    const groupedRooms = {
+        classroom: rooms.data.filter(r => (r.resource_type || r.room_type) === 'classroom'),
+        laboratory: rooms.data.filter(r => (r.resource_type || r.room_type) === 'laboratory'),
+        other: rooms.data.filter(r => {
+            const type = r.resource_type || r.room_type
+            return type !== 'classroom' && type !== 'laboratory'
+        })
+    }
     const getAvailableRanges = (timeslots: any[]) => {
         if (!timeslots.length) {
             return [{ start: "07:00", end: "19:00" }] // whole day free
@@ -291,6 +308,54 @@ export default function Index() {
             return '—'
         }
     }
+    const getRoomIdlePercentage = (room: any) => {
+        const START = 7 * 60
+        const END = 19 * 60
+        const TOTAL = END - START
+
+        if (!room.schedules || room.schedules.length === 0) {
+            return 100 // no schedules = fully idle
+        }
+
+        let occupiedMinutes = 0
+
+        const parseTime = (t: string) => {
+            const parts = t.split(':')
+            return parseInt(parts[0]) * 60 + parseInt(parts[1] || '0')
+        }
+
+        room.schedules.forEach((s: any) => {
+            const startTime = s.timeslot?.start_time || s.start_time
+            const endTime = s.timeslot?.end_time || s.end_time
+
+            if (!startTime || !endTime) return
+
+            const start = parseTime(startTime)
+            const end = parseTime(endTime)
+
+            if (end > start) {
+                occupiedMinutes += (end - start)
+            }
+        })
+
+        const free = Math.max(TOTAL - occupiedMinutes, 0)
+
+        return (free / TOTAL) * 100
+    }
+    const getAverageUtilization = (list: any[]) => {
+        if (!list.length) return 0
+
+        const total = list.reduce(
+            (sum, r) => sum + getRoomUtilization(r),
+            0
+        )
+
+        return (total / list.length).toFixed(0)
+    }
+
+    const getRoomUtilization = (room: any) => {
+        return 100 - getRoomIdlePercentage(room)
+    }
     const handleTypeFilter = (value: string) => {
         setTypeFilter(value)
 
@@ -343,6 +408,34 @@ export default function Index() {
     const idleResources = rooms.data.filter((r: any) => {
         return !isRoomOccupiedNow(r)
     })
+    const avgIdle =
+        rooms.data.length > 0
+            ? (
+                rooms.data.reduce((sum, r) => sum + getRoomIdlePercentage(r), 0)
+                / rooms.data.length
+            ).toFixed(1)
+            : 0
+    const avgUtilization =
+        rooms.data.length > 0
+            ? (
+                rooms.data.reduce((sum, r) => sum + getRoomUtilization(r), 0)
+                / rooms.data.length
+            ).toFixed(1)
+            : 0
+    const formatRoomType = (type: string | undefined) => {
+        if (!type) return ''
+
+        switch (type) {
+            case 'classroom':
+                return 'Classroom'
+            case 'laboratory':
+                return 'Lab'
+            case 'pe_room':
+                return 'PE Room'
+            default:
+                return type
+        }
+    }
 
     return (
         <AppLayout breadcrumbs={[{ title: 'Rooms', href: '/rooms' }]}>
@@ -383,42 +476,23 @@ export default function Index() {
                         <h2 className="text-2xl font-bold">
                             {stats?.total ?? 0}
                         </h2>
-                        <p className="text-xs text-muted-foreground">
-                            All classrooms & facilities
-                        </p>
+
                     </div>
 
-                    {/* AVAILABLE */}
                     <div className="rounded-xl border p-4 bg-white shadow-sm">
-                        <p className="text-sm text-muted-foreground">Available</p>
-                        <h2 className="text-2xl font-bold text-green-600">
-                            {stats?.available ?? 0}
+                        <p className="text-sm text-muted-foreground">Avg. Idle</p>
+                        <h2 className="text-2xl font-bold">
+                            <span className='text-green-500'> {avgIdle} %</span>
                         </h2>
-                        <p className="text-xs text-muted-foreground">
-                            Ready for scheduling
-                        </p>
+
                     </div>
 
-                    {/* OCCUPIED */}
                     <div className="rounded-xl border p-4 bg-white shadow-sm">
-                        <p className="text-sm text-muted-foreground">Occupied</p>
-                        <h2 className="text-2xl font-bold text-yellow-500">
-                            {stats?.occupied ?? 0}
-                        </h2>
-                        <p className="text-xs text-muted-foreground">
-                            Currently in use
-                        </p>
-                    </div>
+                        <p className="text-sm text-muted-foreground">Avg. Utilization</p>
+                        <h2 className="text-2xl font-bold">
+                            {avgUtilization}%
 
-                    {/* MAINTENANCE */}
-                    <div className="rounded-xl border p-4 bg-white shadow-sm">
-                        <p className="text-sm text-muted-foreground">Maintenance</p>
-                        <h2 className="text-2xl font-bold text-red-600">
-                            {stats?.maintenance ?? 0}
                         </h2>
-                        <p className="text-xs text-muted-foreground">
-                            Under repair / unavailable
-                        </p>
                     </div>
 
                 </div>
@@ -434,12 +508,13 @@ export default function Index() {
                         </p>
                     </div>
                     {/* SEGMENTED FILTER */}
-                    <div className="w-full mb-4">
+                    <div className="w-full mb-4 mt-4">
                         <div className="flex w-full bg-gray-100 rounded-full p-1">
 
                             {[
                                 { label: 'All Resources', value: 'all' },
                                 { label: 'Idle', value: 'idle' },
+                                { label: 'Utilization', value: 'utilization' },
                             ].map((tab) => (
                                 <button
                                     key={tab.value}
@@ -456,26 +531,28 @@ export default function Index() {
 
                         </div>
                     </div>
-                    <div className="flex gap-2 mb-4">
 
-                        {/* ALL */}
-                        <select
-                            value={typeFilter}
-                            onChange={(e) => handleTypeFilter(e.target.value)}
-                            className="border rounded-lg px-3 py-2 text-sm"
-                        >
-                            <option value="">All Types</option>
-                            <option value="classroom">Classroom</option>
-                            <option value="laboratory">Computer Lab</option>
-                            <option value="pe_room">PE room</option>
-                        </select>
-
-                    </div>
                     {/* TABLE */}
                     <div className="overflow-x-auto">
                         {activeTab === 'all' && (
 
+
                             <div className="overflow-x-auto">
+                                <div className="flex gap-2 mb-4">
+
+                                    {/* ALL */}
+                                    <select
+                                        value={typeFilter}
+                                        onChange={(e) => handleTypeFilter(e.target.value)}
+                                        className="border rounded-lg px-3 py-2 text-sm"
+                                    >
+                                        <option value="">All Types</option>
+                                        <option value="classroom">Classroom</option>
+                                        <option value="laboratory">Computer Lab</option>
+                                        <option value="pe_room">PE room</option>
+                                    </select>
+
+                                </div>
                                 <table className="w-full text-sm">
                                     <thead className="text-left text-muted-foreground">
                                         <tr className="border-b">
@@ -609,24 +686,159 @@ export default function Index() {
                                                                 </span>
 
                                                                 {available.length
-                                                                    ? `${formatTime(available[0].start)} - ${formatTime(available[0].end)}`
+                                                                    ? available.map((a: any, i: number) => (
+                                                                        <span key={i}>
+                                                                            {formatTime(a.start)} - {formatTime(a.end)}
+                                                                            {i < available.length - 1 ? ', ' : ''}
+                                                                        </span>
+                                                                    ))
                                                                     : 'Fully occupied'}
                                                             </p>
                                                         )
                                                     })}
                                                 </div>
 
-                                                <p className="text-xs text-green-600 mt-2">
-                                                    Available now
-                                                </p>
 
                                             </div>
                                         )
                                     })}
                             </div>
                         )}
+                    {activeTab === 'utilization' && (
+    <div className="bg-white border rounded-xl p-4 shadow-sm">
+
+        {/* FILTERS */}
+        <div className="grid md:grid-cols-3 gap-3 mb-6">
+
+            <select
+                value={buildingFilter}
+                onChange={(e) => handleFilters({ building: e.target.value })}
+                className="border rounded-lg px-3 py-2 text-sm"
+            >
+                <option value="">All Buildings</option>
+                <option value="C">Building C</option>
+                <option value="F">Building F</option>
+                <option value="V">Building V</option>
+            </select>
+
+            <select
+                value={floorFilter}
+                onChange={(e) => handleFilters({ floor: e.target.value })}
+                className="border rounded-lg px-3 py-2 text-sm"
+            >
+                <option value="">All Floors</option>
+                <option value="1">Floor 1</option>
+                <option value="2">Floor 2</option>
+                <option value="3">Floor 3</option>
+                <option value="4">Floor 4</option>
+            </select>
+
+            <select
+                value={typeFilter}
+                onChange={(e) => handleFilters({ type: e.target.value })}
+                className="border rounded-lg px-3 py-2 text-sm"
+            >
+                <option value="">All Types</option>
+                <option value="classroom">Classroom</option>
+                <option value="laboratory">Lab</option>
+                <option value="pe_room">PE Room</option>
+            </select>
+
+        </div>
+
+        {/* HEADER */}
+        <div className="flex justify-between mb-4">
+            <h2 className="font-semibold">All Room Utilization</h2>
+            <span className="text-sm font-bold">
+                Avg: {avgUtilization}%
+            </span>
+        </div>
+
+        {/* ALL ROOMS LIST (NO GROUPING) */}
+        <div className="space-y-4">
+
+            {rooms.data
+                .filter((r: any) => {
+                    const type = r.resource_type || r.room_type
+
+                    const matchType = typeFilter ? type === typeFilter : true
+                    const matchBuilding = buildingFilter ? r.building === buildingFilter : true
+                    const matchFloor = floorFilter ? r.floor === floorFilter : true
+
+                    return matchType && matchBuilding && matchFloor
+                })
+                .sort((a: any, b: any) =>
+                    getRoomUtilization(b) - getRoomUtilization(a)
+                )
+                .map((r: any) => {
+
+                    const util = getRoomUtilization(r)
+                    const percent = util.toFixed(0)
+
+                    let color = 'bg-green-500'
+                    if (util >= 80) color = 'bg-red-500'
+                    else if (util >= 60) color = 'bg-orange-400'
+                    else if (util >= 40) color = 'bg-yellow-400'
+
+                    const typeLabel = formatRoomType(r.resource_type || r.room_type)
+
+                    return (
+                        <div
+                            key={r.id}
+                            className="border rounded-lg p-4 hover:bg-gray-50 transition"
+                        >
+
+                            {/* TOP ROW */}
+                            <div className="flex justify-between mb-1">
+
+                                <div className="flex items-center gap-2">
+
+                                    {/* ROOM NAME */}
+                                    <span className="font-medium">
+                                        {r.room_name}
+                                    </span>
+
+                                    {/* TYPE BADGE */}
+                                    <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
+                                        {typeLabel}
+                                    </span>
+
+                                </div>
+
+                                {/* UTIL % */}
+                                <span className="font-semibold">
+                                    {percent}%
+                                </span>
+
+                            </div>
+
+                            {/* LOCATION */}
+                            <p className="text-xs text-gray-500 mb-2">
+                                {r.building
+                                    ? `Building ${r.building}, Floor ${r.floor}`
+                                    : 'No location'}
+                            </p>
+
+                            {/* BAR */}
+                            <div className="w-full bg-gray-200 h-2 rounded-full">
+                                <div
+                                    className={`${color} h-2 rounded-full`}
+                                    style={{ width: `${percent}%` }}
+                                />
+                            </div>
+
+                        </div>
+                    )
+                })}
+        </div>
+
+    </div>
+)}
+
                     </div>
+
                 </div>
+
 
                 <Pagination links={rooms.links} />
 
@@ -654,7 +866,7 @@ export default function Index() {
                                     <Input
                                         name="room_number"
                                         placeholder="e.g., 01, 02, 03"
-                                        value={form.room_id}
+                                        value={form.room_number}
                                         onChange={handleChange}
                                         required
                                     />
