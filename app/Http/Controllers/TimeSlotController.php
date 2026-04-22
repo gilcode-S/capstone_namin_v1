@@ -21,11 +21,11 @@ class TimeSlotController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'day_of_week' => 'required',
+            'day_of_week' => 'nullable',
             'start_time' => 'required',
             'end_time' => 'required|after:start_time',
             'shift' => 'required|in:morning,afternoon,evening',
-            'status' => 'required|in:active, inactive'
+            'status' => 'nullable|in:active, inactive'
         ]);
 
         TimeSlot::create($validated);
@@ -36,11 +36,11 @@ class TimeSlotController extends Controller
     public function update(Request $request, TimeSlot $timeSlot)
     {
         $validated = $request->validate([
-            'day_of_week' => 'required',
+            'day_of_week' => 'nullable',
             'start_time' => 'required',
             'end_time' => 'required|after:start_time',
             'shift' => 'required|in:morning,afternoon,evening',
-            'status' => 'required|in:active,inactive'
+            'status' => 'nullable|in:active,inactive'
         ]);
 
 

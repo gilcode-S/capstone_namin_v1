@@ -17,13 +17,13 @@ class TimeSlot extends Model
         'status'
     ];
     
-    public function getStartTimeAttribute($value)
-    {
-        return Carbon::parse($value)->format('g:i A');
-    }
+    // public function getStartTimeAttribute($value)
+    // {
+    //     return Carbon::parse($value)->format('g:i A');
+    // }
 
-    public function getEndTimeAttribute($value)
-    {
-        return Carbon::parse($value)->format('g:i A');
-    }
+    // public function getEndTimeAttribute($value)
+    // {
+    //     return Carbon::parse($value)->format('g:i A');
+    // }
 }
