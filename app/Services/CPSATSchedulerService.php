@@ -18,144 +18,115 @@ class CPSATSchedulerService
         $this->scoring = $scoring;
     }
 
+    /**
+     * MAIN ENTRY POINT
+     */
     public function generateSchedule($versionId)
     {
         $units = ClassUnit::where('status', 'generated')->get();
-        $teachers = Faculty::all(); // still Faculty model
+        $teachers = Faculty::all();
         $rooms = Room::all();
         $timeslots = TimeSlot::all();
 
-        $candidates = $this->buildCandidates($units, $teachers, $rooms, $timeslots);
+        // Prepare data for Python
+        $data = $this->prepareSolverData($units, $teachers, $rooms, $timeslots);
 
-        $filtered = $this->applyHardConstraints($candidates);
+        // Run Python CP-SAT Solver
+        $result = $this->runPythonSolver($data);
 
-        $optimized = $this->runOptimization($filtered);
-
-        return $this->saveSchedule($optimized, $versionId);
+        // Save result
+        return $this->saveScheduleFromPython($result, $versionId);
     }
 
-    private function buildCandidates($units, $teachers, $rooms, $timeslots)
+    /**
+     * PREPARE CLEAN DATA FOR PYTHON
+     */
+    private function prepareSolverData($units, $teachers, $rooms, $timeslots)
     {
-        $candidates = [];
+        $scores = [];
 
         foreach ($units as $unit) {
             foreach ($teachers as $teacher) {
-                foreach ($rooms as $room) {
-                    foreach ($timeslots as $slot) {
 
-                        $score = $this->scoring->calculateTeacherScore(
-                            $teacher,
-                            $unit->subject
-                        );
+                $score = $this->scoring->calculateTeacherScore(
+                    $teacher,
+                    $unit->subject
+                );
 
-                        $candidates[] = [
-                            'unit_id' => $unit->id,
-                            'teacher_id' => $teacher->id,
-                            'room_id' => $room->id,
-                            'timeslot_id' => $slot->id,
-                            'score' => $score,
-                        ];
-                    }
-                }
+                $scores[$unit->id . "_" . $teacher->id] = $score;
             }
         }
 
-        return $candidates;
+        return [
+            'class_units' => $units->map(fn($u) => [
+                'id' => $u->id,
+                'section_id' => $u->section_id,
+                'subject_id' => $u->subject_id,
+            ])->values()->toArray(),
+
+            'teachers' => $teachers->map(fn($t) => [
+                'id' => $t->id,
+            ])->values()->toArray(),
+
+            'rooms' => $rooms->map(fn($r) => [
+                'id' => $r->id,
+            ])->values()->toArray(),
+
+            'timeslots' => $timeslots->map(fn($ts) => [
+                'id' => $ts->id,
+            ])->values()->toArray(),
+
+            'scores' => $scores
+        ];
     }
 
-    private function applyHardConstraints($candidates)
+    /**
+     * CALL PYTHON SOLVER
+     */
+    private function runPythonSolver($data)
     {
-        return array_filter($candidates, function ($c) {
+        $json = json_encode($data);
 
-            if ($this->isTeacherBusy($c['teacher_id'], $c['timeslot_id'])) {
-                return false;
-            }
+        $pythonPath = "python3"; // or "python" if needed
+        $scriptPath = base_path('python_engine/cp_sat_solver.py');
 
-            if ($this->isRoomBusy($c['room_id'], $c['timeslot_id'])) {
-                return false;
-            }
+        $command = $pythonPath . " " . $scriptPath . " '" . addslashes($json) . "'";
 
-            if ($this->exceedsWorkload($c['teacher_id'])) {
-                return false;
-            }
+        $output = shell_exec($command);
 
-            return true;
-        });
+        return json_decode($output, true);
     }
 
-    private function runOptimization($candidates)
+    /**
+     * SAVE RESULT FROM PYTHON
+     */
+    private function saveScheduleFromPython($result, $versionId)
     {
-        usort($candidates, fn($a, $b) => $b['score'] <=> $a['score']);
-
-        $selected = [];
-        $usedTeachers = [];
-        $usedRooms = [];
-        $usedSlots = [];
-
-        foreach ($candidates as $c) {
-
-            if (
-                in_array($c['teacher_id'], $usedTeachers) ||
-                in_array($c['room_id'], $usedRooms) ||
-                in_array($c['timeslot_id'], $usedSlots)
-            ) {
-                continue;
-            }
-
-            $selected[] = $c;
-
-            $usedTeachers[] = $c['teacher_id'];
-            $usedRooms[] = $c['room_id'];
-            $usedSlots[] = $c['timeslot_id'];
+        if (!$result || isset($result['status'])) {
+            return null;
         }
 
-        return $selected;
-    }
+        foreach ($result as $item) {
 
-    private function saveSchedule($optimized, $versionId)
-    {
-        foreach ($optimized as $item) {
+            $unit = ClassUnit::find($item['unit_id']);
+            $teacher = Faculty::find($item['teacher_id']);
 
             Schedule::create([
-                'section_id' => $this->getSectionFromUnit($item['unit_id']),
-                'subject_id' => $this->getSubjectFromUnit($item['unit_id']),
-                'teacher_id' => $item['teacher_id'], // KEEP THIS
+                'section_id' => $unit->section_id,
+                'subject_id' => $unit->subject_id,
+                'teacher_id' => $item['teacher_id'],
                 'room_id' => $item['room_id'],
                 'timeslot_id' => $item['timeslot_id'],
                 'version_id' => $versionId,
                 'set_type' => 'A',
-                'score' => $item['score'],
+                'score' => $this->scoring->calculateTeacherScore(
+                    $teacher,
+                    $unit->subject
+                ),
                 'status' => 'active'
             ]);
         }
-    }
 
-    private function isTeacherBusy($teacherId, $slotId)
-    {
-        return Schedule::where('teacher_id', $teacherId)
-            ->where('timeslot_id', $slotId)
-            ->exists();
-    }
-
-    private function isRoomBusy($roomId, $slotId)
-    {
-        return Schedule::where('room_id', $roomId)
-            ->where('timeslot_id', $slotId)
-            ->exists();
-    }
-
-    private function exceedsWorkload($teacherId)
-    {
-        return Schedule::where('teacher_id', $teacherId)->count() > 40;
-    }
-
-    private function getSectionFromUnit($unitId)
-    {
-        return ClassUnit::find($unitId)->section_id;
-    }
-
-    private function getSubjectFromUnit($unitId)
-    {
-        return ClassUnit::find($unitId)->subject_id;
+        return true;
     }
 }
