@@ -29,13 +29,13 @@ class SubjectController extends Controller
             $query->where('program_id', $request->program_id);
         }
 
-        if ($request->semester) {
-            $query->where('semester', $request->semester);
-        }
+        // if ($request->semester) {
+        //     $query->where('semester', $request->semester);
+        // }
 
-        if ($request->year_level) {
-            $query->where('year_level', $request->year_level);
-        }
+        // if ($request->year_level) {
+        //     $query->where('year_level', $request->year_level);
+        // }
 
         if ($request->subject_type) {
             $query->where('subject_type', $request->subject_type);
@@ -46,11 +46,9 @@ class SubjectController extends Controller
             'programs' => Programs::all(),
             'teachers' => Faculty::all(),
             'allSubjects' => Subject::select('id', 'subject_name', 'subject_code')->get(),
-           
+
             'filters' => $request->only([
                 'program_id',
-                'semester',
-                'year_level',
                 'search',
                 'room_type',
                 'subject_type'
@@ -73,14 +71,14 @@ class SubjectController extends Controller
             'subject_type' => 'required|in:major,minor',
             'hours_per_week' => 'required|integer|min:1',
             'room_type' => 'nullable|in:classroom,laboratory,pe_room',
-            'year_level' => 'required|integer|min:1|max:5',
-            'semester' => 'required|integer|min:1|max:3',
+            'semester' => 'nullable|integer|min:1|max:3',
+            'year_level' => 'nullable|integer|min:1|max:5',
 
             'prerequisites' => 'nullable|array',
             'prerequisites.*' => 'exists:subjects,id',
 
             // ✅ NEW
-            'preferred_teacher_id' => 'nullable|exists:faculties,id',
+            'preferred_teacher_id' => 'nullable|string|max:100',
             'preferred_day' => 'nullable|string|max:20',
             'preferred_shift' => 'nullable|string|max:20',
             'domains' => 'nullable|array',
@@ -99,8 +97,9 @@ class SubjectController extends Controller
 
         $subject = Subject::create($validated);
         if ($validated['subject_type'] === 'major' && $subject->program) {
-            $subject->domain = $subject->program->domain ?? null;
-            $subject->save();
+            $subject->update([
+                'domains' => $subject->program->domains ?? []
+            ]);
         }
         $subject->prerequisites()->sync(
             array_unique($request->prerequisites ?? [])
@@ -118,14 +117,14 @@ class SubjectController extends Controller
             'subject_type' => 'required|in:major,minor',
             'hours_per_week' => 'required|integer|min:1',
             'room_type' => 'nullable|string|max:50',
-            'year_level' => 'required|integer|min:1|max:5',
-            'semester' => 'required|integer|min:1|max:3',
+            'semester' => 'nullable|integer|min:1|max:3',
+            'year_level' => 'nullable|integer|min:1|max:5',
 
             'prerequisites' => 'nullable|array',
             'prerequisites.*' => 'exists:subjects,id',
 
             // ✅ NEW
-            'preferred_teacher_id' => 'nullable|exists:faculties,id',
+            'preferred_teacher_id' => 'nullable|string|max:100',
             'preferred_day' => 'nullable|string|max:20',
             'preferred_shift' => 'nullable|string|max:20',
             'domains' => 'nullable|array',
@@ -142,8 +141,9 @@ class SubjectController extends Controller
         $validated['domains'] = $request->domains ?? [];
         $subject->update($validated);
         if ($validated['subject_type'] === 'major' && $subject->program) {
-            $subject->domain = $subject->program->domain ?? null;
-            $subject->save();
+            $subject->update([
+                'domains' => $subject->program->domains ?? []
+            ]);
         }
         $subject->prerequisites()->sync(
             array_unique($request->prerequisites ?? [])

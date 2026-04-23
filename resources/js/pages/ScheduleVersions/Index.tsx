@@ -135,10 +135,10 @@ export default function Index() {
          
           </div>
 
-          <Button onClick={() => setOpen(true)} className="gap-2">
+          {/* <Button onClick={() => setOpen(true)} className="gap-2">
             <Plus size={18} />
             Create Version
-          </Button>
+          </Button> */}
 
         </div>
 

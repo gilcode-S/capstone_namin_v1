@@ -11,36 +11,61 @@ use App\Models\Curriculum;
 class Subject extends Model
 {
     //
+    // protected $fillable = [
+    //     'program_id',
+    //     'subject_code',
+    //     'subject_name',
+    //     'subject_type',
+    //     'units',
+    //     'lecture_hours',
+    //     'lab_hours',
+    //     'hours_per_week',
+    //     'room_type',
+    //     'year_level',
+    //     'semester',
+    //     'domains',
+    //     'preferred_teacher',
+    //     'preferred_day',
+    //     'preferred_shift',
+    //     'room_type_required',
+    // ];
     protected $fillable = [
         'program_id',
         'subject_code',
         'subject_name',
         'subject_type',
-        'units',
-        'lecture_hours',
-        'lab_hours',
         'hours_per_week',
         'room_type',
+        'units',
         'year_level',
         'semester',
+
+        // NEW SYSTEM
+        'preferred_teacher_id',
+        'preferred_room_id',
+        'prerequisite_id',
+        'preferred_days',
         'domains',
-        'preferred_teacher',
-        'preferred_day',
         'preferred_shift',
-        'room_type_required',
+        'is_hard_constraint',
     ];
     protected $casts = [
+        'preferred_days' => 'array',
         'domains' => 'array',
+        'is_hard_constraint' => 'boolean',
     ];
-    public function preferredTeacher()
-    {
-        return $this->belongsTo(Faculty::class, 'preferred_teacher_id');
-    }
+    // public function preferredTeacher()
+    // {
+    //     return $this->belongsTo(Faculty::class, 'preferred_teacher_id');
+    // }
     public function isMajor(): bool
     {
         return $this->subject_type === 'major';
     }
-
+    public function prerequisite()
+    {
+        return $this->belongsTo(Subject::class, 'prerequisite_id');
+    }
     public function isMinor(): bool
     {
         return $this->subject_type === 'minor';
@@ -49,10 +74,9 @@ class Subject extends Model
     public function setDomainAutomatically()
     {
         if ($this->isMajor() && $this->program) {
-            $this->domain = $this->program->get_domain ?? null;
+            $this->domains = [$this->program->domain ?? null];
         }
     }
-
     // public function getDomainAttribute()
     // {
     //     return $this->program?->department?->domain;
