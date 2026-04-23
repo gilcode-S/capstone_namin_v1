@@ -56,12 +56,11 @@ export default function Dashboard() {
 
                 </div>
 
-
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
 
                     {/* OPTIMIZATION METRICS */}
                     <Card className="rounded-2xl">
-                        <CardContent className="p-5 space-y-4">
+                        <CardContent className="p-6 space-y-6">
                             <div>
                                 <h2 className="font-semibold">Optimization Metrics</h2>
                                 <p className="text-sm text-muted-foreground">
@@ -70,36 +69,15 @@ export default function Dashboard() {
                             </div>
 
                             <Progress label="Teacher Workload Balance" value={optimization.workload} />
-                            <Progress label="Room Utilization" value={optimization.rooms} />
-                            <Progress label="Schedule Compactness" value={optimization.compactness} />
-                            <Progress label="Conflict Minimization" value={optimization.conflicts} />
-                        </CardContent>
-                    </Card>
-
-                    {/* RECENT ACTIVITY */}
-                    <Card className="rounded-2xl">
-                        <CardContent className="p-5 space-y-4">
-                            <div>
-                                <h2 className="font-semibold">Recent Activities</h2>
-                                <p className="text-sm text-muted-foreground">
-                                    Latest updates and system notifications
-                                </p>
-                            </div>
-
-                            <div className="space-y-3 text-sm">
-                                <p>✅ Schedule optimization completed</p>
-                                <p className="text-yellow-600">
-                                    ⚠ {summary.conflicts} conflicts detected
-                                </p>
-                                <p>👤 New faculty added</p>
-                                <p>🏫 New room added</p>
-                            </div>
+                            <Progress label="Classroom Utilization" value={optimization.rooms} />
+                            <Progress label="Conflict Resolution" value={optimization.conflict_resolution} />
+                            <Progress label="Resource Efficiency" value={optimization.resource_efficiency} />
                         </CardContent>
                     </Card>
 
                 </div>
 
-         
+
                 <Card className="rounded-2xl">
                     <CardContent className="p-5">
                         <h2 className="font-semibold mb-4">Quick Actions</h2>
