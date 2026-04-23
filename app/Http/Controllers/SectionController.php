@@ -56,7 +56,9 @@ class SectionController extends Controller
         if ($request->year_level) {
             $query->where('year_level', (int) $request->year_level);
         }
-
+        if ($request->filled('program')) {
+            $query->where('program_id', $request->program);
+        }
         if ($request->filled('department')) {
             $query->whereHas('program.department', function ($q) use ($request) {
                 $q->where('id', $request->department);
@@ -88,7 +90,7 @@ class SectionController extends Controller
 
             'view' => $view,
 
-            'filters' => $request->only(['set', 'department', 'shift', 'section', 'year_level']),
+            'filters' => $request->only(['set', 'department', 'shift', 'section', 'year_level'.   'program']),
 
             'stats' => [
                 'total_sections' => Section::count(),

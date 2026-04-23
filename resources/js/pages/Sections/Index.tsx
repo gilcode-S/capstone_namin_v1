@@ -86,6 +86,7 @@ export default function Index() {
     section: initialFilters?.section || '',
     year_level: initialFilters?.year_level || '',
     subject_type: initialFilters?.subject_type || '',
+    program: initialFilters?.program || '', 
   })
 
   // const [filters, setFilter] = useState({
@@ -335,6 +336,19 @@ export default function Index() {
                 {departments.map((d: any) => (
                   <option key={d.id} value={d.id}>
                     {d.department_name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={filters.program}
+                onChange={(e) => handleFilterChange('program', e.target.value)}
+                className="h-10 rounded-lg border px-3"
+              >
+                <option value="">All Programs</option>
+                {programs.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.program_name}
                   </option>
                 ))}
               </select>
