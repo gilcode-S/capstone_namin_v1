@@ -918,7 +918,7 @@ export default function Index() {
                 <Input
                   type="number"
                   name="current_load"
-                  placeholder="Current Load (Units)"
+                  placeholder="Min Weekly Hours"
                   value={form.current_load}
                   onChange={handleChange}
                 />
@@ -926,7 +926,7 @@ export default function Index() {
                 <Input
                   type="number"
                   name="max_load_units"
-                  placeholder="Max Weekly Hours"
+                  placeholder="Maximum Weekly Hours"
                   value={form.max_load_units}
                   onChange={handleChange}
                 />

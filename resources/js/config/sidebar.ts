@@ -48,7 +48,7 @@ export const sidebarConfig = {
     {
       label: "Scheduling",
       items: [
-        { title: "Assignment", href: "/assignments", icon: ChartNoAxesColumnIncreasingIcon },
+ 
         { title: "Schedule Versions", href: "/schedule-versions", icon: Calendar },
         { title: "View Schedule", href: "/schedules", icon: ScanHeart },
         { title: "Generate Schedule", href: "/generate-schedule", icon: PlusCircle },
@@ -72,8 +72,7 @@ export const sidebarConfig = {
       items: [
         { title: "Subject", href: "/subject", icon: BookOpen },
         { title: "Section", href: "/section", icon: PanelsRightBottom },
-        { title: "Department", href: "/department", icon: Layers },
-        { title: "Program", href: "/program", icon: Layers }
+        { title: "Academics", href: "/academics", icon: Layers },
       ]
     }
   ],

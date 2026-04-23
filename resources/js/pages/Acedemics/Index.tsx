@@ -51,7 +51,8 @@ const Index = () => {
 
     const [isEditDept, setIsEditDept] = useState(false)
     const [editDeptId, setEditDeptId] = useState<number | null>(null)
-
+    const [openProgramEdit, setOpenProgramEdit] = useState(false)
+    const [editProgramId, setEditProgramId] = useState<number | null>(null)
 
 
     const [deptForm, setDeptForm] = useState({
@@ -68,13 +69,13 @@ const Index = () => {
 
     /* ================= PROGRAM INLINE EDIT ================= */
 
-    const [editingProgramId, setEditingProgramId] = useState<number | null>(null)
+    // const [editingProgramId, setEditingProgramId] = useState<number | null>(null)
 
-    const [programEditForm, setProgramEditForm] = useState({
-        program_name: '',
-        program_code: '',
-        department_id: ''
-    })
+    // const [programEditForm, setProgramEditForm] = useState({
+    //     program_name: '',
+    //     program_code: '',
+    //     department_id: ''
+    // })
 
     /* ================= ACTIONS ================= */
 
@@ -88,6 +89,16 @@ const Index = () => {
         setEditDeptId(dept.id)
         setIsEditDept(true)
         setOpenDept(true)
+    }
+    const handleEditProgram = (p: any) => {
+        setProgramForm({
+            program_name: p.program_name,
+            program_code: p.program_code,
+            department_id: p.department_id
+        })
+
+        setEditProgramId(p.id)
+        setOpenProgramEdit(true)
     }
 
     const deleteDepartment = (id: number) => {
@@ -249,97 +260,30 @@ const Index = () => {
                                     {departments.flatMap(d => d.programs).map(p => (
                                         <tr key={p.id} className="border-t">
 
-                                            {/* PROGRAM NAME */}
                                             <td className="px-4 py-3">
-                                                {editingProgramId === p.id ? (
-                                                    <Input
-                                                        value={programEditForm.program_name}
-                                                        onChange={(e) =>
-                                                            setProgramEditForm({
-                                                                ...programEditForm,
-                                                                program_name: e.target.value
-                                                            })
-                                                        }
-                                                    />
-                                                ) : (
-                                                    p.program_name
-                                                )}
+                                                {p.program_name}
                                             </td>
 
-                                            {/* CODE */}
                                             <td className="px-4 py-3">
-                                                {editingProgramId === p.id ? (
-                                                    <Input
-                                                        value={programEditForm.program_code}
-                                                        onChange={(e) =>
-                                                            setProgramEditForm({
-                                                                ...programEditForm,
-                                                                program_code: e.target.value
-                                                            })
-                                                        }
-                                                    />
-                                                ) : (
-                                                    p.program_code
-                                                )}
+                                                {p.program_code}
                                             </td>
 
-                                            {/* ACTION */}
                                             <td className="px-4 py-3 text-center space-x-2">
+                                                <button onClick={() => handleEditProgram(p)}>
+                                                    <Pencil size={14} />
+                                                </button>
 
-                                                {editingProgramId === p.id ? (
-                                                    <>
-                                                        <Button
-                                                            size="sm"
-                                                            onClick={() => {
-                                                                router.put(`/program/${p.id}`, programEditForm, {
-                                                                    onSuccess: () => {
-                                                                        setEditingProgramId(null)
-                                                                        router.reload({ only: ['departments'] }) // 🔥 THIS FIXES IT
-                                                                    }
-                                                                })
-                                                            }}
-                                                        >
-                                                            Save
-                                                        </Button>
-
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => setEditingProgramId(null)}
-                                                        >
-                                                            Cancel
-                                                        </Button>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <button
-                                                            onClick={() => {
-                                                                setEditingProgramId(p.id)
-                                                                setProgramEditForm({
-                                                                    program_name: p.program_name,
-                                                                    program_code: p.program_code,
-                                                                    department_id: p.department_id
-                                                                })
-                                                            }}
-                                                        >
-                                                            <Pencil size={14} />
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => deleteProgram(p.id)}
-                                                            className="text-red-500"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                    </>
-                                                )}
-
+                                                <button
+                                                    onClick={() => deleteProgram(p.id)}
+                                                    className="text-red-500"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
                                             </td>
 
                                         </tr>
                                     ))}
                                 </tbody>
-
                             </table>
                         </div>
                     </div>
@@ -397,7 +341,90 @@ const Index = () => {
                 </div>
 
                 {/* ================= MODALS ================= */}
+                {/* EDIT PROGRAM */}
+                <Dialog
+                    open={openProgramEdit}
+                    onOpenChange={(open) => {
+                        setOpenProgramEdit(open)
 
+                        if (!open) {
+                            setEditProgramId(null)
+                            setProgramForm({
+                                program_name: '',
+                                program_code: '',
+                                department_id: ''
+                            })
+                        }
+                    }}
+                >
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Edit Program</DialogTitle>
+                        </DialogHeader>
+
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault()
+
+                                if (!editProgramId) return
+
+                                router.put(`/program/${editProgramId}`, programForm, {
+                                    onSuccess: () => {
+                                        setOpenProgramEdit(false)
+                                        setEditProgramId(null)
+
+                                        setProgramForm({
+                                            program_name: '',
+                                            program_code: '',
+                                            department_id: ''
+                                        })
+
+                                        router.reload({ only: ['departments'] })
+                                    }
+                                })
+                            }}
+                            className="space-y-4"
+                        >
+
+                            <Label>Program Name</Label>
+                            <Input
+                                value={programForm.program_name}
+                                onChange={(e) =>
+                                    setProgramForm({ ...programForm, program_name: e.target.value })
+                                }
+                            />
+
+                            <Label>Program Code</Label>
+                            <Input
+                                value={programForm.program_code}
+                                onChange={(e) =>
+                                    setProgramForm({ ...programForm, program_code: e.target.value })
+                                }
+                            />
+
+                            <Label>Department</Label>
+                            <select
+                                value={programForm.department_id}
+                                onChange={(e) =>
+                                    setProgramForm({ ...programForm, department_id: e.target.value })
+                                }
+                                className="w-full border rounded-md p-2 text-sm"
+                            >
+                                <option value="">Select Department</option>
+                                {departments.map((dept) => (
+                                    <option key={dept.id} value={dept.id}>
+                                        {dept.department_name.replace(" Department", "")}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <DialogFooter>
+                                <Button type="submit">Update Program</Button>
+                            </DialogFooter>
+
+                        </form>
+                    </DialogContent>
+                </Dialog>
                 {/* DEPARTMENT */}
                 <Dialog
                     open={openDept}
