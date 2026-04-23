@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Department;
 use App\Models\Programs;
 use App\Models\Section;
 use App\Models\Semester;
@@ -56,8 +57,10 @@ class SectionController extends Controller
             $query->where('year_level', (int) $request->year_level);
         }
 
-        if ($request->program) {
-            $query->where('program_id', $request->program);
+        if ($request->filled('department')) {
+            $query->whereHas('program.department', function ($q) use ($request) {
+                $q->where('id', $request->department);
+            });
         }
 
         if ($request->shift) {
@@ -76,6 +79,7 @@ class SectionController extends Controller
 
         return Inertia::render('Sections/Index', [
             'sections' => $query->latest()->paginate(25)->withQueryString(),
+            'departments' => Department::all(),
 
             'programs' => Programs::with('department')->get(), // 👈 include department
             'semesters' => Semester::all(),
@@ -84,7 +88,7 @@ class SectionController extends Controller
 
             'view' => $view,
 
-            'filters' => $request->only(['set', 'program', 'shift', 'section', 'year_level']),
+            'filters' => $request->only(['set', 'department', 'shift', 'section', 'year_level']),
 
             'stats' => [
                 'total_sections' => Section::count(),

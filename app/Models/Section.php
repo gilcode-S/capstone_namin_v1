@@ -39,4 +39,9 @@ class Section extends Model
     {
         return $this->belongsToMany(Subject::class, 'section_subject_assignments');
     }
+
+    public function curriculums()
+    {
+        return $this->hasMany(Curriculum::class, 'program_id', 'program_id');
+    }
 }

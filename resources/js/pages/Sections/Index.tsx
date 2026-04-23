@@ -58,7 +58,7 @@ const emptyForm = {
 
 export default function Index() {
 
-  const { sections, programs, stats, semesters, filters: initialFilters, view: initialView, errors, sectionLetters } = usePage().props as unknown as {
+  const { sections, programs, stats, semesters, filters: initialFilters, view: initialView, errors, sectionLetters, departments, subject_type } = usePage().props as unknown as {
     sections: {
       data: Section[],
       links: any[],
@@ -81,10 +81,11 @@ export default function Index() {
 
   const [filters, setFilters] = useState({
     set: initialFilters?.set || '',
-    program: initialFilters?.program || '',
+    department: initialFilters?.department || '',
     shift: initialFilters?.shift || '',
     section: initialFilters?.section || '',
     year_level: initialFilters?.year_level || '',
+    subject_type: initialFilters?.subject_type || '',
   })
 
   // const [filters, setFilter] = useState({
@@ -326,52 +327,28 @@ export default function Index() {
 
               {/* PROGRAM */}
               <select
-                value={filters.program}
-                onChange={(e) => handleFilterChange('program', e.target.value)}
-                className="h-10 rounded-lg border px-3"
+                value={filters.department}
+                onChange={(e) => handleFilterChange('department', e.target.value)}
+                className="h-10 rounded-lg border px-3 md:col-span-2"
               >
-                <option value="">All Programs</option>
-                {programs.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.program_name}
+                <option value="">All Departments</option>
+                {departments.map((d: any) => (
+                  <option key={d.id} value={d.id}>
+                    {d.department_name}
                   </option>
                 ))}
               </select>
 
               {/* SECTION LETTER */}
               <select value={filters.set}
-              onChange={(e) => handleFilterChange('set', e.target.value)}>
-              <option value="">All Sections</option>
-              {sectionLetters.map((letter: string) => (
-                <option key={letter} value={letter}>
-                  Section {letter}
-                </option>
-              ))}
-            </select>
-
-              {/* CLEAR BUTTON */}
-              <Button
-                variant="outline"
-                onClick={() => {
-                  const cleared = {
-                    set: '',
-                    program: '',
-                    shift: '',
-                    section: '',
-                    year_level: '',
-                  }
-
-                  setFilters(cleared)
-
-                  router.get('/section', cleared, {
-                    preserveState: true,
-                    replace: true,
-                  })
-                }}
-              >
-                Reset
-              </Button>
-
+                onChange={(e) => handleFilterChange('set', e.target.value)}>
+                <option value="">All Sections</option>
+                {sectionLetters.map((letter: string) => (
+                  <option key={letter} value={letter}>
+                    Section {letter}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
