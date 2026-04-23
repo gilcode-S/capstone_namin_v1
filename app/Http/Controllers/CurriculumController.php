@@ -161,4 +161,21 @@ class CurriculumController extends Controller
 
         return back()->with('success', 'Curriculum deleted.');
     }
+
+    public function destroySemester(Request $request)
+    {
+        $request->validate([
+            'program_id' => 'required|exists:programs,id',
+            'year_level' => 'required|integer',
+            'semester' => 'required|integer',
+        ]);
+
+        Curriculum::where([
+            'program_id' => $request->program_id,
+            'year_level' => $request->year_level,
+            'semester' => $request->semester,
+        ])->delete();
+
+        return back()->with('success', 'Semester deleted successfully.');
+    }
 }

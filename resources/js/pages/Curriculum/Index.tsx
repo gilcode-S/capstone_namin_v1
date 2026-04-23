@@ -2,6 +2,7 @@ import { router } from '@inertiajs/react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import AppLayout from '@/layouts/app-layout'
+import { Trash2 } from 'lucide-react'
 
 export default function Curriculum({
     curriculum,
@@ -74,7 +75,7 @@ export default function Curriculum({
 
     return (
         <AppLayout>
-            <div className="min-h-screen bg-[#eef3f1] px-10 py-8 space-y-8">
+            <div className="min-h-screen  px-10 py-8 space-y-8">
 
                 {/* HEADER */}
                 <div className="flex justify-between items-start">
@@ -181,10 +182,39 @@ export default function Curriculum({
 
                                                 return (
                                                     <div key={sem} className="border rounded-xl p-5 bg-gray-50">
+                                                        <div className="flex justify-between items-center mb-4">
+                                                            <h4 className="font-medium text-sm">
+                                                                {sem === 1 ? 'FIRST SEMESTER' : 'SECOND SEMESTER'}
+                                                            </h4>
 
-                                                        <h4 className="font-medium text-sm mb-4">
-                                                            {sem === 1 ? 'FIRST SEMESTER' : 'SECOND SEMESTER'}
-                                                        </h4>
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="text-xs text-gray-400">
+                                                                    {data.major.length + data.minor.length} subjects
+                                                                </span>
+
+                                                                {editMode && (
+    <button
+        onClick={() => {
+            if (!confirm('Delete entire semester? This cannot be undone.')) return
+
+            router.delete('/curriculum/semester', {
+                data: {
+                    program_id: activeProgram,
+                    year_level: year,
+                    semester: sem
+                },
+                preserveScroll: true,
+                onSuccess: () => router.reload({ only: ['curriculum'] })
+            })
+        }}
+        className="text-red-500 hover:text-red-700 transition"
+        title="Delete Semester"
+    >
+        <Trash2 size={16} />
+    </button>
+)}
+                                                            </div>
+                                                        </div>
 
                                                         {/* HEADER */}
                                                         <div className="grid grid-cols-4 text-xs font-semibold text-gray-500 border-b pb-2 mb-2">

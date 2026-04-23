@@ -30,7 +30,7 @@ Route::get('dashboard', [DashboardController::class, 'index'])
 
 Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('department', DepartmentController::class);
-    
+
 Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('analytics', AnalyticController::class);
 Route::middleware(['auth', 'role:super admin,registrar'])
@@ -43,6 +43,8 @@ Route::middleware(['auth', 'role:super admin,registrar'])
 Route::post('/assignments/auto-assign', [SectionSubjectAssignmentController::class, 'autoAssign']);
 
 Route::resource('assignments', SectionSubjectAssignmentController::class);
+
+Route::delete('/curriculum/semester', [CurriculumController::class, 'destroySemester']);
 // Route::post('/assignments/auto-assign', [SectionSubjectAssignmentController::class, 'autoAssign']);
 // Route::middleware(['auth', 'role:super admin,registrar'])
 //     ->resource('assignments', SectionSubjectAssignmentController::class);
