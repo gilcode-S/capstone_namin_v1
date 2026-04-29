@@ -75,59 +75,60 @@ class CurriculumController extends Controller
             'subject_id' => 'required|exists:subjects,id',
             'year_level' => 'required|integer|min:1|max:4',
             'semester' => 'required|integer|in:1,2,3',
-            'ignore_prereq' => 'nullable|boolean', // ✅ NEW
-
+            'ignore_prereq' => 'nullable|boolean',
         ]);
-
-        // ✅ Prevent duplicate
+    
+        $subject = Subject::with('prerequisites')
+            ->findOrFail($validated['subject_id']);
+    
+        // ✅ AUTO COPY TYPE HERE
+        $type = $subject->subject_type; // major or minor
+    
+        // prevent duplicate
         $exists = Curriculum::where([
             'program_id' => $validated['program_id'],
             'subject_id' => $validated['subject_id'],
             'year_level' => $validated['year_level'],
             'semester' => $validated['semester'],
         ])->exists();
-
+    
         if ($exists) {
             return back()->with('error', 'Subject already exists in curriculum.');
         }
-
-        // ✅ GET SUBJECT + PREREQUISITES
-        $subject = Subject::with('prerequisites')->find($validated['subject_id']);
-
-        // ✅ ONLY VALIDATE if NOT ignored
+    
+        // prerequisite check (keep your logic)
         if (!$request->ignore_prereq) {
-
             foreach ($subject->prerequisites as $pre) {
-
                 $hasPrerequisite = Curriculum::where([
                     'program_id' => $validated['program_id'],
                     'subject_id' => $pre->id,
                 ])
-                    ->where(function ($q) use ($validated) {
-                        $q->where('year_level', '<', $validated['year_level'])
-                            ->orWhere(function ($q2) use ($validated) {
-                                $q2->where('year_level', $validated['year_level'])
-                                    ->where('semester', '<', $validated['semester']);
-                            });
-                    })
-                    ->exists();
-
+                ->where(function ($q) use ($validated) {
+                    $q->where('year_level', '<', $validated['year_level'])
+                      ->orWhere(function ($q2) use ($validated) {
+                          $q2->where('year_level', $validated['year_level'])
+                             ->where('semester', '<', $validated['semester']);
+                      });
+                })
+                ->exists();
+    
                 if (!$hasPrerequisite) {
                     return back()->with(
                         'error',
-                        "Missing prerequisite: {$pre->subject_code} must be added earlier."
+                        "Missing prerequisite: {$pre->subject_code}"
                     );
                 }
             }
         }
-
+    
         Curriculum::create([
             'program_id' => $validated['program_id'],
             'subject_id' => $validated['subject_id'],
             'year_level' => $validated['year_level'],
             'semester' => $validated['semester'],
+            'type' => $type, // ✅ AUTO STORED HERE
         ]);
-
+    
         return back()->with('success', 'Subject added to curriculum.');
     }
 

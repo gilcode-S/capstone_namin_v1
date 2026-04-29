@@ -69,7 +69,7 @@ Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
     // GENERATE UI
     Route::get('/generate-schedule', [GenerateController::class, 'index'])
         ->name('generate.index');
-    Route::post('/schedules/generate/{versionId}', [GenerateController::class, 'generate'])
+    Route::post('/schedules/generate', [GenerateController::class, 'generate'])
         ->name('generate.schedule');
     Route::post('/schedules/reset/{versionId}', [GenerateController::class, 'reset'])
         ->name('schedules.reset');

@@ -9,9 +9,15 @@ use Illuminate\Support\Facades\DB;
 
 class CurriculumEngineService
 {
+    /**
+     * =====================================================
+     * GENERATE ALL CLASS UNITS
+     * =====================================================
+     */
     public function generateAllClassUnits(): void
     {
-        ClassUnit::truncate(); // optional reset (REMOVE in production if needed)
+        // DEV ONLY
+        ClassUnit::truncate();
 
         $sections = Section::all();
 
@@ -20,9 +26,18 @@ class CurriculumEngineService
         }
     }
 
+    /**
+     * =====================================================
+     * GENERATE SECTION UNITS
+     * =====================================================
+     */
     public function generateSectionUnits(Section $section): void
     {
-        $subjects = $this->getSubjectsByProgram($section->program_id);
+        $subjects = $this->getSubjectsByProgram(
+            $section->program_id,
+            $section->year_level,
+            $section->semester_id
+        );
 
         foreach ($subjects as $subject) {
 
@@ -30,85 +45,165 @@ class CurriculumEngineService
                 continue;
             }
 
-            ClassUnit::create([
-                'section_id' => $section->id,
-                'subject_id' => $subject->id,
+            /**
+             * Example:
+             * 3 hrs/week = 2 sessions
+             * 4.5 hrs/week = 3 sessions
+             */
+            $sessionsNeeded = max(
+                1,
+                ceil(($subject->hours_per_week ?? 3) / 1.5)
+            );
 
-                'year_level' => $section->year_level ?? $section->year,
-                'semester' => $section->semester,
+            /**
+             * Create MULTIPLE class units
+             * so scheduler can place each session
+             */
+            for ($sessionIndex = 1; $sessionIndex <= $sessionsNeeded; $sessionIndex++) {
 
-                'domain' => $this->resolveSubjectDomain($subject),
+                ClassUnit::create([
+                    'section_id' => $section->id,
+                    'subject_id' => $subject->id,
 
-                'units' => $subject->units,
+                    'year_level' => $section->year_level,
+                    'semester' => $section->semester_id,
 
-                'room_type' => $subject->room_type ?? 'classroom',
+                    'domain' => $this->resolveSubjectDomain($subject),
 
-                'constraints' => json_encode([
-                    'preferred_teacher' => $subject->preferred_teacher_id,
-                    'preferred_days' => $subject->preferred_day,
-                    'preferred_shift' => $subject->preferred_shift,
-                    'preferred_room' => $subject->preferred_room ?? null,
-                    'hard_constraints' => $this->detectHardConstraints($subject),
-                ]),
+                    'units' => $subject->units ?? 3,
 
-                'status' => 'generated'
-            ]);
+                    'sessions_needed' => $sessionsNeeded,
+                    'session_index' => $sessionIndex,
+
+                    'room_type' => $subject->room_type ?? 'classroom',
+
+                    'constraints' => json_encode([
+                        'preferred_teacher' => $subject->preferred_teacher_id,
+                        'preferred_days' => $subject->preferred_days ?? [],
+                        'preferred_shift' => $subject->preferred_shift,
+                        'preferred_room' => $subject->preferred_room_id ?? null,
+                        'hard_constraints' => $this->detectHardConstraints($subject),
+                    ]),
+
+                    'status' => 'generated',
+                ]);
+            }
         }
     }
 
-    private function getSubjectsByProgram($programId)
-    {
-        return Subject::where('program_id', $programId)->get();
+    /**
+     * =====================================================
+     * GET FILTERED SUBJECTS
+     * =====================================================
+     */
+    private function getSubjectsByProgram(
+        $programId,
+        $yearLevel,
+        $semester
+    ) {
+        return Subject::where('program_id', $programId)
+            ->where('year_level', $yearLevel)
+            ->where('semester', $semester)
+            ->orderBy('subject_code')
+            ->get();
     }
 
-    private function isSubjectAllowed(Section $section, Subject $subject): bool
-    {
-        // FIX: use subject_type (based on your controller)
-        if ($subject->subject_type === 'major') {
-            return $subject->program_id === $section->program_id;
+    /**
+     * =====================================================
+     * STRICT SUBJECT VALIDATION
+     * =====================================================
+     */
+    private function isSubjectAllowed(
+        Section $section,
+        Subject $subject
+    ): bool {
+
+        if (
+            $subject->subject_type === 'major' &&
+            (int)$subject->program_id !== (int)$section->program_id
+        ) {
+            return false;
         }
 
-        return true; // minors allowed globally
+        if (
+            (int)$subject->year_level !== (int)$section->year_level
+        ) {
+            return false;
+        }
+
+        if (
+            (int)$subject->semester !== (int)$section->semester_id
+        ) {
+            return false;
+        }
+
+        return true;
     }
 
+    /**
+     * =====================================================
+     * DOMAIN
+     * =====================================================
+     */
     private function resolveSubjectDomain(Subject $subject): string
     {
         if ($subject->subject_type === 'major') {
             return $this->getProgramDomain($subject->program_id);
         }
 
-        return $subject->domain ?? 'GENERAL';
+        return is_array($subject->domains)
+            ? implode(',', $subject->domains)
+            : ($subject->domains ?? 'GENERAL');
     }
 
+    /**
+     * =====================================================
+     * PROGRAM DOMAIN
+     * =====================================================
+     */
     private function getProgramDomain($programId): string
     {
         $program = DB::table('programs')
-            ->join('departments', 'programs.department_id', '=', 'departments.id')
+            ->join(
+                'departments',
+                'programs.department_id',
+                '=',
+                'departments.id'
+            )
             ->where('programs.id', $programId)
-            ->select('departments.name')
+            ->select('departments.department_name')
             ->first();
 
-        return $program->name ?? 'GENERAL';
+        return $program->department_name ?? 'GENERAL';
     }
 
+    /**
+     * =====================================================
+     * HARD CONSTRAINTS
+     * =====================================================
+     */
     private function detectHardConstraints(Subject $subject): array
     {
         $constraints = [];
 
-        if ($subject->preferred_teacher_id) {
+        if (!empty($subject->preferred_teacher_id)) {
             $constraints[] = 'HARD_TEACHER';
         }
 
-        if ($subject->preferred_day) {
+        if (!empty($subject->preferred_days)) {
             $constraints[] = 'HARD_DAY';
         }
 
-        if ($subject->preferred_shift) {
+        if (!empty($subject->preferred_shift)) {
             $constraints[] = 'HARD_SHIFT';
         }
 
-        if ($subject->room_type) {
+        if (!empty($subject->room_type)) {
             $constraints[] = 'HARD_ROOM';
+        }
+
+        if (!empty($subject->preferred_room_id)) {
+            $constraints[] = 'HARD_SPECIFIC_ROOM';
         }
 
         return $constraints;

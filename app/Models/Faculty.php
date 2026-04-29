@@ -13,6 +13,8 @@ use App\Models\Shift;
 class Faculty extends Model
 {
     //
+
+
     protected $fillable = [
         'department_id',
         'faculty_code',
@@ -32,11 +34,11 @@ class Faculty extends Model
 
     protected $casts = [
         'preferred_timeslots' => 'array',
-  
+
     ];
     public function department()
     {
-        return $this->belongsTo(Department::class);
+        return $this->belongsTo(Department::class, 'department_id', 'id');
     }
     public function shifts()
     {

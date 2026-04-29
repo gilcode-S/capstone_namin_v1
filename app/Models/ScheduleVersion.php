@@ -5,14 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Semester;
 use App\Models\User;
+
 class ScheduleVersion extends Model
 {
     //
     protected $fillable = [
-        'semester_id',
+        'name',
         'version_number',
-        'created_by',
-        'is_active'
+        'semester_id',
+        'effective_date',
+        'set_a_count',
+        'set_b_count',
+        'status',
+        'created_by', // 🔥 MUST BE HERE
     ];
 
 

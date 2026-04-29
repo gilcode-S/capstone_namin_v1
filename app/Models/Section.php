@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Model;
 class Section extends Model
 {
     //
+
+
     protected $fillable = [
         'program_id',
         'semester_id',
@@ -23,7 +25,7 @@ class Section extends Model
 
     public function program()
     {
-        return $this->belongsTo(Programs::class);
+        return $this->belongsTo(Programs::class, 'program_id', 'id');
     }
 
     public function department()

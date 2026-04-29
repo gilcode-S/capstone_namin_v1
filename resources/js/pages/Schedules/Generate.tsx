@@ -1,11 +1,12 @@
+
 import { Head, router, usePage } from '@inertiajs/react'
-import { Loader2 } from 'lucide-react'
+
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import AppLayout from '@/layouts/app-layout'
 
 export default function Generate() {
-    const { versions, timeslots, rooms, assignments } = usePage().props as any
+    const { versions, timeslots } = usePage().props as any
 
     const [generating, setGenerating] = useState(false)
     const [versionId, setVersionId] = useState<number | null>(null)
@@ -16,8 +17,9 @@ export default function Generate() {
 
     // INPUTS
     const [academicYear, setAcademicYear] = useState("2025-2026")
-    const [semester, setSemester] = useState("1st Semester")
+    const [semester, setSemester] = useState("1st")
     const [versionName, setVersionName] = useState("")
+    const [effectiveDate, setEffectiveDate] = useState("")
 
     useEffect(() => {
         if (versions?.length > 0 && !versionId) {
@@ -33,16 +35,19 @@ export default function Generate() {
     }))
 
     const generateSchedule = () => {
-        if (!versionId) return alert("Select version first")
+        if (!academicYear || !semester || !effectiveDate) {
+            alert("Please complete all fields")
+            return
+        }
 
         setGenerating(true)
 
-        router.post(`/schedules/generate/${versionId}`, {
-            assignments,
-            rooms,
-            timeslots: normalizedTimeslots,
+        router.post(`/schedules/generate`, {
+            academic_year: academicYear,
+            semester: semester,
+            effective_date: effectiveDate
         }, {
-            onFinish: () => setGenerating(false),
+            onFinish: () => setGenerating(false)
         })
     }
 
@@ -61,7 +66,6 @@ export default function Generate() {
 
             <Head title="Generate Schedule" />
 
-            {/* PAGE */}
             <div className="p-6 bg-white min-h-screen flex flex-col items-start">
 
                 {/* HEADER */}
@@ -94,13 +98,7 @@ export default function Generate() {
                         <div className="flex gap-3 mt-2">
 
                             <Button
-                                onClick={() => {
-                                    if (!versionId) {
-                                        setShowInputs(true)
-                                        return
-                                    }
-                                    setShowConfirm(true)
-                                }}
+                                onClick={() => setShowInputs(true)}
                                 className="bg-black text-white px-4 py-2 text-sm"
                             >
                                 Generate
@@ -137,7 +135,7 @@ export default function Generate() {
                             <div className="bg-gray-50 p-3 rounded-lg text-sm space-y-1">
                                 <p><b>Year:</b> {academicYear}</p>
                                 <p><b>Semester:</b> {semester}</p>
-                                <p><b>Version Name:</b> {versionName || "—"}</p>
+                                <p><b>Effective Date:</b> {effectiveDate}</p>
                             </div>
 
                             <div className="flex justify-end gap-3">
@@ -179,22 +177,7 @@ export default function Generate() {
                                 Edit Inputs
                             </h3>
 
-                            {/* VERSION (MOVED HERE) */}
-                            <div>
-                                <label className="text-sm">Version</label>
-                                <select
-                                    value={versionId ?? ""}
-                                    onChange={(e) => setVersionId(Number(e.target.value))}
-                                    className="w-full border rounded-lg px-3 py-2 mt-1"
-                                >
-                                    <option value="">Select version</option>
-                                    {versions.map((v: any) => (
-                                        <option key={v.id} value={v.id}>
-                                            Version {v.version_number}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                            {/* ❌ VERSION REMOVED */}
 
                             <div>
                                 <label className="text-sm">Academic Year</label>
@@ -212,14 +195,24 @@ export default function Generate() {
                                     onChange={(e) => setSemester(e.target.value)}
                                     className="w-full border rounded-lg px-3 py-2 mt-1"
                                 >
-                                    <option>1st Semester</option>
-                                    <option>2nd Semester</option>
+                                    <option>1st</option>
+                                    <option>2nd</option>
                                     <option>Summer</option>
                                 </select>
                             </div>
 
                             <div>
-                                <label className="text-sm">Version Name</label>
+                                <label className="text-sm">Effective Date</label>
+                                <input
+                                    type="date"
+                                    value={effectiveDate}
+                                    onChange={(e) => setEffectiveDate(e.target.value)}
+                                    className="w-full border rounded-lg px-3 py-2 mt-1"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm">Version Name (optional)</label>
                                 <input
                                     value={versionName}
                                     onChange={(e) => setVersionName(e.target.value)}

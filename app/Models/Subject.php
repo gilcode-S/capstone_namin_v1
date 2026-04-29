@@ -54,6 +54,8 @@ class Subject extends Model
         'domains' => 'array',
         'is_hard_constraint' => 'boolean',
     ];
+
+
     // public function preferredTeacher()
     // {
     //     return $this->belongsTo(Faculty::class, 'preferred_teacher_id');

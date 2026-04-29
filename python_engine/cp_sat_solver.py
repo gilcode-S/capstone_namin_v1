@@ -1,177 +1,171 @@
 from ortools.sat.python import cp_model
 import json
+import sys
+import traceback
 
-class CPSATScheduler:
+from models import build_assignment_variables
+from constraints import (
+    add_unit_assignment_constraint,
+    add_room_conflict,
+    add_section_conflict,
+    add_teacher_conflict
+)
+from output import extract_solution
 
-    def __init__(self, data):
-        self.data = data
-        self.model = cp_model.CpModel()
 
-        self.assignments = {}
-
-    def build_variables(self):
-        """
-        Create binary decision variables:
-        X[unit, teacher, room, timeslot]
-        """
-
-        for u in self.data['class_units']:
-            for t in self.data['teachers']:
-                for r in self.data['rooms']:
-                    for ts in self.data['timeslots']:
-
-                        key = (u['id'], t['id'], r['id'], ts['id'])
-
-                        self.assignments[key] = self.model.NewBoolVar(
-                            f"x_{u['id']}_{t['id']}_{r['id']}_{ts['id']}"
-                        )
-
-    # -------------------------
-    # HARD CONSTRAINTS
-    # -------------------------
-
-    def add_constraints(self):
-
-        self.teacher_conflict()
-        self.room_conflict()
-        self.one_assignment_per_unit()
-        self.teacher_single_slot()
-
-    def teacher_conflict(self):
-
-        for t in self.data['teachers']:
-            for ts in self.data['timeslots']:
-
-                vars_ = []
-
-                for u in self.data['class_units']:
-                    for r in self.data['rooms']:
-
-                        key = (u['id'], t['id'], r['id'], ts['id'])
-                        if key in self.assignments:
-                            vars_.append(self.assignments[key])
-
-                self.model.Add(sum(vars_) <= 1)
-
-    def room_conflict(self):
-
-        for r in self.data['rooms']:
-            for ts in self.data['timeslots']:
-
-                vars_ = []
-
-                for u in self.data['class_units']:
-                    for t in self.data['teachers']:
-
-                        key = (u['id'], t['id'], r['id'], ts['id'])
-                        if key in self.assignments:
-                            vars_.append(self.assignments[key])
-
-                self.model.Add(sum(vars_) <= 1)
-
-    def one_assignment_per_unit(self):
-
-        for u in self.data['class_units']:
-
-            vars_ = []
-
-            for t in self.data['teachers']:
-                for r in self.data['rooms']:
-                    for ts in self.data['timeslots']:
-
-                        key = (u['id'], t['id'], r['id'], ts['id'])
-                        if key in self.assignments:
-                            vars_.append(self.assignments[key])
-
-            self.model.Add(sum(vars_) == 1)
-
-    def teacher_single_slot(self):
-
-        for t in self.data['teachers']:
-            for ts in self.data['timeslots']:
-
-                vars_ = []
-
-                for u in self.data['class_units']:
-                    for r in self.data['rooms']:
-
-                        key = (u['id'], t['id'], r['id'], ts['id'])
-                        if key in self.assignments:
-                            vars_.append(self.assignments[key])
-
-                self.model.Add(sum(vars_) <= 1)
-
-    # -------------------------
-    # OBJECTIVE FUNCTION (SOFT CONSTRAINTS)
-    # -------------------------
-
-    def set_objective(self):
-
-        objective_terms = []
-
-        for key, var in self.assignments.items():
-
-            u_id, t_id, r_id, ts_id = key
-
-            score = self.get_score(u_id, t_id)
-
-            objective_terms.append(var * int(score * 100))
-
-        self.model.Maximize(sum(objective_terms))
-
-    def get_score(self, unit_id, teacher_id):
-        """
-        This comes from Laravel DomainScoringService
-        passed through JSON input
-        """
-        return self.data['scores'].get(f"{unit_id}_{teacher_id}", 0.5)
-
-    # -------------------------
-    # SOLVE
-    # -------------------------
-
-    def solve(self):
-
-        solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = 30
-
-        status = solver.Solve(self.model)
-
-        if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
-
-            return self.extract_solution(solver)
-
-        return None
-
-    def extract_solution(self, solver):
-
-        result = []
-
-        for key, var in self.assignments.items():
-
-            if solver.Value(var) == 1:
-
-                u_id, t_id, r_id, ts_id = key
-
-                result.append({
-                    "unit_id": u_id,
-                    "teacher_id": t_id,
-                    "room_id": r_id,
-                    "timeslot_id": ts_id
-                })
-
-        return result
-
+# =====================================================
+# CP-SAT ENTRY POINT
+# =====================================================
+# PURPOSE:
+# ✔ Build optimized schedule safely
+# ✔ Respect:
+#   - Unit assignment
+#   - Room conflict
+#   - Section + Set conflict
+#   - Teacher conflict
+# ✔ Return Laravel-readable JSON
+# =====================================================
 if __name__ == "__main__":
-    import sys
 
-    data = json.loads(sys.argv[1])
+    try:
+        # =================================================
+        # INPUT
+        # =================================================
+        if len(sys.argv) < 2:
+            raise Exception("Missing input file path")
 
-    scheduler = CPSATScheduler(data)
-    scheduler.build_variables()
-    scheduler.add_constraints()
-    scheduler.set_objective()
+        file_path = sys.argv[1]
 
-    result = scheduler.solve()
+        with open(
+            file_path,
+            "r",
+            encoding="utf-8"
+        ) as f:
+            data = json.load(f)
 
-    print(json.dumps(result))
+        # =================================================
+        # BASIC VALIDATION
+        # =================================================
+        required_keys = [
+            "class_units",
+            "rooms",
+            "timeslots"
+        ]
+
+        for key in required_keys:
+            if key not in data:
+                raise Exception(
+                    f"Missing required key: {key}"
+                )
+
+        if not data["class_units"]:
+            raise Exception(
+                "No class units found"
+            )
+
+        # =================================================
+        # MODEL
+        # =================================================
+        model = cp_model.CpModel()
+
+        # =================================================
+        # VARIABLES
+        # =================================================
+        assignments = build_assignment_variables(
+            model,
+            data
+        )
+
+        # =================================================
+        # SAFETY LIMIT
+        # =================================================
+        if len(assignments) > 500000:
+            raise Exception(
+                f"Too many variables: {len(assignments)}"
+            )
+
+        # =================================================
+        # HARD CONSTRAINTS
+        # =================================================
+        add_unit_assignment_constraint(
+            model,
+            assignments,
+            data
+        )
+
+        add_room_conflict(
+            model,
+            assignments,
+            data
+        )
+
+        add_section_conflict(
+            model,
+            assignments,
+            data
+        )
+
+        # 🔥 NEW
+        add_teacher_conflict(
+            model,
+            assignments,
+            data
+        )
+
+        # =================================================
+        # OBJECTIVE
+        # Maximize total scheduled units
+        # =================================================
+        model.Maximize(
+            sum(assignments.values())
+        )
+
+        # =================================================
+        # SOLVER
+        # =================================================
+        solver = cp_model.CpSolver()
+
+        solver.parameters.max_time_in_seconds = 30
+        solver.parameters.num_search_workers = 8
+
+        status = solver.Solve(model)
+
+        # =================================================
+        # OUTPUT
+        # =================================================
+        if status in [
+            cp_model.OPTIMAL,
+            cp_model.FEASIBLE
+        ]:
+
+            result = extract_solution(
+                solver,
+                assignments
+            )
+
+            status_text = "SOLVED"
+
+        else:
+
+            result = []
+
+            status_text = "NO_SOLUTION"
+
+        print(json.dumps({
+            "result": result,
+            "debug": {
+                "status": status_text,
+                "units": len(data["class_units"]),
+                "rooms": len(data["rooms"]),
+                "timeslots": len(data["timeslots"]),
+                "variables": len(assignments),
+                "generated_schedules": len(result)
+            }
+        }))
+
+    except Exception as e:
+
+        print(json.dumps({
+            "error": str(e),
+            "trace": traceback.format_exc()
+        }))

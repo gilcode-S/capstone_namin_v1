@@ -19,6 +19,7 @@ class Schedule extends Model
         'faculty_id',
         'room_id',
         'time_slot_id',
+        'set_type',
         'score',
         'status'
     ];
@@ -26,36 +27,40 @@ class Schedule extends Model
     // ✅ Version
     public function version()
     {
-        return $this->belongsTo(ScheduleVersion::class, 'schedule_version_id');
+        return $this->belongsTo(
+            ScheduleVersion::class,
+            'schedule_version_id',
+            'id'
+        );
     }
 
     // ✅ Faculty (teacher)
     public function faculty()
     {
-        return $this->belongsTo(Faculty::class);
+        return $this->belongsTo(Faculty::class, 'faculty_id', 'id');
     }
 
     // ✅ Subject
     public function subject()
     {
-        return $this->belongsTo(Subject::class);
+        return $this->belongsTo(Subject::class, 'subject_id', 'id');
     }
 
     // ✅ Section
     public function section()
     {
-        return $this->belongsTo(Section::class);
+        return $this->belongsTo(Section::class, 'section_id', 'id');
     }
 
     // ✅ Room
     public function room()
     {
-        return $this->belongsTo(Room::class);
+        return $this->belongsTo(Room::class, 'room_id', 'id');
     }
 
     // ✅ Time slot
     public function timeslot()
     {
-        return $this->belongsTo(TimeSlot::class, 'time_slot_id');
+        return $this->belongsTo(TimeSlot::class, 'time_slot_id', 'id');
     }
 }

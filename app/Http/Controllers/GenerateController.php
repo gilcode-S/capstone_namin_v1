@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ClassUnit;
+use App\Models\Faculty;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -11,13 +13,10 @@ use App\Models\Room;
 use App\Models\TimeSlot;
 use App\Models\Schedule;
 use App\Models\ScheduleVersion;
-use App\Models\Section;
 
-use App\Services\Scheduler\ClassUnitService;
-use App\Services\ScheduleCandidateBuilderService;
-use App\Services\ScheduleWriterService;
-use App\Services\CPSATService;
-
+use App\Models\Semester;
+use App\Services\CPSATSchedulerService;
+use Illuminate\Support\Facades\Auth;
 
 class GenerateController extends Controller
 {
@@ -76,51 +75,49 @@ class GenerateController extends Controller
     // ================================
     // GENERATE SCHEDULE (FULL PIPELINE)
     // ================================
-    public function generate(
-        $versionId,
-        ClassUnitService $classUnitService,
-        ScheduleCandidateBuilderService $builder,
-        CPSATService $solver,
-        ScheduleWriterService $writer
-    ) {
+    public function generate(Request $request)
+    {
+        $scheduler = app(CPSATSchedulerService::class);
+        $semester = Semester::where('term', $request->semester)->first();
+
+        if (!$semester) {
+            return back()->with('error', 'Semester not found.');
+        }
+
         set_time_limit(300);
 
         try {
-            $sections = Section::all();
-            $classUnits = $classUnitService->generate($sections);
 
-            $allCandidates = [];
-
-            foreach ($sections as $section) {
-
-                $units = collect($classUnits)
-                    ->where('section_id', $section->id)
-                    ->values();
-
-                if ($units->isEmpty()) continue;
-
-                $candidates = $builder->build($section, $units);
-
-                $allCandidates = array_merge($allCandidates, $candidates);
-            }
-
-            logger()->info('TOTAL CANDIDATES', [
-                'count' => count($allCandidates)
+            $version = ScheduleVersion::create([
+                'name' => $request->academic_year . ' - ' . $request->semester,
+                'version_number' => ScheduleVersion::count() + 1,
+                'semester_id' => $semester->id,
+                'effective_date' => $request->effective_date,
+                'set_a_count' => 0,
+                'set_b_count' => 0,
+                'status' => 'draft',
+                'created_by' => Auth::id(),
             ]);
 
-            if (empty($allCandidates)) {
-                throw new \Exception("No candidates generated");
-            }
+            app(\App\Services\CurriculumEngineService::class)
+                ->generateAllClassUnits();
 
-            $optimized = $solver->solve($allCandidates);
+            logger("Starting CP-SAT for version ID: " . $version->id);
 
-            $writer->save($optimized, $versionId, 'A');
+            $scheduler->generateSchedule($version->id);
 
             return redirect()
                 ->route('schedules.index')
                 ->with('success', 'Schedule generated successfully');
         } catch (\Exception $e) {
-            return back()->with('error', 'Generation failed: ' . $e->getMessage());
+
+            logger()->error('Generate Schedule Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return back()->with('error', 'Generation failed. Check logs.');
         }
     }
 }

@@ -14,7 +14,8 @@ class Curriculum extends Model
         'program_id',
         'subject_id',
         'year_level',
-        'semester'
+        'semester',
+        'type',
     ];
 
     public function subject()
