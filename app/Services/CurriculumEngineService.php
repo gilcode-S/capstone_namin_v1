@@ -101,7 +101,10 @@ class CurriculumEngineService
         $yearLevel,
         $semester
     ) {
-        return Subject::where('program_id', $programId)
+        return Subject::where(function ($q) use ($programId) {
+            $q->where('program_id', $programId)
+                ->orWhereNull('program_id'); // ✅ include minors
+        })
             ->where('year_level', $yearLevel)
             ->where('semester', $semester)
             ->orderBy('subject_code')

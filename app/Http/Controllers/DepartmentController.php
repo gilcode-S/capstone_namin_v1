@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Department;
+use App\Models\DomainGroup;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -17,10 +18,10 @@ class DepartmentController extends Controller
     public function index()
     {
         //
-
-        $departments = Department::with('programs')->get();
+        $departments = Department::with(['programs', 'domainGroup'])->get();
         return Inertia::render('Acedemics/Index', [
-            'departments' => $departments
+            'departments' => $departments,
+            'domains' => DomainGroup::all()
         ]);
     }
 
@@ -29,7 +30,7 @@ class DepartmentController extends Controller
         $departmentData = $request->validate([
             'department_code' => 'nullable',
             'department_name' => 'required',
-            'domain' => 'required'
+            'domain_group_id' => 'required|exists:domain_groups,id'
         ]);
 
         Department::create($departmentData);
@@ -55,7 +56,7 @@ class DepartmentController extends Controller
         $departmentData = $request->validate([
             'department_code' => 'nullable|unique:departments,department_code,' . $department->id,
             'department_name' => 'required',
-             'domain' => 'required'
+            'domain_group_id' => 'required|exists:domain_groups,id'
         ]);
 
         $department->update($departmentData);

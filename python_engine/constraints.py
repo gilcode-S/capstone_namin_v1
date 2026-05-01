@@ -1,113 +1,61 @@
 # =====================================================
-# UNIT MUST BE ASSIGNED EXACTLY ONCE
+# UNIT ASSIGNMENT (SOFT VIA OBJECTIVE)
 # =====================================================
-def add_unit_assignment_constraint(
-    model,
-    assignments,
-    data
-):
+def add_unit_assignment_constraint(model, domain_map):
 
-    for unit in data["class_units"]:
-
-        vars_ = [
-            v for k, v in assignments.items()
-            if k[0] == unit["id"]
-        ]
-
+    for unit_id, vars_ in domain_map.items():
         if vars_:
-            model.Add(
-                sum(vars_) == 1
-            )
+            model.Add(sum(vars_) == 1)
 
 
 # =====================================================
 # ROOM CONFLICT
-# One room cannot host 2 classes at same time
 # =====================================================
-def add_room_conflict(
-    model,
-    assignments,
-    data
-):
+def add_room_conflict(model, assignments, timeslots):
 
-    for room in data["rooms"]:
-        for ts in data["timeslots"]:
+    for room_id in set(k[1] for k in assignments.keys()):
+        for ts in timeslots:
 
             vars_ = [
                 v for k, v in assignments.items()
-                if k[1] == room["id"]
-                and k[2] == ts["id"]
+                if k[1] == room_id and k[2] == ts["id"]
             ]
 
             if vars_:
-                model.Add(
-                    sum(vars_) <= 1
-                )
+                model.Add(sum(vars_) <= 1)
 
 
 # =====================================================
 # SECTION CONFLICT
-# Section + Set A/B/C only
-# Set A and Set B can run simultaneously
 # =====================================================
-def add_section_conflict(
-    model,
-    assignments,
-    data
-):
+def add_section_conflict(model, assignments, units, timeslots):
 
-    unit_map = {
-        u["id"]: (
-            u["section_id"],
-            u.get("set_type", "A")
-        )
-        for u in data["class_units"]
-    }
+    unit_map = {u["id"]: u["section_id"] for u in units}
 
-    unique_groups = set(
-        unit_map.values()
-    )
-
-    for section_id, set_type in unique_groups:
-        for ts in data["timeslots"]:
+    for section_id in set(unit_map.values()):
+        for ts in timeslots:
 
             vars_ = [
                 v for k, v in assignments.items()
-                if unit_map[k[0]] == (
-                    section_id,
-                    set_type
-                )
-                and k[2] == ts["id"]
+                if unit_map[k[0]] == section_id and k[2] == ts["id"]
             ]
 
             if vars_:
-                model.Add(
-                    sum(vars_) <= 1
-                )
+                model.Add(sum(vars_) <= 1)
 
 
 # =====================================================
-# TEACHER CONFLICT
-# One teacher cannot teach 2 classes same time
+# TEACHER CONFLICT (SOFT)
 # =====================================================
-def add_teacher_conflict(
-    model,
-    assignments,
-    data
-):
+def add_teacher_conflict(model, assignments, units, timeslots):
 
-    teacher_map = {
-        u["id"]: u.get("teacher_id")
-        for u in data["class_units"]
-    }
+    teacher_map = {u["id"]: u.get("teacher_id") for u in units}
 
-    teacher_ids = set(
-        t for t in teacher_map.values()
-        if t is not None
-    )
+    penalties = []
 
-    for teacher_id in teacher_ids:
-        for ts in data["timeslots"]:
+    for teacher_id in set(teacher_map.values()):
+
+        for ts in timeslots:
 
             vars_ = [
                 v for k, v in assignments.items()
@@ -116,6 +64,8 @@ def add_teacher_conflict(
             ]
 
             if vars_:
-                model.Add(
-                    sum(vars_) <= 1
-                )
+                overload = model.NewIntVar(0, 10, f"over_{teacher_id}_{ts['id']}")
+                model.Add(sum(vars_) <= 1 + overload)
+                penalties.append(overload)
+
+    return penalties

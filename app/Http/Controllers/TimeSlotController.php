@@ -21,16 +21,24 @@ class TimeSlotController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'day_of_week' => 'nullable',
             'start_time' => 'required',
             'end_time' => 'required|after:start_time',
             'shift' => 'required|in:morning,afternoon,evening',
-            'status' => 'nullable|in:active, inactive'
         ]);
 
-        TimeSlot::create($validated);
+        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-        return redirect()->back()->with('success', 'time slot created');
+        foreach ($days as $day) {
+            TimeSlot::create([
+                'day_of_week' => $day,
+                'start_time' => $validated['start_time'],
+                'end_time' => $validated['end_time'],
+                'shift' => $validated['shift'],
+                'status' => 'active'
+            ]);
+        }
+
+        return back()->with('success', 'Timeslots generated for all days');
     }
 
     public function update(Request $request, TimeSlot $timeSlot)

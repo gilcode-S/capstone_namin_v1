@@ -21,28 +21,33 @@ interface Department {
     id: number
     department_code: string
     department_name: string
-    domain: string
+    domain_group_id: number | ''
+    domainGroup?: {
+        id: number
+        name: string
+    }
     programs: Program[]
 }
 
-const DOMAINS = [
-    "Computer Studies / IT",
-    "Engineering",
-    "Business & Accountancy",
-    "Education",
-    "Health Sciences",
-    "Arts & Humanities",
-    "Sciences & Mathematics",
-    "Agriculture & Fisheries",
-    "Hospitality / Tourism",
-    "Law / Security / Public Service",
-    "Maritime",
-    "Fine Arts / Design / Architecture"
-]
+
+// const DOMAINS = [
+//     "Computer Studies / IT",
+//     "Engineering",
+//     "Business & Accountancy",
+//     "Education",
+//     "Health Sciences",
+//     "Arts & Humanities",
+//     "Sciences & Mathematics",
+//     "Agriculture & Fisheries",
+//     "Hospitality / Tourism",
+//     "Law / Security / Public Service",
+//     "Maritime",
+//     "Fine Arts / Design / Architecture"
+// ]
 /* ================= PAGE ================= */
 
 const Index = () => {
-    const { departments } = usePage().props as { departments: Department[] }
+    const { departments, domains } = usePage().props as { departments: Department[], domains: any[] }
 
     /* ================= STATES ================= */
 
@@ -58,7 +63,7 @@ const Index = () => {
     const [deptForm, setDeptForm] = useState({
         department_code: null as string | null,
         department_name: '',
-        domain: ''
+        domain_group_id: ''
     })
 
     const [programForm, setProgramForm] = useState({
@@ -83,8 +88,9 @@ const Index = () => {
         setDeptForm({
             department_code: dept.department_code,
             department_name: dept.department_name.replace(" Department", ""),
-            domain: dept.domain
+            domain_group_id: dept.domain_group_id ? String(dept.domain_group_id) : '' // ✅ CORRECT
         })
+
 
         setEditDeptId(dept.id)
         setIsEditDept(true)
@@ -114,13 +120,14 @@ const Index = () => {
     const submitDepartment = (e: any) => {
         e.preventDefault()
 
-        if (!deptForm.domain) {
-            alert("Select a domain")
+        if (!deptForm.domain_group_id) {
+            alert('Select a domain group')
             return
         }
 
         const payload = {
             ...deptForm,
+            domain_group_id: Number(deptForm.domain_group_id),
             department_name: deptForm.department_name + " Department"
         }
 
@@ -162,9 +169,11 @@ const Index = () => {
         setDeptForm({
             department_code: null,
             department_name: '',
-            domain: ''
+            domain_group_id: ''
         })
+
     }
+    console.log(departments)
 
     /* ================= UI ================= */
 
@@ -218,7 +227,7 @@ const Index = () => {
                                     {departments.map(d => (
                                         <tr key={d.id} className="border-t">
                                             <td className="px-4 py-3">{d.department_name}</td>
-                                            <td className="px-4 py-3 text-gray-500">{d.domain}</td>
+                                            <td className="px-4 py-3 text-gray-500">{d.domain_group?.name}</td>
                                             <td className="px-4 py-3 text-center space-x-2">
                                                 <button onClick={() => handleEditDept(d)}>
                                                     <Pencil size={14} />
@@ -301,7 +310,7 @@ const Index = () => {
                                     <h2 className="text-lg font-semibold">
                                         {dept.department_name.replace(" Department", "")}
                                     </h2>
-                                    <p className="text-sm text-gray-500">{dept.domain}</p>
+                                    <p className="text-sm text-gray-500">{dept.domainGroup?.name}</p>
                                 </div>
 
                             </div>
@@ -460,16 +469,15 @@ const Index = () => {
                             />
 
                             <select
-                                value={deptForm.domain}
+                                value={deptForm.domain_group_id}
                                 onChange={(e) =>
-                                    setDeptForm({ ...deptForm, domain: e.target.value })
+                                    setDeptForm({ ...deptForm, domain_group_id: e.target.value })
                                 }
-                                className="w-full border rounded-md p-2 text-sm"
                             >
                                 <option value="">Select Domain</option>
-                                {DOMAINS.map((d) => (
-                                    <option key={d} value={d}>
-                                        {d}
+                                {domains.map((d) => (
+                                    <option key={d.id} value={d.id}>
+                                        {d.name}
                                     </option>
                                 ))}
                             </select>

@@ -39,9 +39,9 @@ class CPSATSchedulerService
         logger()->debug("Starting CP-SAT for version ID: {$versionId}");
 
         $units = ClassUnit::with([
-                'subject',
-                'section'
-            ])
+            'subject',
+            'section'
+        ])
             ->where('status', 'generated')
             ->get();
 
@@ -105,11 +105,15 @@ class CPSATSchedulerService
          * STEP 5 — FALLBACK IF NO SOLUTION
          * ==========================================
          */
+
+        $units = $units->shuffle(); // ✅ RANDOMIZE ORDER
         if (!$result || count($result) === 0) {
 
             logger()->warning(
                 "CP-SAT returned empty result. Using fallback greedy scheduler."
             );
+
+
 
             $result = $this->fallbackGreedySchedule(
                 $units,
@@ -179,6 +183,10 @@ class CPSATSchedulerService
             $unit->subject
         );
 
+        if (!$isMajor) {
+            return $teachers; // ✅ ALL teachers allowed for minors
+        }
+
         return $teachers->filter(
             function ($teacher) use (
                 $yearLevel,
@@ -193,13 +201,7 @@ class CPSATSchedulerService
                  * 1ST–2ND YEAR
                  */
                 if ($yearLevel <= 2) {
-
-                    return (
-                        str_contains($specialization, 'general') ||
-                        str_contains($specialization, 'foundation') ||
-                        str_contains($specialization, 'programming') ||
-                        str_contains($specialization, 'mathematics')
-                    );
+                    return true; // ✅ allow ANY teacher
                 }
 
                 /**
@@ -284,7 +286,7 @@ class CPSATSchedulerService
                  */
                 $loadPenalty =
                     $this->teacherLoad[$teacher->id]
-                    * 0.05;
+                    * 0.01;
 
                 /**
                  * Senior year bonus
@@ -370,9 +372,7 @@ class CPSATSchedulerService
             $unit->assigned_teacher_id =
                 $teacher->id;
 
-            $this->teacherLoad[
-                $teacher->id
-            ]++;
+            $this->teacherLoad[$teacher->id]++;
         }
 
         logger()->debug(
@@ -430,6 +430,8 @@ class CPSATSchedulerService
                         'teacher_id' => $u->assigned_teacher_id,
                         'set_type' => $u->set_type ?? 'A',
                         'preferred_shift' => $preferredShift,
+                        'year_level' => $yearLevel,
+                        'room_type' => $u->room_type ?? 'classroom'
                     ];
                 }
             )->values()->toArray(),
@@ -437,6 +439,7 @@ class CPSATSchedulerService
             'rooms' => $rooms->map(
                 fn($r) => [
                     'id' => $r->id,
+                    'type' => $r->room_type ?? 'classroom',
                 ]
             )->values()->toArray(),
 
@@ -444,6 +447,7 @@ class CPSATSchedulerService
                 fn($ts) => [
                     'id' => $ts->id,
                     'shift' => $ts->shift ?? null,
+                    'day' => $ts->day_of_week,
                 ]
             )->values()->toArray(),
         ];
@@ -583,14 +587,14 @@ class CPSATSchedulerService
         if (!$decoded) {
             throw new \Exception(
                 "Invalid JSON from Python: " .
-                $output
+                    $output
             );
         }
 
         if (isset($decoded['error'])) {
             throw new \Exception(
                 "Python Error: " .
-                $decoded['error']
+                    $decoded['error']
             );
         }
 
@@ -598,12 +602,12 @@ class CPSATSchedulerService
             "CP-SAT solved successfully",
             [
                 'result_count' =>
-                    count(
-                        $decoded['result']
+                count(
+                    $decoded['result']
                         ?? []
-                    ),
+                ),
                 'debug' =>
-                    $decoded['debug']
+                $decoded['debug']
                     ?? []
             ]
         );
@@ -625,50 +629,29 @@ class CPSATSchedulerService
             return null;
         }
 
+        $data = [];
+
         foreach ($result as $item) {
+            $unit = $units->firstWhere('id', $item['unit_id']);
 
-            $unit = $units->firstWhere(
-                'id',
-                $item['unit_id']
-            );
+            if (!$unit) continue;
 
-            if (!$unit) {
-                logger()->warning(
-                    "Missing class unit",
-                    [
-                        'unit_id' =>
-                            $item['unit_id']
-                    ]
-                );
-                continue;
-            }
-
-            Schedule::create([
-                'section_id' =>
-                    $unit->section_id,
-
-                'subject_id' =>
-                    $unit->subject_id,
-
-                'faculty_id' =>
-                    $unit->assigned_teacher_id,
-
-                'room_id' =>
-                    $item['room_id'],
-
-                'time_slot_id' =>
-                    $item['timeslot_id'],
-
-                'schedule_version_id' =>
-                    $versionId,
-
-                'set_type' =>
-                    $unit->set_type ?? 'A',
-
+            $data[] = [
+                'section_id' => $unit->section_id, 
+                'subject_id' => $unit->subject_id,
+                'faculty_id' => $unit->assigned_teacher_id,
+                'room_id' => $item['room_id'],
+                'time_slot_id' => $item['timeslot_id'],
+                'schedule_version_id' => $versionId,
+                'set_type' => $unit->set_type ?? 'A',
                 'score' => 1,
                 'status' => 'active',
-            ]);
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
         }
+
+        Schedule::insert($data);
 
         logger()->debug(
             "Schedule successfully saved."
