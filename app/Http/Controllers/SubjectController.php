@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Domain;
+use App\Models\DomainGroup;
 use App\Models\Faculty;
 use App\Models\Programs;
 use App\Models\Subject;
@@ -47,13 +48,13 @@ class SubjectController extends Controller
             'subjects' => $query->oldest()->paginate(15)->withQueryString(),
             'programs' => Programs::all(),
             'teachers' => Faculty::all(),
-            'domains' => Domain::all(),
+            'domains' => DomainGroup::with('domains')->get(),
             'rooms' => Room::select('id', 'room_name')->get(),
             'allSubjects' => Subject::select('id', 'subject_name', 'subject_code',    'subject_type')->get(),
 
             'filters' => $request->only([
                 'program_id',
-                'search',
+                'search',   
                 'room_type',
                 'subject_type'
             ]),
@@ -87,7 +88,7 @@ class SubjectController extends Controller
             'preferred_teacher_id' => 'nullable|string|max:100',
             'preferred_day' => 'nullable|string|max:20',
             'preferred_shift' => 'nullable|string|max:20',
-            'domain_id' => 'nullable|exists:domains,id',
+            'domain_group_id' => 'nullable|exists:domain_groups,id',
         ]);
 
         // ✅ enforce program only for major
@@ -105,7 +106,7 @@ class SubjectController extends Controller
         $validated['preferred_teacher_id'] = $request->preferred_teacher_id ?: null;
         $validated['preferred_room_id'] = $request->preferred_room_id ?: null;
 
-        $validated['domain_id'] = $request->domain_id ?: null;
+        $validated['domain_group_id'] = $request->domain_group_id ?: null;
         $subject = Subject::create($validated);
 
         $subject->prerequisites()->sync(
@@ -134,7 +135,7 @@ class SubjectController extends Controller
             'preferred_teacher_id' => 'nullable|string|max:100',
             'preferred_day' => 'nullable|string|max:20',
             'preferred_shift' => 'nullable|string|max:20',
-            'domain_id' => 'nullable|exists:domains,id',
+            'domain_group_id' => 'nullable|exists:domain_groups,id',
         ]);
 
         // if ($request->subject_type === 'major' && !$request->program_id) {
@@ -152,14 +153,14 @@ class SubjectController extends Controller
         $validated['preferred_teacher_id'] = $request->preferred_teacher_id ?: null;
         $validated['preferred_room_id'] = $request->preferred_room_id ?: null;
 
-        $validated['domain_id'] = $request->domain_id ?: null;
+        $validated['domain_group_id'] = $request->domain_group_id ?: null;
         // $validated['domains'] = $request->domains ?? [];
         $subject->update($validated);
-        if ($validated['subject_type'] === 'major' && $subject->program) {
-            $subject->update([
-                'domains' => $subject->program->domains ?? []
-            ]);
-        }
+        // if ($validated['subject_type'] === 'major' && $subject->program) {
+        //     $subject->update([
+        //         'domains' => $subject->program->domains ?? []
+        //     ]);
+        // }
         $subject->prerequisites()->sync(
             array_unique($request->prerequisites ?? [])
         );

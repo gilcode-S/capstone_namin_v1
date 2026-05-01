@@ -7,7 +7,7 @@ use App\Models\Programs;
 use App\Models\Department;
 use App\Models\Section;
 use App\Models\Curriculum;
-use App\Models\Domain;
+use App\Models\DomainGroup;
 
 class Subject extends Model
 {
@@ -46,7 +46,7 @@ class Subject extends Model
         'preferred_room_id',
         'prerequisite_id',
         'preferred_days',
-        'domain_id',
+        'domain_group_id',
         'preferred_shift',
         'is_hard_constraint',
     ];
@@ -57,9 +57,9 @@ class Subject extends Model
     ];
 
 
-    public function domain()
+    public function domainGroup()
     {
-        return $this->belongsTo(Domain::class);
+        return $this->belongsTo(DomainGroup::class, 'domain_group_id');
     }
 
     // public function preferredTeacher()

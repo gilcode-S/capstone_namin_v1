@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Department;
+use App\Models\DomainGroup;
 use Illuminate\Database\Eloquent\Model;
 
 class Domain extends Model
@@ -13,4 +14,9 @@ class Domain extends Model
     {
         return $this->hasMany(Department::class);
     }
+
+    public function domainGroup()
+{
+    return $this->belongsTo(DomainGroup::class);
+}
 }

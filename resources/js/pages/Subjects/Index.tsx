@@ -57,7 +57,7 @@ const emptyForm = {
     preferred_day: '',
     preferred_shift: '',
 
-    domain_id: '',// for minor
+    domain_group_id: '',
     preferred_room_id: '',
 }
 export default function Index() {
@@ -136,7 +136,7 @@ export default function Index() {
             // semester: subject.semester,
 
             prerequisites: subject.prerequisites?.map((p: any) => p.id) || [],
-            domain_id: subject.domain_id || '',
+            domain_group_id: subject.domain_group_id || '',
 
             preferred_teacher_id: subject.preferred_teacher_id || '',
             preferred_day: subject.preferred_day || '',
@@ -178,7 +178,7 @@ export default function Index() {
             hours_per_week: Number(form.hours_per_week), // ✅ FIX
             // year_level: Number(form.year_level),
             // semester: Number(form.semester),
-            domain_id: form.domain_id || null,
+            domain_group_id: form.domain_group_id || null,
             preferred_teacher_id: form.preferred_teacher_id || null,
             preferred_room_id: form.preferred_room_id || null,
         }
@@ -557,15 +557,16 @@ export default function Index() {
                                     <Label>Domain</Label>
 
                                     <select
-                                        name="domain_id"
-                                        value={form.domain_id}
+                                        name="domain_group_id"
+                                        value={form.domain_group_id}
                                         onChange={handleChange}
                                         className="w-full h-11 rounded-md border px-3"
                                     >
-                                        <option value="">Select Domain</option>
-                                        {domains.map((d: any) => (
-                                            <option key={d.id} value={d.id}>
-                                                {d.name}
+                                        <option value="">Select Domain Group</option>
+
+                                        {domains.map((g: any) => (
+                                            <option key={g.id} value={g.id}>
+                                                {g.name}
                                             </option>
                                         ))}
                                     </select>
