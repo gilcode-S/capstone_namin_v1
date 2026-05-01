@@ -14,23 +14,30 @@ return new class extends Migration
         Schema::create('analytics_snapshots', function (Blueprint $table) {
             $table->id();
 
-            // 🔗 linked schedule version
             $table->foreignId('version_id')
                 ->constrained('schedule_versions')
-                ->cascadeOnDelete();
+                ->onDelete('cascade');
 
-            // 📊 core performance metrics (0–1 or percentage scale)
-            $table->float('efficiency');
-            $table->float('teacher_utilization');
-            $table->float('room_utilization');
+            $table->string('set_type');
+            // A or B
 
-            // 🧠 optimization quality scores
-            $table->float('constraint_satisfaction')->default(0);
-            $table->float('load_balance_score')->default(0);
-            $table->float('optimization_score')->default(0);
+            $table->float('performance_score');
+            // overall system quality
 
-            // 📦 optional pattern storage (AI/CP-SAT insights)
-            $table->json('pattern')->nullable();
+            $table->float('utilization_score');
+            // resource usage efficiency
+
+            $table->float('optimization_score');
+            // CP-SAT score
+
+            $table->float('online_ratio');
+            // % of online schedules
+
+            $table->float('ftf_ratio');
+            // % of face-to-face schedules
+
+            $table->json('breakdown')->nullable();
+            // detailed metrics
 
             $table->timestamps();
         });

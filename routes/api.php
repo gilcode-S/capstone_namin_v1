@@ -3,6 +3,9 @@
 use App\Services\TeacherRankingService;
 use App\Http\Controllers\ScheduleController;
 use App\Services\CurriculumToSchedulingService;
+use App\Services\ConflictDetectionService;
+use App\Services\ConflictResolutionService;
+
 use Illuminate\Support\Facades\Route;
 
 // --------------------------------------------
@@ -35,3 +38,18 @@ Route::post('/generate-units/{sectionId}', function (
 });
 
 Route::post('/generate-final-schedule', [ScheduleController::class, 'generateFinal']);
+Route::post('/schedule/detect-conflicts/{versionId}', function ($versionId) {
+
+    // run detection
+    return app(ConflictDetectionService::class)->scan($versionId);
+});
+
+Route::post('/schedule/resolve-conflicts/{versionId}', function ($versionId) {
+
+    // run auto fix
+    app(ConflictResolutionService::class)->resolveAll($versionId);
+
+    return response()->json([
+        'message' => 'Conflicts resolved'
+    ]);
+});

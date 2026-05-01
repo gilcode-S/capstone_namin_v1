@@ -13,15 +13,20 @@ use App\Models\TimeSlot;
 class Schedule extends Model
 {
     protected $fillable = [
-        'schedule_version_id',
-        'section_id',
+        'version_id',
         'subject_id',
-        'faculty_id',
+        'teacher_id',
+        'section_id',
         'room_id',
-        'time_slot_id',
+        'day',
+        'timeslot',
         'set_type',
-        'score',
-        'status'
+        'is_online',
+        'meeting_group',
+        'domain_score',
+        'teacher_score',
+        'cp_sat_weight',
+        'conflict_type'
     ];
 
     // ✅ Version
@@ -35,7 +40,7 @@ class Schedule extends Model
     }
 
     // ✅ Faculty (teacher)
-    public function faculty()
+    public function teacher()
     {
         return $this->belongsTo(Faculty::class, 'faculty_id', 'id');
     }
@@ -63,4 +68,6 @@ class Schedule extends Model
     {
         return $this->belongsTo(TimeSlot::class, 'time_slot_id', 'id');
     }
+
+    
 }

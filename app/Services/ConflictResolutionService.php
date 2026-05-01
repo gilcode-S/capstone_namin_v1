@@ -2,81 +2,96 @@
 
 namespace App\Services;
 
+use App\Models\Conflict;
 use App\Models\Schedule;
+use App\Models\Room;
 
 class ConflictResolutionService
 {
-    public function resolve($conflicts)
+    public function resolveAll($versionId)
     {
-        $resolved = [];
+        $conflicts = Conflict::where('version_id', $versionId)
+            ->where('resolved', false)
+            ->get();
 
         foreach ($conflicts as $conflict) {
 
-            switch ($conflict['type']) {
+            match ($conflict->type) {
 
-                case 'teacher_overlap':
-                    $resolved[] = $this->fixTeacherOverlap($conflict);
-                    break;
+                'teacher_overlap' => $this->fixTeacherOverlap($conflict),
+                'room_conflict' => $this->fixRoomConflict($conflict),
+                'section_overlap' => $this->fixSectionOverlap($conflict),
 
-                case 'room_conflict':
-                    $resolved[] = $this->fixRoomConflict($conflict);
-                    break;
-
-                case 'section_overlap':
-                    $resolved[] = $this->fixSectionConflict($conflict);
-                    break;
-
-                case 'workload_exceeded':
-                    $resolved[] = $this->redistributeWorkload($conflict);
-                    break;
-            }
+                default => $this->markManual($conflict)
+            };
         }
-
-        return $resolved;
     }
 
+    /**
+     * FIX TEACHER OVERLAP
+     */
     private function fixTeacherOverlap($conflict)
     {
-        $schedule = Schedule::find($conflict['schedule_b']);
+        $meta = json_decode($conflict->meta, true);
 
-        $newSlot = Schedule::where('time_slot_id', '!=', $schedule->time_slot_id)
+        $schedule = Schedule::find($meta['schedule_b']);
+
+        // move to another timeslot safely
+        $newSlot = Schedule::where('timeslot_id', '!=', $schedule->timeslot_id)
+            ->where('teacher_id', '!=', $schedule->teacher_id)
             ->first();
 
         if ($newSlot) {
-            $schedule->time_slot_id = $newSlot->time_slot_id;
+            $schedule->timeslot_id = $newSlot->timeslot_id;
             $schedule->save();
-        }
 
-        return $schedule;
+            $conflict->resolved = true;
+            $conflict->resolution_type = 'auto';
+            $conflict->save();
+        }
     }
 
+    /**
+     * FIX ROOM CONFLICT (RESPECT ROOM TYPE)
+     */
     private function fixRoomConflict($conflict)
     {
-        $schedule = Schedule::find($conflict['schedule_b']);
+        $meta = json_decode($conflict->meta, true);
 
-        $newRoom = Schedule::where('room_id', '!=', $schedule->room_id)
-            ->first();
+        $schedule = Schedule::find($meta['schedule_b']);
+
+        // skip if ONLINE
+        if ($schedule->is_online) return;
+
+        $newRoom = Room::where('id', '!=', $schedule->room_id)->first();
 
         if ($newRoom) {
-            $schedule->room_id = $newRoom->room_id;
+            $schedule->room_id = $newRoom->id;
             $schedule->save();
+
+            $conflict->resolved = true;
+            $conflict->resolution_type = 'auto';
+            $conflict->save();
         }
-
-        return $schedule;
     }
 
-    private function fixSectionConflict($conflict)
+    /**
+     * FIX SECTION OVERLAP
+     */
+    private function fixSectionOverlap($conflict)
     {
-        $schedule = Schedule::find($conflict['schedule_b']);
-
-        $schedule->time_slot_id = null;
-        $schedule->save();
-
-        return $schedule;
+        // safer: mark manual (avoid breaking schedule)
+        $this->markManual($conflict);
     }
 
-    private function redistributeWorkload($conflict)
+    /**
+     * MARK FOR MANUAL REVIEW
+     */
+    private function markManual($conflict)
     {
-        return $conflict;
+        $conflict->resolution_type = 'manual';
+        $conflict->save();
     }
 }
+
+
