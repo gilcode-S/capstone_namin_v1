@@ -10,6 +10,15 @@ class TimeSlotController extends Controller
 {
     //
 
+    private function getShift($time)
+    {
+        $hour = (int) explode(':', $time)[0];
+
+        if ($hour < 12) return 'Morning';
+        if ($hour < 18) return 'Afternoon';
+        return 'Evening';
+    }
+
     public function index()
     {
         return Inertia::render('TimeSlots/Index', [
@@ -21,22 +30,31 @@ class TimeSlotController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'day_of_week' => 'required',
             'start_time' => 'required',
             'end_time' => 'required|after:start_time',
             'shift' => 'required|in:morning,afternoon,evening',
         ]);
 
-        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        // $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-        foreach ($days as $day) {
-            TimeSlot::create([
-                'day_of_week' => $day,
-                'start_time' => $validated['start_time'],
-                'end_time' => $validated['end_time'],
-                'shift' => $validated['shift'],
-                'status' => 'active'
-            ]);
-        }
+        // foreach ($days as $day) {
+        //     TimeSlot::create([
+        //         'day_of_week' => $day,
+        //         'start_time' => $validated['start_time'],
+        //         'end_time' => $validated['end_time'],
+        //         'shift' => $validated['shift'],
+        //         'status' => 'active'
+        //     ]);
+        // }
+
+        TimeSlot::create([
+            'day_of_week' => $validated['day_of_week'],
+            'start_time' => $validated['start_time'],
+            'end_time' => $validated['end_time'],
+            'shift' => $this->getShift($validated['start_time']),
+            'status' => 'active'
+        ]);
 
         return back()->with('success', 'Timeslots generated for all days');
     }

@@ -20,9 +20,11 @@ interface TimeSlot {
   end_time: string
   shift: string
   status: string
+  day_of_week: string
 }
 
 const emptyForm = {
+  day_of_week: '',
   start_time: '',
   end_time: '',
   shift: '',
@@ -67,9 +69,9 @@ export default function Index() {
 
   const groupedSlots = useMemo(() => {
     return {
-      morning: timeSlots.data.filter((s: TimeSlot) => s.shift === 'morning'),
-      afternoon: timeSlots.data.filter((s: TimeSlot) => s.shift === 'afternoon'),
-      evening: timeSlots.data.filter((s: TimeSlot) => s.shift === 'evening'),
+      morning: timeSlots.data.filter((s: TimeSlot) => s.shift === 'Morning'),
+      afternoon: timeSlots.data.filter((s: TimeSlot) => s.shift === 'Afternoon'),
+      evening: timeSlots.data.filter((s: TimeSlot) => s.shift === 'Evening'),
     }
   }, [timeSlots.data])
 
@@ -82,6 +84,7 @@ export default function Index() {
 
   const handleOpenEdit = (slot: TimeSlot) => {
     setForm({
+      day_of_week: slot.day_of_week,
       start_time: slot.start_time.slice(0, 5),
       end_time: slot.end_time.slice(0, 5),
       shift: slot.shift,
@@ -162,6 +165,7 @@ export default function Index() {
             <table className="w-full text-sm">
               <thead className="border-b bg-gray-50">
                 <tr>
+                  <th className="p-4 text-left">Day</th>
                   <th className="p-4 text-left">Shift</th>
                   <th className="p-4 text-left">Time Start</th>
                   <th className="p-4 text-left">Time End</th>
@@ -171,6 +175,10 @@ export default function Index() {
               <tbody>
                 {timeSlots.data.map((slot: TimeSlot) => (
                   <tr key={slot.id} className="border-b">
+                    <td className="p-4">
+                      {slot.day_of_week || '—'}
+                    </td>
+
                     <td className="p-4 capitalize">{slot.shift}</td>
                     <td className="p-4">{formatTime(slot.start_time)}</td>
                     <td className="p-4">{formatTime(slot.end_time)}</td>
@@ -253,6 +261,22 @@ export default function Index() {
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+
+              <select
+                value={form.day_of_week || ''}
+                onChange={(e) => setForm({ ...form, day_of_week: e.target.value })}
+                className="w-full border rounded px-3 py-2"
+                required
+              >
+                <option value="">Select Day</option>
+                <option value="Monday">Monday</option>
+                <option value="Tuesday">Tuesday</option>
+                <option value="Wednesday">Wednesday</option>
+                <option value="Thursday">Thursday</option>
+                <option value="Friday">Friday</option>
+                <option value="Saturday">Saturday</option>
+                <option value="Sunday">Sunday</option>
+              </select>
               <Input
                 type="time"
                 value={form.start_time}
