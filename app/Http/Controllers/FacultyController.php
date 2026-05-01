@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Department;
 use App\Models\Faculty;
 use App\Models\Shift;
+use App\Models\Domain;
+use App\Models\DomainGroup;
 use App\Models\Schedule;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -144,7 +146,8 @@ class FacultyController extends Controller
             }),
 
             'departments' => Department::all(),
-
+            'domainGroups' => DomainGroup::all(),
+            'domains' => Domain::all(),
             'filters' => [
                 'search' => $request->search,
                 'department' => $request->department
@@ -189,8 +192,8 @@ class FacultyController extends Controller
             'qualification_level' => 'nullable|string|max:255',
             'years_experience' => 'nullable|integer|min:0',
 
-            'program' => 'nullable|string|max:255',
-            'domain' => 'nullable|string|max:255',
+            'domain_group_id' => 'required|exists:domain_groups,id',
+            'domain_id' => 'required|exists:domains,id',
         ]);
 
         $faculty = Faculty::create($validated);
@@ -239,8 +242,8 @@ class FacultyController extends Controller
             'qualification_level' => 'nullable|string|max:255',
             'years_experience' => 'nullable|integer|min:0',
 
-            'program' => 'nullable|string|max:255',
-            'domain' => 'nullable|string|max:255',
+            'domain_group_id' => 'required|exists:domain_groups,id',
+            'domain_id' => 'required|exists:domains,id',
         ]);
 
         $faculty->update($validated);

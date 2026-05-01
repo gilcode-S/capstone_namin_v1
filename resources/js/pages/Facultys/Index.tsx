@@ -27,6 +27,17 @@ interface Availability {
   end_time: string
 }
 
+interface DomainGroup {
+  id: number
+  name: string
+}
+
+interface Domain {
+  id: number
+  name: string
+  domain_group_id: number
+}
+
 interface Shift {
   id: number
   name: string
@@ -58,9 +69,9 @@ interface Faculty {
   shifts: Shift[]
   availability_full: Availability[]
   schedule_full: Schedule[]
-  domain: string
+  domain_group_id: DomainGroup[]
   min_hours: number
-  program: string
+  domain_id: Domain[]
   current_load: number
 }
 
@@ -78,18 +89,19 @@ const emptyForm = {
   shifts: [],
   qualification_level: '',
   years_experience: '',
-  domain: '',
-  program: '',
+  domain_group_id: '',
+  domain_id: ''
 }
 
 export default function Index() {
-  const { faculties, departments, stats, filters, shifts } = usePage().props as unknown as {
-    faculties: {
-      data: Faculty[],
-      links: any[]
-    },
-    departments: Department[]
-  }
+  const { faculties, departments, stats, filters, shifts, domainGroups,
+    domains } = usePage().props as unknown as {
+      faculties: {
+        data: Faculty[],
+        links: any[]
+      },
+      departments: Department[]
+    }
 
   const [open, setOpen] = useState(false)
   const [availabilityOpen, setAvailabilityOpen] = useState(false)
@@ -158,8 +170,8 @@ export default function Index() {
       status: faculty.status,
       availability: faculty.availability_full?.map(a => a.day_of_week) || [],
       shifts: faculty.shifts?.map(s => s.id) || [],
-      domain: faculty.domain || '',   // ✅ FIXED
-      program: faculty.program || ''  // ✅ FIXED
+      domain_group_id: faculty.domain_group_id,
+      domain_id: faculty.domain_id,
     })
 
     setIsEdit(true)
@@ -873,42 +885,36 @@ export default function Index() {
 
                 {/* DOMAIN */}
                 <select
-                  name="domain"
-                  value={form.domain}
-                  onChange={(e) => {
-                    setForm({
-                      ...form,
-                      domain: e.target.value,
-                      program: '' // 🔥 reset program when domain changes
-                    })
-                  }}
+                  name="domain_group_id"
+                  value={form.domain_group_id}
+                  onChange={handleChange}
                   className="border rounded-md px-3 py-2"
                 >
-                  <option value="">Select Domain</option>
-                  {Object.keys(PROGRAMS_BY_DOMAIN).map(domain => (
-                    <option key={domain} value={domain}>
-                      {domain}
+                  <option value="">Select Domain Group</option>
+                  {domainGroups.map(dg => (
+                    <option key={dg.id} value={dg.id}>
+                      {dg.name}
                     </option>
                   ))}
                 </select>
 
                 {/* PROGRAM */}
                 <select
-                  name="program"
-                  value={form.program}
+                  name="domain_id"
+                  value={form.domain_id}
                   onChange={handleChange}
-                  disabled={!form.domain} // 🔥 disable if no domain
+                  disabled={!form.domain_group_id}
                   className="border rounded-md px-3 py-2"
                 >
-                  <option value="">Select Program</option>
+                  <option value="">Select Domain</option>
 
-                  {form.domain &&
-                    PROGRAMS_BY_DOMAIN[form.domain]?.map(program => (
-                      <option key={program} value={program}>
-                        {program}
+                  {domains
+                    .filter(d => d.domain_group_id == Number(form.domain_group_id))
+                    .map(d => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
                       </option>
-                    ))
-                  }
+                    ))}
                 </select>
 
               </div>

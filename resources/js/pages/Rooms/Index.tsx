@@ -886,6 +886,7 @@ export default function Index() {
                                         <option value="classroom">Classroom</option>
                                         <option value="laboratory">Computer Lab</option>
                                         <option value="pe_room">PE Room</option>
+                                        <option value="Online">Online</option>
                                     </select>
                                 </div>
 

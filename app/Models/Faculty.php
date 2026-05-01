@@ -9,6 +9,8 @@ use App\Models\Subject;
 use App\Models\SectionSubjectAssignment;
 use App\Models\Schedule;
 use App\Models\Shift;
+use App\Models\Domain;
+use App\Models\DomainGroup;
 
 class Faculty extends Model
 {
@@ -29,7 +31,9 @@ class Faculty extends Model
         'current_load',
         'degree',
         'domain',
-        'program'
+        'program',
+        'domain_group_id',
+        'domain_id'
     ];
 
     protected $casts = [
@@ -54,6 +58,15 @@ class Faculty extends Model
         return $this->belongsToMany(Subject::class)
             ->withPivot('priority_level')
             ->withTimestamps();
+    }
+    public function domainGroup()
+    {
+        return $this->belongsTo(DomainGroup::class);
+    }
+
+    public function domain()
+    {
+        return $this->belongsTo(Domain::class);
     }
 
     public function getFullNameAttribute()
