@@ -7,6 +7,7 @@ use App\Models\Programs;
 use App\Models\Department;
 use App\Models\Section;
 use App\Models\Curriculum;
+use App\Models\Domain;
 
 class Subject extends Model
 {
@@ -45,16 +46,21 @@ class Subject extends Model
         'preferred_room_id',
         'prerequisite_id',
         'preferred_days',
-        'domains',
+        'domain_id',
         'preferred_shift',
         'is_hard_constraint',
     ];
     protected $casts = [
         'preferred_days' => 'array',
-        'domains' => 'array',
+
         'is_hard_constraint' => 'boolean',
     ];
 
+
+    public function domain()
+    {
+        return $this->belongsTo(Domain::class);
+    }
 
     // public function preferredTeacher()
     // {

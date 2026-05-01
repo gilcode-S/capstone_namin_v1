@@ -57,12 +57,12 @@ const emptyForm = {
     preferred_day: '',
     preferred_shift: '',
 
-    domains: [], // for minor
+    domain_id: '',// for minor
     preferred_room_id: '',
 }
 export default function Index() {
 
-    const { subjects, programs, filters, stats, allSubjects, teachers } = usePage().props as unknown as {
+    const { subjects, programs, filters, stats, allSubjects, teachers, domains, rooms } = usePage().props as unknown as {
         subjects: {
             data: Subject[],
             links: any[]
@@ -136,7 +136,7 @@ export default function Index() {
             // semester: subject.semester,
 
             prerequisites: subject.prerequisites?.map((p: any) => p.id) || [],
-            domains: subject.domains || [],
+            domain_id: subject.domain_id || '',
 
             preferred_teacher_id: subject.preferred_teacher_id || '',
             preferred_day: subject.preferred_day || '',
@@ -178,7 +178,7 @@ export default function Index() {
             hours_per_week: Number(form.hours_per_week), // ✅ FIX
             // year_level: Number(form.year_level),
             // semester: Number(form.semester),
-            domains: form.domains || [],
+            domain_id: form.domain_id || null,
             preferred_teacher_id: form.preferred_teacher_id || null,
             preferred_room_id: form.preferred_room_id || null,
         }
@@ -554,57 +554,21 @@ export default function Index() {
 
                             {form.subject_type === 'minor' && (
                                 <div>
-                                    <Label>Domains</Label>
+                                    <Label>Domain</Label>
 
-                                    <div className="border rounded-md p-2 flex flex-wrap gap-2 min-h-[44px]">
-
-                                        {/* selected domains */}
-                                        {form.domains.map((domain: string) => (
-                                            <span
-                                                key={domain}
-                                                className="bg-gray-200 px-3 py-1 rounded-full text-sm flex items-center gap-1"
-                                            >
-                                                {domain}
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setForm({
-                                                            ...form,
-                                                            domains: form.domains.filter((d: string) => d !== domain)
-                                                        })
-                                                    }
-                                                >
-                                                    ✕
-                                                </button>
-                                            </span>
+                                    <select
+                                        name="domain_id"
+                                        value={form.domain_id}
+                                        onChange={handleChange}
+                                        className="w-full h-11 rounded-md border px-3"
+                                    >
+                                        <option value="">Select Domain</option>
+                                        {domains.map((d: any) => (
+                                            <option key={d.id} value={d.id}>
+                                                {d.name}
+                                            </option>
                                         ))}
-
-                                        {/* dropdown */}
-                                        <select
-                                            onChange={(e) => {
-                                                const value = e.target.value
-                                                if (!value) return
-
-                                                if (!form.domains.includes(value)) {
-                                                    setForm({
-                                                        ...form,
-                                                        domains: [...form.domains, value]
-                                                    })
-                                                }
-
-                                                e.target.value = ""
-                                            }}
-                                            className="outline-none flex-1 bg-transparent text-sm"
-                                        >
-                                            <option value="">Select domain</option>
-
-                                            {Object.keys(PROGRAMS_BY_DOMAIN).map((domain) => (
-                                                <option key={domain} value={domain}>
-                                                    {domain}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
+                                    </select>
                                 </div>
                             )}
 
@@ -615,21 +579,29 @@ export default function Index() {
 
                                     <div className="border rounded-md p-2 flex flex-wrap gap-2 min-h-[44px]">
 
+                                        {/* SELECTED PREREQUISITES */}
                                         {form.prerequisites.map((id: number) => {
-                                            const subject = allSubjects.find((s: any) => s.id === id)
+                                            const subject = allSubjects.find(
+                                                (s: any) => s.id === id && s.subject_type === 'major'
+                                            )
+
+                                            if (!subject) return null
 
                                             return (
                                                 <span
                                                     key={id}
                                                     className="bg-gray-200 px-3 py-1 rounded-full text-sm flex items-center gap-1"
                                                 >
-                                                    {subject?.subject_code}
+                                                    {subject.subject_code}
+
                                                     <button
                                                         type="button"
                                                         onClick={() =>
                                                             setForm({
                                                                 ...form,
-                                                                prerequisites: form.prerequisites.filter((p: number) => p !== id)
+                                                                prerequisites: form.prerequisites.filter(
+                                                                    (p: number) => p !== id
+                                                                )
                                                             })
                                                         }
                                                     >
@@ -639,6 +611,7 @@ export default function Index() {
                                             )
                                         })}
 
+                                        {/* ADD PREREQUISITE DROPDOWN (MAJOR ONLY) */}
                                         <select
                                             onChange={(e) => {
                                                 const value = Number(e.target.value)
@@ -655,13 +628,17 @@ export default function Index() {
                                             }}
                                             className="outline-none flex-1 bg-transparent text-sm"
                                         >
-                                            <option value="">*If Major* Select prerequisite</option>
-                                            {allSubjects.map((s: any) => (
-                                                <option key={s.id} value={s.id}>
-                                                    {s.subject_code} - {s.subject_name}
-                                                </option>
-                                            ))}
+                                            <option value="">Select prerequisite (Major only)</option>
+
+                                            {allSubjects
+                                                .filter((s: any) => s.subject_type === 'major')
+                                                .map((s: any) => (
+                                                    <option key={s.id} value={s.id}>
+                                                        {s.subject_code} - {s.subject_name}
+                                                    </option>
+                                                ))}
                                         </select>
+
                                     </div>
                                 </div>
                             )}
@@ -723,14 +700,20 @@ export default function Index() {
                                         {/* PREFERRED TEACHER */}
                                         <div>
                                             <Label>Preferred Teacher</Label>
-                                            <input
-                                                type="text"
+                                            <select
                                                 name="preferred_teacher_id"
                                                 value={form.preferred_teacher_id}
                                                 onChange={handleChange}
-                                                placeholder="e.g. Juan Dela Cruz"
                                                 className="w-full h-11 rounded-md border px-3"
-                                            />
+                                            >
+                                                <option value="">Select Teacher</option>
+
+                                                {teachers.map((t) => (
+                                                    <option key={t.id} value={t.id}>
+                                                        {t.first_name} {t.last_name} ({t.faculty_code})
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
 
                                         {/* PREFERRED SHIFT */}
@@ -743,23 +726,29 @@ export default function Index() {
                                                 className="w-full h-11 rounded-md border px-3"
                                             >
                                                 <option value="">Select Shift</option>
-                                                <option value="morning">Morning</option>
-                                                <option value="afternoon">Afternoon</option>
-                                                <option value="evening">Evening</option>
+                                                <option value="Morning">Morning</option>
+                                                <option value="Afternoon">Afternoon</option>
+                                                <option value="Evening">Evening</option>
                                             </select>
                                         </div>
 
                                         {/* PREFERRED ROOM */}
                                         <div>
                                             <Label>Preferred Room</Label>
-                                            <input
-                                                type="text"
+                                            <select
                                                 name="preferred_room_id"
                                                 value={form.preferred_room_id}
                                                 onChange={handleChange}
-                                                placeholder="e.g. Room 101"
                                                 className="w-full h-11 rounded-md border px-3"
-                                            />
+                                            >
+                                                <option value="">Select Room</option>
+
+                                                {rooms.map((r: any) => (
+                                                    <option key={r.id} value={r.id}>
+                                                        {r.room_name}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
 
                                     </div>

@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Domain;
 use App\Models\Faculty;
 use App\Models\Programs;
 use App\Models\Subject;
+use App\Models\Room;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -45,7 +47,9 @@ class SubjectController extends Controller
             'subjects' => $query->oldest()->paginate(15)->withQueryString(),
             'programs' => Programs::all(),
             'teachers' => Faculty::all(),
-            'allSubjects' => Subject::select('id', 'subject_name', 'subject_code')->get(),
+            'domains' => Domain::all(),
+            'rooms' => Room::select('id', 'room_name')->get(),
+            'allSubjects' => Subject::select('id', 'subject_name', 'subject_code',    'subject_type')->get(),
 
             'filters' => $request->only([
                 'program_id',
@@ -75,14 +79,15 @@ class SubjectController extends Controller
             'year_level' => 'nullable|integer|min:1|max:5',
 
             'prerequisites' => 'nullable|array',
-            'prerequisites.*' => 'exists:subjects,id',
+            'prerequisites.*' => [
+                'exists:subjects,id',
+            ],
 
             // ✅ NEW
             'preferred_teacher_id' => 'nullable|string|max:100',
             'preferred_day' => 'nullable|string|max:20',
             'preferred_shift' => 'nullable|string|max:20',
-            'domains' => 'nullable|array',
-            'domains.*' => 'string|max:100',
+            'domain_id' => 'nullable|exists:domains,id',
         ]);
 
         // ✅ enforce program only for major
@@ -92,15 +97,17 @@ class SubjectController extends Controller
         //     ]);
         // }
 
-        $validated['units'] = $validated['hours_per_week'];
-        $validated['domains'] = $request->domains ?? [];
+        $validated['preferred_shift'] = $request->preferred_shift
+            ? ucfirst(strtolower($request->preferred_shift))
+            : null;
 
+        $validated['preferred_day'] = $request->preferred_day ?: null;
+        $validated['preferred_teacher_id'] = $request->preferred_teacher_id ?: null;
+        $validated['preferred_room_id'] = $request->preferred_room_id ?: null;
+
+        $validated['domain_id'] = $request->domain_id ?: null;
         $subject = Subject::create($validated);
-        if ($validated['subject_type'] === 'major' && $subject->program) {
-            $subject->update([
-                'domains' => $subject->program->domains ?? []
-            ]);
-        }
+
         $subject->prerequisites()->sync(
             array_unique($request->prerequisites ?? [])
         );
@@ -127,8 +134,7 @@ class SubjectController extends Controller
             'preferred_teacher_id' => 'nullable|string|max:100',
             'preferred_day' => 'nullable|string|max:20',
             'preferred_shift' => 'nullable|string|max:20',
-            'domains' => 'nullable|array',
-            'domains.*' => 'string|max:100',
+            'domain_id' => 'nullable|exists:domains,id',
         ]);
 
         // if ($request->subject_type === 'major' && !$request->program_id) {
@@ -138,7 +144,16 @@ class SubjectController extends Controller
         // }
 
         $validated['units'] = $validated['hours_per_week'];
-        $validated['domains'] = $request->domains ?? [];
+        $validated['preferred_shift'] = $request->preferred_shift
+            ? ucfirst(strtolower($request->preferred_shift))
+            : null;
+
+        $validated['preferred_day'] = $request->preferred_day ?: null;
+        $validated['preferred_teacher_id'] = $request->preferred_teacher_id ?: null;
+        $validated['preferred_room_id'] = $request->preferred_room_id ?: null;
+
+        $validated['domain_id'] = $request->domain_id ?: null;
+        // $validated['domains'] = $request->domains ?? [];
         $subject->update($validated);
         if ($validated['subject_type'] === 'major' && $subject->program) {
             $subject->update([
