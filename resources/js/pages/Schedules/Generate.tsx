@@ -1,4 +1,3 @@
-
 import { Head, router, usePage } from '@inertiajs/react'
 
 import { useEffect, useState } from 'react'
@@ -21,18 +20,25 @@ export default function Generate() {
     const [versionName, setVersionName] = useState("")
     const [effectiveDate, setEffectiveDate] = useState("")
 
+    // ✅ LOCK STATE (OUTSIDE ACTION)
+    const [engines, setEngines] = useState({
+        room: true,
+        curriculum: true,
+        teacher: true
+    })
+
+    const toggleLock = (key: 'room' | 'curriculum' | 'teacher') => {
+        setEngines(prev => ({
+            ...prev,
+            [key]: !prev[key]
+        }))
+    }
+
     useEffect(() => {
         if (versions?.length > 0 && !versionId) {
             setVersionId(versions[versions.length - 1].id)
         }
     }, [versions])
-
-    const normalizedTimeslots = (timeslots || []).map((t: any) => ({
-        id: t.id,
-        day_of_week: t.day_of_week || "Monday",
-        start_time: t.start_time || "08:00 AM",
-        end_time: t.end_time || "09:00 AM",
-    }))
 
     const generateSchedule = () => {
         if (!academicYear || !semester || !effectiveDate) {
@@ -66,10 +72,10 @@ export default function Generate() {
 
             <Head title="Generate Schedule" />
 
-            <div className="p-6 bg-white min-h-screen flex flex-col items-start">
+            <div className="p-6 bg-white min-h-screen">
 
                 {/* HEADER */}
-                <div className="text-center mb-8">
+                <div className="mb-6">
                     <h1 className="text-2xl font-semibold">
                         Schedule Generator
                     </h1>
@@ -78,39 +84,125 @@ export default function Generate() {
                     </p>
                 </div>
 
-                {/* MAIN CARD */}
-                <div className="bg-white border rounded-xl p-5 w-full max-w-md text-center space-y-5 shadow-sm">
+                {/* LEFT / RIGHT LAYOUT */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                    <div className="text-lg font-medium">
-                        ⚡ Generate Schedule
-                    </div>
+                    {/* ================= LEFT SIDE ================= */}
+                    <div className="md:col-span-2 border rounded-xl p-5 space-y-3">
 
-                    <div className="flex flex-col items-center gap-3">
+                        <h3 className="font-semibold">Setup Controller</h3>
 
-                        <div className="w-12 h-12 rounded-full border flex items-center justify-center">
-                            🕒
+                        {/* ROOM */}
+                        <div className="flex items-center justify-between border rounded-lg p-4">
+                            
+                            {/* ACTION AREA */}
+                            <div
+                                onClick={() => {
+                                    if (engines.room) {
+                                        router.post('/setup/lock-rooms')
+                                    }
+                                }}
+                                className={`flex-1 cursor-pointer ${!engines.room ? 'opacity-50' : ''}`}
+                            >
+                                <p className="font-medium">⚡ Room Timeslot Engine</p>
+                                <p className="text-xs text-gray-500">Assigns time slots to rooms.</p>
+                            </div>
+
+                            {/* LOCK (OUTSIDE ACTION) */}
+                            <button
+                                onClick={() => toggleLock('room')}
+                                className="ml-3 text-lg"
+                            >
+                                {engines.room ? '🔓' : '🔒'}
+                            </button>
+
                         </div>
 
-                        <p className="text-sm text-gray-600">
-                            Ready to optimize
-                        </p>
+                        {/* CURRICULUM */}
+                        <div className="flex items-center justify-between border rounded-lg p-4">
 
-                        <div className="flex gap-3 mt-2">
-
-                            <Button
-                                onClick={() => setShowInputs(true)}
-                                className="bg-black text-white px-4 py-2 text-sm"
+                            <div
+                                onClick={() => {
+                                    if (engines.curriculum) {
+                                        router.post('/setup/fetch-curriculum')
+                                    }
+                                }}
+                                className={`flex-1 cursor-pointer ${!engines.curriculum ? 'opacity-50' : ''}`}
                             >
-                                Generate
-                            </Button>
+                                <p className="font-medium">📚 Curriculum Fetch Engine</p>
+                                <p className="text-xs text-gray-500">Assigns subjects to sections.</p>
+                            </div>
 
-                            <Button
-                                onClick={resetSchedule}
-                                disabled={generating || !versionId}
-                                className="bg-red-500 text-white px-4 py-2 text-sm"
+                            <button
+                                onClick={() => toggleLock('curriculum')}
+                                className="ml-3 text-lg"
                             >
-                                Reset
-                            </Button>
+                                {engines.curriculum ? '🔓' : '🔒'}
+                            </button>
+
+                        </div>
+
+                        {/* TEACHER */}
+                        <div className="flex items-center justify-between border rounded-lg p-4">
+
+                            <div
+                                onClick={() => {
+                                    if (engines.teacher) {
+                                        router.post('/setup/rank-teachers')
+                                    }
+                                }}
+                                className={`flex-1 cursor-pointer ${!engines.teacher ? 'opacity-50' : ''}`}
+                            >
+                                <p className="font-medium">👨‍🏫 Teachers Ranking Engine</p>
+                                <p className="text-xs text-gray-500">Evaluates teacher competency.</p>
+                            </div>
+
+                            <button
+                                onClick={() => toggleLock('teacher')}
+                                className="ml-3 text-lg"
+                            >
+                                {engines.teacher ? '🔓' : '🔒'}
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    {/* ================= RIGHT SIDE ================= */}
+                    <div className="border rounded-xl p-5 space-y-5 shadow-sm">
+
+                        <div className="text-lg font-medium">
+                            ⚡ Generate Schedule
+                        </div>
+
+                        <div className="flex flex-col items-center gap-3">
+
+                            <div className="w-12 h-12 rounded-full border flex items-center justify-center">
+                                🕒
+                            </div>
+
+                            <p className="text-sm text-gray-600">
+                                Ready to optimize
+                            </p>
+
+                            <div className="flex gap-3 mt-2">
+
+                                <Button
+                                    onClick={() => setShowInputs(true)}
+                                    className="bg-black text-white px-4 py-2 text-sm"
+                                >
+                                    Generate
+                                </Button>
+
+                                <Button
+                                    onClick={resetSchedule}
+                                    disabled={generating || !versionId}
+                                    className="bg-red-500 text-white px-4 py-2 text-sm"
+                                >
+                                    Reset
+                                </Button>
+
+                            </div>
 
                         </div>
 
@@ -118,15 +210,11 @@ export default function Generate() {
 
                 </div>
 
-                {/* ================= CONFIRM MODAL ================= */}
+                {/* ================= MODALS (UNCHANGED) ================= */}
                 {showConfirm && (
                     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-
                         <div className="bg-white rounded-xl p-6 w-full max-w-md space-y-4">
-
-                            <h3 className="font-semibold text-lg">
-                                Confirm Generation
-                            </h3>
+                            <h3 className="font-semibold text-lg">Confirm Generation</h3>
 
                             <p className="text-sm text-gray-600">
                                 The system will generate an optimized schedule using CP-SAT engine.
@@ -139,7 +227,6 @@ export default function Generate() {
                             </div>
 
                             <div className="flex justify-end gap-3">
-
                                 <button
                                     onClick={() => {
                                         setShowConfirm(false)
@@ -159,25 +246,16 @@ export default function Generate() {
                                 >
                                     Continue
                                 </button>
-
                             </div>
-
                         </div>
-
                     </div>
                 )}
 
-                {/* ================= INPUT MODAL ================= */}
                 {showInputs && (
                     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-
                         <div className="bg-white rounded-xl p-6 w-full max-w-md space-y-4">
 
-                            <h3 className="font-semibold text-lg">
-                                Edit Inputs
-                            </h3>
-
-                            {/* ❌ VERSION REMOVED */}
+                            <h3 className="font-semibold text-lg">Edit Inputs</h3>
 
                             <div>
                                 <label className="text-sm">Academic Year</label>
@@ -242,7 +320,6 @@ export default function Generate() {
                             </div>
 
                         </div>
-
                     </div>
                 )}
 

@@ -11,6 +11,7 @@ use App\Http\Controllers\GenerateController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\SectionController;
+use App\Http\Controllers\SetupController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\ScheduleController;
@@ -94,6 +95,14 @@ Route::get('/conflicts/{versionId}', [ConflictController::class, 'index']);
 
 
 
+// 🔘 BUTTON 1
+Route::post('/setup/rank-teachers', [SetupController::class, 'rankTeachers']);
+
+// 🔘 BUTTON 2
+Route::post('/setup/fetch-curriculum', [SetupController::class, 'fetchCurriculum']);
+
+// 🔘 BUTTON 3
+Route::post('/setup/lock-rooms', [SetupController::class, 'lockRooms']);
 
 
 Route::middleware(['auth', 'role:staff,super admin'])
