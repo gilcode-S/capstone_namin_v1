@@ -294,6 +294,14 @@ class ScheduleController extends Controller
         );
     }
 
+    public function generateSchedule(Request $request)
+    {
+        $service = new \App\Services\ScheduleGenerationService();
+
+        return $service->generate($request->version_id);
+    }
+
+
     /**
      * =====================================================
      * DELETE

@@ -7,54 +7,165 @@ use Illuminate\Support\Facades\DB;
 
 class DomainRelationSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
         DB::table('domain_relations')->insert([
 
-            // ======================
-            // COMPUTER STUDIES CORE
-            // ======================
-            ['domain_a' => 'Computer Science', 'domain_b' => 'Information Technology', 'score' => 0.95],
-            ['domain_a' => 'Computer Science', 'domain_b' => 'Software Engineering', 'score' => 0.98],
-            ['domain_a' => 'Computer Science', 'domain_b' => 'Data Science', 'score' => 0.90],
-            ['domain_a' => 'Information Technology', 'domain_b' => 'Software Engineering', 'score' => 0.92],
+            // 1 Computer Studies / IT
+            ['domain_a' => 1, 'domain_b' => 2, 'score' => 5],
+            ['domain_a' => 1, 'domain_b' => 3, 'score' => 5],
+            ['domain_a' => 1, 'domain_b' => 4, 'score' => 4],
+            ['domain_a' => 1, 'domain_b' => 5, 'score' => 4],
+            ['domain_a' => 1, 'domain_b' => 6, 'score' => 3],
+            ['domain_a' => 1, 'domain_b' => 7, 'score' => 5],
+            ['domain_a' => 1, 'domain_b' => 8, 'score' => 3],
+            ['domain_a' => 1, 'domain_b' => 9, 'score' => 3],
+            ['domain_a' => 1, 'domain_b' => 10, 'score' => 4],
+            ['domain_a' => 1, 'domain_b' => 11, 'score' => 3],
+            ['domain_a' => 1, 'domain_b' => 12, 'score' => 4],
 
-            // ======================
-            // ENGINEERING RELATIONS
-            // ======================
-            ['domain_a' => 'Civil Engineering', 'domain_b' => 'Mechanical Engineering', 'score' => 0.60],
-            ['domain_a' => 'Electrical Engineering', 'domain_b' => 'Electronics Engineering', 'score' => 0.95],
-            ['domain_a' => 'Computer Engineering', 'domain_b' => 'Computer Science', 'score' => 0.88],
+            // 2 Engineering
+            ['domain_a' => 2, 'domain_b' => 1, 'score' => 5],
+            ['domain_a' => 2, 'domain_b' => 3, 'score' => 4],
+            ['domain_a' => 2, 'domain_b' => 4, 'score' => 3],
+            ['domain_a' => 2, 'domain_b' => 5, 'score' => 4],
+            ['domain_a' => 2, 'domain_b' => 6, 'score' => 2],
+            ['domain_a' => 2, 'domain_b' => 7, 'score' => 5],
+            ['domain_a' => 2, 'domain_b' => 8, 'score' => 4],
+            ['domain_a' => 2, 'domain_b' => 9, 'score' => 2],
+            ['domain_a' => 2, 'domain_b' => 10, 'score' => 3],
+            ['domain_a' => 2, 'domain_b' => 11, 'score' => 5],
+            ['domain_a' => 2, 'domain_b' => 12, 'score' => 5],
 
-            // ======================
-            // BUSINESS RELATIONS
-            // ======================
-            ['domain_a' => 'Business Administration', 'domain_b' => 'Marketing Management', 'score' => 0.85],
-            ['domain_a' => 'Business Administration', 'domain_b' => 'Human Resource Management', 'score' => 0.80],
+            // 3 Business & Accountancy
+            ['domain_a' => 3, 'domain_b' => 1, 'score' => 5],
+            ['domain_a' => 3, 'domain_b' => 2, 'score' => 4],
+            ['domain_a' => 3, 'domain_b' => 4, 'score' => 4],
+            ['domain_a' => 3, 'domain_b' => 5, 'score' => 3],
+            ['domain_a' => 3, 'domain_b' => 6, 'score' => 3],
+            ['domain_a' => 3, 'domain_b' => 7, 'score' => 4],
+            ['domain_a' => 3, 'domain_b' => 8, 'score' => 4],
+            ['domain_a' => 3, 'domain_b' => 9, 'score' => 5],
+            ['domain_a' => 3, 'domain_b' => 10, 'score' => 4],
+            ['domain_a' => 3, 'domain_b' => 11, 'score' => 3],
+            ['domain_a' => 3, 'domain_b' => 12, 'score' => 4],
 
-            // ======================
-            // HEALTH SCIENCES
-            // ======================
-            ['domain_a' => 'Nursing', 'domain_b' => 'Public Health', 'score' => 0.85],
-            ['domain_a' => 'Biology', 'domain_b' => 'Medical Technology', 'score' => 0.75],
+            // 4 Education
+            ['domain_a' => 4, 'domain_b' => 1, 'score' => 4],
+            ['domain_a' => 4, 'domain_b' => 2, 'score' => 3],
+            ['domain_a' => 4, 'domain_b' => 3, 'score' => 4],
+            ['domain_a' => 4, 'domain_b' => 5, 'score' => 4],
+            ['domain_a' => 4, 'domain_b' => 6, 'score' => 5],
+            ['domain_a' => 4, 'domain_b' => 7, 'score' => 4],
+            ['domain_a' => 4, 'domain_b' => 8, 'score' => 3],
+            ['domain_a' => 4, 'domain_b' => 9, 'score' => 3],
+            ['domain_a' => 4, 'domain_b' => 10, 'score' => 4],
+            ['domain_a' => 4, 'domain_b' => 11, 'score' => 2],
+            ['domain_a' => 4, 'domain_b' => 12, 'score' => 4],
 
-            // ======================
-            // ARTS & SOCIAL SCIENCE
-            // ======================
-            ['domain_a' => 'Psychology', 'domain_b' => 'Sociology', 'score' => 0.90],
-            ['domain_a' => 'Political Science', 'domain_b' => 'History', 'score' => 0.80],
+            // 5 Health Sciences
+            ['domain_a' => 5, 'domain_b' => 1, 'score' => 4],
+            ['domain_a' => 5, 'domain_b' => 2, 'score' => 4],
+            ['domain_a' => 5, 'domain_b' => 3, 'score' => 3],
+            ['domain_a' => 5, 'domain_b' => 4, 'score' => 4],
+            ['domain_a' => 5, 'domain_b' => 6, 'score' => 3],
+            ['domain_a' => 5, 'domain_b' => 7, 'score' => 5],
+            ['domain_a' => 5, 'domain_b' => 8, 'score' => 3],
+            ['domain_a' => 5, 'domain_b' => 9, 'score' => 2],
+            ['domain_a' => 5, 'domain_b' => 10, 'score' => 4],
+            ['domain_a' => 5, 'domain_b' => 11, 'score' => 2],
+            ['domain_a' => 5, 'domain_b' => 12, 'score' => 2],
 
-            // ======================
-            // SCIENCE
-            // ======================
-            ['domain_a' => 'Mathematics', 'domain_b' => 'Physics', 'score' => 0.95],
-            ['domain_a' => 'Chemistry', 'domain_b' => 'Biology', 'score' => 0.85],
+            // 6 Arts & Humanities
+            ['domain_a' => 6, 'domain_b' => 1, 'score' => 3],
+            ['domain_a' => 6, 'domain_b' => 2, 'score' => 2],
+            ['domain_a' => 6, 'domain_b' => 3, 'score' => 3],
+            ['domain_a' => 6, 'domain_b' => 4, 'score' => 5],
+            ['domain_a' => 6, 'domain_b' => 5, 'score' => 3],
+            ['domain_a' => 6, 'domain_b' => 7, 'score' => 2],
+            ['domain_a' => 6, 'domain_b' => 8, 'score' => 1],
+            ['domain_a' => 6, 'domain_b' => 9, 'score' => 4],
+            ['domain_a' => 6, 'domain_b' => 10, 'score' => 4],
+            ['domain_a' => 6, 'domain_b' => 11, 'score' => 1],
+            ['domain_a' => 6, 'domain_b' => 12, 'score' => 5],
 
-            // ======================
-            // DEFAULT CROSS RELATION (LOW SCORE)
-            // ======================
-            ['domain_a' => 'Computer Science', 'domain_b' => 'Business Administration', 'score' => 0.30],
-            ['domain_a' => 'Engineering', 'domain_b' => 'Arts & Humanities', 'score' => 0.20],
+            // 7 Sciences & Mathematics
+            ['domain_a' => 7, 'domain_b' => 1, 'score' => 5],
+            ['domain_a' => 7, 'domain_b' => 2, 'score' => 5],
+            ['domain_a' => 7, 'domain_b' => 3, 'score' => 4],
+            ['domain_a' => 7, 'domain_b' => 4, 'score' => 4],
+            ['domain_a' => 7, 'domain_b' => 5, 'score' => 5],
+            ['domain_a' => 7, 'domain_b' => 6, 'score' => 2],
+            ['domain_a' => 7, 'domain_b' => 8, 'score' => 4],
+            ['domain_a' => 7, 'domain_b' => 9, 'score' => 2],
+            ['domain_a' => 7, 'domain_b' => 10, 'score' => 3],
+            ['domain_a' => 7, 'domain_b' => 11, 'score' => 4],
+            ['domain_a' => 7, 'domain_b' => 12, 'score' => 4],
+
+            // 8 Agriculture & Fisheries
+            ['domain_a' => 8, 'domain_b' => 1, 'score' => 3],
+            ['domain_a' => 8, 'domain_b' => 2, 'score' => 4],
+            ['domain_a' => 8, 'domain_b' => 3, 'score' => 4],
+            ['domain_a' => 8, 'domain_b' => 4, 'score' => 3],
+            ['domain_a' => 8, 'domain_b' => 5, 'score' => 3],
+            ['domain_a' => 8, 'domain_b' => 6, 'score' => 1],
+            ['domain_a' => 8, 'domain_b' => 7, 'score' => 4],
+            ['domain_a' => 8, 'domain_b' => 9, 'score' => 3],
+            ['domain_a' => 8, 'domain_b' => 10, 'score' => 3],
+            ['domain_a' => 8, 'domain_b' => 11, 'score' => 4],
+            ['domain_a' => 8, 'domain_b' => 12, 'score' => 2],
+
+            // 9 Hospitality / Tourism
+            ['domain_a' => 9, 'domain_b' => 1, 'score' => 3],
+            ['domain_a' => 9, 'domain_b' => 2, 'score' => 2],
+            ['domain_a' => 9, 'domain_b' => 3, 'score' => 5],
+            ['domain_a' => 9, 'domain_b' => 4, 'score' => 3],
+            ['domain_a' => 9, 'domain_b' => 5, 'score' => 2],
+            ['domain_a' => 9, 'domain_b' => 6, 'score' => 4],
+            ['domain_a' => 9, 'domain_b' => 7, 'score' => 2],
+            ['domain_a' => 9, 'domain_b' => 8, 'score' => 3],
+            ['domain_a' => 9, 'domain_b' => 10, 'score' => 4],
+            ['domain_a' => 9, 'domain_b' => 11, 'score' => 3],
+            ['domain_a' => 9, 'domain_b' => 12, 'score' => 4],
+
+            // 10 Law / Security / Public Service
+            ['domain_a' => 10, 'domain_b' => 1, 'score' => 4],
+            ['domain_a' => 10, 'domain_b' => 2, 'score' => 3],
+            ['domain_a' => 10, 'domain_b' => 3, 'score' => 4],
+            ['domain_a' => 10, 'domain_b' => 4, 'score' => 4],
+            ['domain_a' => 10, 'domain_b' => 5, 'score' => 4],
+            ['domain_a' => 10, 'domain_b' => 6, 'score' => 4],
+            ['domain_a' => 10, 'domain_b' => 7, 'score' => 3],
+            ['domain_a' => 10, 'domain_b' => 8, 'score' => 3],
+            ['domain_a' => 10, 'domain_b' => 9, 'score' => 4],
+            ['domain_a' => 10, 'domain_b' => 11, 'score' => 4],
+            ['domain_a' => 10, 'domain_b' => 12, 'score' => 2],
+
+            // 11 Maritime
+            ['domain_a' => 11, 'domain_b' => 1, 'score' => 3],
+            ['domain_a' => 11, 'domain_b' => 2, 'score' => 5],
+            ['domain_a' => 11, 'domain_b' => 3, 'score' => 3],
+            ['domain_a' => 11, 'domain_b' => 4, 'score' => 2],
+            ['domain_a' => 11, 'domain_b' => 5, 'score' => 2],
+            ['domain_a' => 11, 'domain_b' => 6, 'score' => 1],
+            ['domain_a' => 11, 'domain_b' => 7, 'score' => 4],
+            ['domain_a' => 11, 'domain_b' => 8, 'score' => 4],
+            ['domain_a' => 11, 'domain_b' => 9, 'score' => 3],
+            ['domain_a' => 11, 'domain_b' => 10, 'score' => 4],
+            ['domain_a' => 11, 'domain_b' => 12, 'score' => 3],
+
+            // 12 Fine Arts / Design / Architecture
+            ['domain_a' => 12, 'domain_b' => 1, 'score' => 4],
+            ['domain_a' => 12, 'domain_b' => 2, 'score' => 5],
+            ['domain_a' => 12, 'domain_b' => 3, 'score' => 4],
+            ['domain_a' => 12, 'domain_b' => 4, 'score' => 4],
+            ['domain_a' => 12, 'domain_b' => 5, 'score' => 2],
+            ['domain_a' => 12, 'domain_b' => 6, 'score' => 5],
+            ['domain_a' => 12, 'domain_b' => 7, 'score' => 4],
+            ['domain_a' => 12, 'domain_b' => 8, 'score' => 2],
+            ['domain_a' => 12, 'domain_b' => 9, 'score' => 4],
+            ['domain_a' => 12, 'domain_b' => 10, 'score' => 2],
+            ['domain_a' => 12, 'domain_b' => 11, 'score' => 3],
         ]);
     }
 }

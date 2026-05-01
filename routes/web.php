@@ -93,7 +93,7 @@ Route::get('/conflicts', function () {
 
 Route::get('/conflicts/{versionId}', [ConflictController::class, 'index']);
 
-
+Route::post('/generate-schedule', [ScheduleController::class, 'generateSchedule']);
 
 // 🔘 BUTTON 1
 Route::post('/setup/rank-teachers', [SetupController::class, 'rankTeachers']);
