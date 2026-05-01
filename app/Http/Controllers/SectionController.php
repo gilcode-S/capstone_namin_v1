@@ -90,7 +90,7 @@ class SectionController extends Controller
 
             'view' => $view,
 
-            'filters' => $request->only(['set', 'department', 'shift', 'section', 'year_level'.   'program']),
+            'filters' => $request->only(['set', 'department', 'shift', 'section', 'year_level' .   'program']),
 
             'stats' => [
                 'total_sections' => Section::count(),
@@ -109,7 +109,7 @@ class SectionController extends Controller
             'program_id' => 'required|exists:programs,id',
             'semester_id' => 'required|exists:semesters,id',
             'year_level' => 'required|integer',
-            'shift' => 'required|string',
+            'shift' => 'required|in:Morning,Afternoon,Evening',
             'section_letter' => 'required|string|max:1',
             'student_count' => 'nullable|integer',
         ]);
@@ -147,22 +147,39 @@ class SectionController extends Controller
 
     public function update(Request $request, Section $section)
     {
-        $validate = $request->validate([
+        $validated = $request->validate([
             'program_id' => 'required|exists:programs,id',
             'semester_id' => 'required|exists:semesters,id',
-            'section_name' => 'required|string|max:10',
             'year_level' => 'required|integer',
+            'shift' => 'required|in:Morning,Afternoon,Evening',
+            'section_letter' => 'required|string|max:1',
             'student_count' => 'nullable|integer',
-            'shift' => 'required|string',
             'octoberian' => 'nullable|boolean',
-
         ]);
 
-        $section->update($validate);
+        $program = Programs::find($validated['program_id']);
+        $semester = Semester::find($validated['semester_id']);
 
-        return redirect()->back()->with('success', 'section updated');
+        $sectionCode = $this->generateSectionCode(
+            $program,
+            $validated['year_level'],
+            $semester,
+            $validated['shift'],
+            $validated['section_letter']
+        );
+
+        $section->update([
+            'program_id' => $validated['program_id'],
+            'semester_id' => $validated['semester_id'],
+            'year_level' => $validated['year_level'],
+            'shift' => $validated['shift'],
+            'student_count' => $validated['student_count'],
+            'octoberian' => $validated['octoberian'] ?? false,
+            'section_name' => $sectionCode,
+        ]);
+
+        return back()->with('success', 'section updated');
     }
-
     public function destroy(Section $section)
     {
         $section->delete();
