@@ -100,7 +100,7 @@ class RoomController extends Controller
             'room_name' => 'required|string|max:50|unique:rooms,room_name',
 
             // NEW
-            'resource_type' => 'required|in:classroom,laboratory,pe_room',
+            'resource_type' => 'required|in:classroom,laboratory,pe_room,online',
             'capacity' => 'required|integer|min:1',
             'department_id' => 'nullable|exists:departments,id',
 
@@ -140,7 +140,7 @@ class RoomController extends Controller
         $validated = $request->validate([
             'room_name' => 'required|string|max:50|unique:rooms,room_name,' . $room->id,
 
-            'resource_type' => 'required|in:classroom,laboratory,pe_room',
+            'resource_type' => 'required|in:classroom,laboratory,pe_room,online',
             'capacity' => 'required|integer|min:1',
             'department_id' => 'nullable|exists:departments,id',
 

@@ -704,136 +704,136 @@ export default function Index() {
                                     })}
                             </div>
                         )}
-                    {activeTab === 'utilization' && (
-    <div className="bg-white border rounded-xl p-4 shadow-sm">
+                        {activeTab === 'utilization' && (
+                            <div className="bg-white border rounded-xl p-4 shadow-sm">
 
-        {/* FILTERS */}
-        <div className="grid md:grid-cols-3 gap-3 mb-6">
+                                {/* FILTERS */}
+                                <div className="grid md:grid-cols-3 gap-3 mb-6">
 
-            <select
-                value={buildingFilter}
-                onChange={(e) => handleFilters({ building: e.target.value })}
-                className="border rounded-lg px-3 py-2 text-sm"
-            >
-                <option value="">All Buildings</option>
-                <option value="C">Building C</option>
-                <option value="F">Building F</option>
-                <option value="V">Building V</option>
-            </select>
+                                    <select
+                                        value={buildingFilter}
+                                        onChange={(e) => handleFilters({ building: e.target.value })}
+                                        className="border rounded-lg px-3 py-2 text-sm"
+                                    >
+                                        <option value="">All Buildings</option>
+                                        <option value="C">Building C</option>
+                                        <option value="F">Building F</option>
+                                        <option value="V">Building V</option>
+                                    </select>
 
-            <select
-                value={floorFilter}
-                onChange={(e) => handleFilters({ floor: e.target.value })}
-                className="border rounded-lg px-3 py-2 text-sm"
-            >
-                <option value="">All Floors</option>
-                <option value="1">Floor 1</option>
-                <option value="2">Floor 2</option>
-                <option value="3">Floor 3</option>
-                <option value="4">Floor 4</option>
-            </select>
+                                    <select
+                                        value={floorFilter}
+                                        onChange={(e) => handleFilters({ floor: e.target.value })}
+                                        className="border rounded-lg px-3 py-2 text-sm"
+                                    >
+                                        <option value="">All Floors</option>
+                                        <option value="1">Floor 1</option>
+                                        <option value="2">Floor 2</option>
+                                        <option value="3">Floor 3</option>
+                                        <option value="4">Floor 4</option>
+                                    </select>
 
-            <select
-                value={typeFilter}
-                onChange={(e) => handleFilters({ type: e.target.value })}
-                className="border rounded-lg px-3 py-2 text-sm"
-            >
-                <option value="">All Types</option>
-                <option value="classroom">Classroom</option>
-                <option value="laboratory">Lab</option>
-                <option value="pe_room">PE Room</option>
-            </select>
-
-        </div>
-
-        {/* HEADER */}
-        <div className="flex justify-between mb-4">
-            <h2 className="font-semibold">All Room Utilization</h2>
-            <span className="text-sm font-bold">
-                Avg: {avgUtilization}%
-            </span>
-        </div>
-
-        {/* ALL ROOMS LIST (NO GROUPING) */}
-        <div className="space-y-4">
-
-            {rooms.data
-                .filter((r: any) => {
-                    const type = r.resource_type || r.room_type
-
-                    const matchType = typeFilter ? type === typeFilter : true
-                    const matchBuilding = buildingFilter ? r.building === buildingFilter : true
-                    const matchFloor = floorFilter ? r.floor === floorFilter : true
-
-                    return matchType && matchBuilding && matchFloor
-                })
-                .sort((a: any, b: any) =>
-                    getRoomUtilization(b) - getRoomUtilization(a)
-                )
-                .map((r: any) => {
-
-                    const util = getRoomUtilization(r)
-                    const percent = util.toFixed(0)
-
-                    let color = 'bg-green-500'
-                    if (util >= 80) color = 'bg-red-500'
-                    else if (util >= 60) color = 'bg-orange-400'
-                    else if (util >= 40) color = 'bg-yellow-400'
-
-                    const typeLabel = formatRoomType(r.resource_type || r.room_type)
-
-                    return (
-                        <div
-                            key={r.id}
-                            className="border rounded-lg p-4 hover:bg-gray-50 transition"
-                        >
-
-                            {/* TOP ROW */}
-                            <div className="flex justify-between mb-1">
-
-                                <div className="flex items-center gap-2">
-
-                                    {/* ROOM NAME */}
-                                    <span className="font-medium">
-                                        {r.room_name}
-                                    </span>
-
-                                    {/* TYPE BADGE */}
-                                    <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
-                                        {typeLabel}
-                                    </span>
+                                    <select
+                                        value={typeFilter}
+                                        onChange={(e) => handleFilters({ type: e.target.value })}
+                                        className="border rounded-lg px-3 py-2 text-sm"
+                                    >
+                                        <option value="">All Types</option>
+                                        <option value="classroom">Classroom</option>
+                                        <option value="laboratory">Lab</option>
+                                        <option value="pe_room">PE Room</option>
+                                    </select>
 
                                 </div>
 
-                                {/* UTIL % */}
-                                <span className="font-semibold">
-                                    {percent}%
-                                </span>
+                                {/* HEADER */}
+                                <div className="flex justify-between mb-4">
+                                    <h2 className="font-semibold">All Room Utilization</h2>
+                                    <span className="text-sm font-bold">
+                                        Avg: {avgUtilization}%
+                                    </span>
+                                </div>
+
+                                {/* ALL ROOMS LIST (NO GROUPING) */}
+                                <div className="space-y-4">
+
+                                    {rooms.data
+                                        .filter((r: any) => {
+                                            const type = r.resource_type || r.room_type
+
+                                            const matchType = typeFilter ? type === typeFilter : true
+                                            const matchBuilding = buildingFilter ? r.building === buildingFilter : true
+                                            const matchFloor = floorFilter ? r.floor === floorFilter : true
+
+                                            return matchType && matchBuilding && matchFloor
+                                        })
+                                        .sort((a: any, b: any) =>
+                                            getRoomUtilization(b) - getRoomUtilization(a)
+                                        )
+                                        .map((r: any) => {
+
+                                            const util = getRoomUtilization(r)
+                                            const percent = util.toFixed(0)
+
+                                            let color = 'bg-green-500'
+                                            if (util >= 80) color = 'bg-red-500'
+                                            else if (util >= 60) color = 'bg-orange-400'
+                                            else if (util >= 40) color = 'bg-yellow-400'
+
+                                            const typeLabel = formatRoomType(r.resource_type || r.room_type)
+
+                                            return (
+                                                <div
+                                                    key={r.id}
+                                                    className="border rounded-lg p-4 hover:bg-gray-50 transition"
+                                                >
+
+                                                    {/* TOP ROW */}
+                                                    <div className="flex justify-between mb-1">
+
+                                                        <div className="flex items-center gap-2">
+
+                                                            {/* ROOM NAME */}
+                                                            <span className="font-medium">
+                                                                {r.room_name}
+                                                            </span>
+
+                                                            {/* TYPE BADGE */}
+                                                            <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
+                                                                {typeLabel}
+                                                            </span>
+
+                                                        </div>
+
+                                                        {/* UTIL % */}
+                                                        <span className="font-semibold">
+                                                            {percent}%
+                                                        </span>
+
+                                                    </div>
+
+                                                    {/* LOCATION */}
+                                                    <p className="text-xs text-gray-500 mb-2">
+                                                        {r.building
+                                                            ? `Building ${r.building}, Floor ${r.floor}`
+                                                            : 'No location'}
+                                                    </p>
+
+                                                    {/* BAR */}
+                                                    <div className="w-full bg-gray-200 h-2 rounded-full">
+                                                        <div
+                                                            className={`${color} h-2 rounded-full`}
+                                                            style={{ width: `${percent}%` }}
+                                                        />
+                                                    </div>
+
+                                                </div>
+                                            )
+                                        })}
+                                </div>
 
                             </div>
-
-                            {/* LOCATION */}
-                            <p className="text-xs text-gray-500 mb-2">
-                                {r.building
-                                    ? `Building ${r.building}, Floor ${r.floor}`
-                                    : 'No location'}
-                            </p>
-
-                            {/* BAR */}
-                            <div className="w-full bg-gray-200 h-2 rounded-full">
-                                <div
-                                    className={`${color} h-2 rounded-full`}
-                                    style={{ width: `${percent}%` }}
-                                />
-                            </div>
-
-                        </div>
-                    )
-                })}
-        </div>
-
-    </div>
-)}
+                        )}
 
                     </div>
 
@@ -862,7 +862,7 @@ export default function Index() {
 
                                 {/* NAME */}
                                 <div>
-                                    <Label>Name</Label>
+                                    <Label>Room Number</Label>
                                     <Input
                                         name="room_number"
                                         placeholder="e.g., 01, 02, 03"
@@ -886,7 +886,7 @@ export default function Index() {
                                         <option value="classroom">Classroom</option>
                                         <option value="laboratory">Computer Lab</option>
                                         <option value="pe_room">PE Room</option>
-                                        <option value="Online">Online</option>
+                                        <option value="online">Online</option>
                                     </select>
                                 </div>
 
