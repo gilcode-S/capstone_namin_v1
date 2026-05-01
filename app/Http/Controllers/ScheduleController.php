@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\SetScheduleService;
 use App\Models\Department;
 use App\Models\Faculty;
 use App\Models\Room;
@@ -13,6 +14,30 @@ use Inertia\Inertia;
 
 class ScheduleController extends Controller
 {
+
+
+    public function generateFinal(Request $request)
+    {
+        // --------------------------------------------------
+        // INPUT DATA FROM FRONTEND
+        // --------------------------------------------------
+        $versionId = $request->version_id; // schedule version
+        $cpSatResult = $request->schedule; // result from python
+
+        // --------------------------------------------------
+        // CALL SERVICE
+        // --------------------------------------------------
+        $service = new SetScheduleService();
+        $service->generate($versionId, $cpSatResult);
+
+        // --------------------------------------------------
+        // RESPONSE
+        // --------------------------------------------------
+        return response()->json([
+            'message' => 'Final Schedule Generated Successfully'
+        ]);
+    }
+
     public function index(Request $request)
     {
         /**

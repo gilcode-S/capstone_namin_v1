@@ -4,104 +4,80 @@ namespace App\Services;
 
 use App\Models\Faculty;
 use App\Models\Subject;
-use App\Models\DomainRelation;
+use App\Models\DomainGroupRelation;
+use App\Models\TeacherSubjectRanking;
 
 class TeacherRankingService
 {
-    /**
-     * MAIN FUNCTION
-     * Ranks all teachers for a given subject
-     */
-    public function rank($subjectId)
+    public function rank()
     {
-        // get subject
-        $subject = Subject::findOrFail($subjectId);
-
-        // get all teachers
+        // GET ALL TEACHERS
         $teachers = Faculty::all();
 
-        $results = [];
+        // GET ALL SUBJECTS
+        $subjects = Subject::all();
 
         foreach ($teachers as $teacher) {
+            foreach ($subjects as $subject) {
 
-            // 🧠 1. DOMAIN MATCHING SCORE
-            $domainScore = $this->getDomainScore(
-                $teacher->domain_id,
-                $subject->domain_id
-            );
+                // -----------------------------
+                // DOMAIN GROUP MATCHING
+                // -----------------------------
+                $domainScore = $this->getDomainScore(
+                    $teacher->domain_group_id,
+                    $subject->domain_group_id
+                );
 
-            // 🧠 2. EXPERIENCE SCORE (normalize max 10 yrs)
-            $experienceScore = min($teacher->years_experience / 10, 1);
+                // -----------------------------
+                // EXPERIENCE SCORE
+                // -----------------------------
+                $experienceScore = min($teacher->years_experience / 10, 1);
 
-            // 🧠 3. DEGREE SCORE
-            $degreeScore = $this->getDegreeScore($teacher->degree);
+                // -----------------------------
+                // DEGREE SCORE
+                // -----------------------------
+                $degreeScore = $this->degreeScore($teacher);
 
-            // 🧠 4. LOAD FLEXIBILITY SCORE
-            $loadScore = $this->getLoadScore(
-                $teacher->min_load,
-                $teacher->max_load
-            );
+                // -----------------------------
+                // FINAL SCORE
+                // -----------------------------
+                $finalScore =
+                    ($domainScore * 0.5) +
+                    ($experienceScore * 0.3) +
+                    ($degreeScore * 0.2);
 
-            // 🧠 FINAL SCORE (weighted)
-            $finalScore =
-                ($domainScore * 0.4) +
-                ($experienceScore * 0.2) +
-                ($degreeScore * 0.2) +
-                ($loadScore * 0.2);
-
-            $results[] = [
-                'teacher_id' => $teacher->id,
-                'score' => round($finalScore, 3),
-                'type' => $subject->type // Major / Minor
-            ];
+                // SAVE RESULT
+                TeacherSubjectRanking::updateOrCreate(
+                    [
+                        'teacher_id' => $teacher->id,
+                        'subject_id' => $subject->id
+                    ],
+                    [
+                        'score' => $finalScore
+                    ]
+                );
+            }
         }
-
-        // sort descending
-        usort($results, fn($a, $b) => $b['score'] <=> $a['score']);
-
-        return $results;
     }
 
-    /**
-     * DOMAIN MATCH LOGIC
-     */
-    private function getDomainScore($teacherDomain, $subjectDomain)
+    // DOMAIN GROUP RELATION
+    private function getDomainScore($a, $b)
     {
-        // exact match
-        if ($teacherDomain == $subjectDomain) {
-            return 1.0;
-        }
+        if ($a == $b) return 1.0;
 
-        // relation lookup
-        $relation = DomainRelation::where('domain_a', $teacherDomain)
-            ->where('domain_b', $subjectDomain)
-            ->first();
+        $relation = DomainGroupRelation::where([
+            ['domain_a', $a],
+            ['domain_b', $b]
+        ])->first();
 
-        return $relation ? $relation->score : 0.3; // fallback
+        return $relation->score ?? 0.3;
     }
 
-    /**
-     * DEGREE SCORE LOGIC
-     */
-    private function getDegreeScore($degree)
+    // DEGREE LOGIC
+    private function degreeScore($teacher)
     {
-        return match ($degree) {
-            'PhD' => 1.0,
-            'Master' => 0.8,
-            'Undergraduate' => 0.6,
-            default => 0.5
-        };
-    }
-
-    /**
-     * LOAD SCORE (BALANCE TEACHER LOAD)
-     */
-    private function getLoadScore($min, $max)
-    {
-        if ($max == 0) return 0.5;
-
-        return 1 - (($max - $min) / $max);
+        if ($teacher->phd) return 1.0;
+        if ($teacher->masters) return 0.8;
+        return 0.6;
     }
 }
-
-
