@@ -97,7 +97,7 @@ class FacultyController extends Controller
 
                 // SUBJECTS (FROM SCHEDULE — FIXED)
                 $subjects = Schedule::with('subject')
-                    ->where('faculty_id', $f->id)
+                    ->where('teacher_id', $f->id)
                     ->get()
                     ->pluck('subject.subject_name')
                     ->filter()

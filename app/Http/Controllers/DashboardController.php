@@ -50,8 +50,8 @@ class DashboardController extends Controller
 
         // ================= CONFLICT DETECTION =================
         // (needed for resolution score)
-        $conflicts = Schedule::select('room_id', 'time_slot_id')
-            ->groupBy('room_id', 'time_slot_id')
+        $conflicts = Schedule::select('room_id', 'day', 'timeslot')
+            ->groupBy('room_id', 'day', 'timeslot')
             ->havingRaw('COUNT(*) > 1')
             ->get()
             ->count();

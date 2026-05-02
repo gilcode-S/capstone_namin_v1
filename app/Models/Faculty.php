@@ -92,6 +92,6 @@ class Faculty extends Model
     // }
     public function schedules()
     {
-        return $this->hasMany(Schedule::class);
+        return $this->hasMany(Schedule::class, 'teacher_id', 'id');
     }
 }

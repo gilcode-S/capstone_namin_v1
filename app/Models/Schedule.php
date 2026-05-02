@@ -32,17 +32,13 @@ class Schedule extends Model
     // ✅ Version
     public function version()
     {
-        return $this->belongsTo(
-            ScheduleVersion::class,
-            'schedule_version_id',
-            'id'
-        );
+        return $this->belongsTo(ScheduleVersion::class, 'version_id', 'id');
     }
 
     // ✅ Faculty (teacher)
     public function teacher()
     {
-        return $this->belongsTo(Faculty::class, 'faculty_id', 'id');
+        return $this->belongsTo(Faculty::class, 'teacher_id', 'id');
     }
 
     // ✅ Subject
@@ -68,6 +64,4 @@ class Schedule extends Model
     {
         return $this->belongsTo(TimeSlot::class, 'time_slot_id', 'id');
     }
-
-    
 }
