@@ -176,7 +176,7 @@ export default function Curriculum({
 
                                                 const totalUnits = [...data.major, ...data.minor]
                                                     .reduce((sum: number, s: any) =>
-                                                        sum + (s.subject.units || 0), 0)
+                                                        sum + (s.subject.hours_per_week || 0), 0)
 
                                                 const maxRows = Math.max(data.minor.length, data.major.length)
 
@@ -193,26 +193,26 @@ export default function Curriculum({
                                                                 </span>
 
                                                                 {editMode && (
-    <button
-        onClick={() => {
-            if (!confirm('Delete entire semester? This cannot be undone.')) return
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            if (!confirm('Delete entire semester? This cannot be undone.')) return
 
-            router.delete('/curriculum/semester', {
-                data: {
-                    program_id: activeProgram,
-                    year_level: year,
-                    semester: sem
-                },
-                preserveScroll: true,
-                onSuccess: () => router.reload({ only: ['curriculum'] })
-            })
-        }}
-        className="text-red-500 hover:text-red-700 transition"
-        title="Delete Semester"
-    >
-        <Trash2 size={16} />
-    </button>
-)}
+                                                                            router.delete('/curriculum/semester', {
+                                                                                data: {
+                                                                                    program_id: activeProgram,
+                                                                                    year_level: year,
+                                                                                    semester: sem
+                                                                                },
+                                                                                preserveScroll: true,
+                                                                                onSuccess: () => router.reload({ only: ['curriculum'] })
+                                                                            })
+                                                                        }}
+                                                                        className="text-red-500 hover:text-red-700 transition"
+                                                                        title="Delete Semester"
+                                                                    >
+                                                                        <Trash2 size={16} />
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         </div>
 
@@ -245,7 +245,7 @@ export default function Curriculum({
                                                                         </div>
 
                                                                         <div className="text-center text-gray-500 tabular-nums">
-                                                                            {minor?.subject.units || ''}
+                                                                            {minor?.subject.hours_per_week || ''}
                                                                         </div>
 
                                                                         {/* MAJOR */}
@@ -256,7 +256,7 @@ export default function Curriculum({
                                                                         </div>
 
                                                                         <div className="text-center text-gray-500 tabular-nums">
-                                                                            {major?.subject.units || ''}
+                                                                            {major?.subject.hours_per_week || ''}
                                                                         </div>
 
                                                                         {/* DELETE buttons (kept logic, invisible placement safe) */}

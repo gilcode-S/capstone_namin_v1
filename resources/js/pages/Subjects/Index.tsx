@@ -299,8 +299,8 @@ export default function Index() {
                             className="h-11 rounded-lg border px-3 w-full md:w-[180px]"
                         >
                             <option value="">All Types</option>
-                            <option value="major">Major</option>
-                            <option value="minor">Minor</option>
+                            <option value="Major">Major</option>
+                            <option value="Minor">Minor</option>
                         </select>
 
                         {/* ROOM TYPE */}

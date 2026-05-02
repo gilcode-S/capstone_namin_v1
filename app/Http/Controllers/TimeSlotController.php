@@ -22,7 +22,17 @@ class TimeSlotController extends Controller
     public function index()
     {
         return Inertia::render('TimeSlots/Index', [
-            'timeSlots' => TimeSlot::orderBy('day_of_week')->orderBy('start_time')->paginate(20),
+            'timeSlots' => TimeSlot::orderByRaw("
+            FIELD(day_of_week,
+                'Monday',
+                'Tuesday',
+                'Wednesday',
+                'Thursday',
+                'Friday',
+                'Saturday',
+                'Sunday'
+            )
+        ")->orderBy('start_time')->paginate(15),
         ]);
     }
 

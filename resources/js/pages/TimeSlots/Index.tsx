@@ -252,7 +252,7 @@ export default function Index() {
             ))}
           </div>
         )}
-
+        <Pagination links={timeSlots.links} />
         {/* MODAL */}
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent>
