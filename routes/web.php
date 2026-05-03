@@ -104,6 +104,16 @@ Route::post('/setup/fetch-curriculum', [SetupController::class, 'fetchCurriculum
 // 🔘 BUTTON 3
 Route::post('/setup/lock-rooms', [SetupController::class, 'lockRooms']);
 
+Route::post('/generate-units/{sectionId}', function (
+    $sectionId,
+    \App\Services\CurriculumToSchedulingService $service
+) {
+
+    $service->generateSchedulingUnits($sectionId);
+
+    return back()->with('success', 'Scheduling units generated');
+});
+
 
 Route::middleware(['auth', 'role:staff,super admin'])
     ->get('/schedule-versions', [ScheduleVersionController::class, 'index']);

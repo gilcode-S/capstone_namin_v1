@@ -29,7 +29,7 @@ class SchedulingUnit extends Model
         'subject_id',
 
         // PREFERRED OR ASSIGNED TEACHER
-        'teacher_id',
+        'faculty_id',
 
         // DURATION (1H OR 2H SPLIT LOGIC)
         'duration_hours',

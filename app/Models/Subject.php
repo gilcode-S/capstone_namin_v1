@@ -7,6 +7,7 @@ use App\Models\Programs;
 use App\Models\Department;
 use App\Models\Section;
 use App\Models\Curriculum;
+use App\Models\CurriculumSnapshot;
 use App\Models\DomainGroup;
 
 class Subject extends Model
@@ -56,6 +57,11 @@ class Subject extends Model
         'is_hard_constraint' => 'boolean',
     ];
 
+
+    public function snapshots()
+    {
+        return $this->hasMany(CurriculumSnapshot::class);
+    }
 
     public function domainGroup()
     {

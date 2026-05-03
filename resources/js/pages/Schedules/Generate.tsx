@@ -9,7 +9,7 @@ export default function Generate() {
 
     const [generating, setGenerating] = useState(false)
     const [versionId, setVersionId] = useState<number | null>(null)
-
+    const [loading, setLoading] = useState(false);
     // MODALS
     const [showConfirm, setShowConfirm] = useState(false)
     const [showInputs, setShowInputs] = useState(false)
@@ -176,6 +176,41 @@ export default function Generate() {
                                 </button>
                             </div>
 
+                        </div>
+                        <div className="border rounded-lg p-4 space-y-3">
+                            <label className="text-sm font-medium">Select Section</label>
+
+                            <select
+                                value={sectionId ?? ''}
+                                onChange={(e) => setSectionId(Number(e.target.value))}
+                                className="w-full border rounded-lg px-3 py-2 mt-1"
+                            >
+                                <option value="">
+                                    Select Section
+                                </option>
+
+                                {sections?.map((section: any) => (
+                                    <option key={section.id} value={section.id}>
+                                        {section.section_name}
+                                    </option>
+                                ))}
+                            </select>
+                            <div
+                                onClick={() => {
+                                    if (sectionId) {
+                                        router.post(`/generate-units/${sectionId}`)
+                                    } else {
+                                        alert("Select section first")
+                                    }
+                                }}
+                                className="cursor-pointer border p-4 rounded-lg"
+                            >
+                                <p className="font-medium">🧩 Generate Scheduling Units</p>
+                                <p className="text-xs text-gray-500">
+                                    Splits subjects into schedulable meetings
+                                </p>
+
+                            </div>
                         </div>
 
                         {/* TEACHER */}

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Programs;
 use App\Models\Department;
+use App\Models\CurriculumSnapshot;
 use App\Models\Semester;
 use App\Models\Subject;
 use Illuminate\Database\Eloquent\Model;
@@ -32,7 +33,10 @@ class Section extends Model
     {
         return $this->belongsTo(Department::class);
     }
-
+    public function snapshots()
+    {
+        return $this->hasMany(CurriculumSnapshot::class);
+    }
     public function semester()
     {
         return $this->belongsTo(Semester::class);
