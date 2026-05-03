@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Models;
+
 use App\Models\DomainGroup;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,7 @@ class DomainGroupRelation extends Model
      * TABLE NAME
      * Explicitly defines the table used by this model.
      */
-    protected $table = 'domain_group_relations';
+    protected $table = 'domain_relations';
 
     /**
      * MASS ASSIGNABLE FIELDS
@@ -48,5 +49,3 @@ class DomainGroupRelation extends Model
         return $this->belongsTo(DomainGroup::class, 'domain_b');
     }
 }
-
-

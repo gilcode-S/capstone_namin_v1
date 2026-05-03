@@ -17,15 +17,48 @@ class RoomLockService
 
         $locks = [];
 
+        // NORMALIZED DAY MAP
+        $dayMap = [
+            'monday' => 'Mon',
+            'mon' => 'Mon',
+
+            'tuesday' => 'Tue',
+            'tue' => 'Tue',
+
+            'wednesday' => 'Wed',
+            'wed' => 'Wed',
+
+            'thursday' => 'Thu',
+            'thu' => 'Thu',
+
+            'friday' => 'Fri',
+            'fri' => 'Fri',
+
+            'saturday' => 'Sat',
+            'sat' => 'Sat',
+
+            'sunday' => 'Sun',
+            'sun' => 'Sun',
+        ];
+
         foreach ($rooms as $room) {
             foreach ($timeslots as $slot) {
 
+                $rawDay = strtolower(trim($slot->day_of_week));
+
+                $formattedDay = $dayMap[$rawDay] ?? null;
+
+                // SKIP BAD DATA
+                if (!$formattedDay) {
+                    continue;
+                }
+
                 $locks[] = [
-                    'room_id' => $room->id, // room reference
-                    'time_slot_id' => $slot->id, // time reference
-                    'day_of_week' => $slot->day_of_week, // Mon-Sun
-                    'shift' => $slot->shift, // Morning/Afternoon/Evening
-                    'is_pe_room' => $room->is_pe_room ?? false, // PE logic
+                    'room_id' => $room->id,
+                    'time_slot_id' => $slot->id,
+                    'day' => $formattedDay,
+                    'shift' => $slot->shift,
+                    'is_pe_room' => $room->type === 'PE',
                 ];
             }
         }

@@ -26,7 +26,7 @@ class TeacherSubjectRanking extends Model
         'subject_id',
 
         // TEACHER ID (the teacher being ranked)
-        'teacher_id',
+        'faculty_id',
 
         // FINAL COMPETENCY SCORE USED BY CP-SAT (0.0 - 1.0)
         'score',

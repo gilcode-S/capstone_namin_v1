@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import AppLayout from '@/layouts/app-layout'
 
 export default function Generate() {
-    const { versions, timeslots } = usePage().props as any
+    const { versions, timeSlots, sections } = usePage().props as any
 
     const [generating, setGenerating] = useState(false)
     const [versionId, setVersionId] = useState<number | null>(null)
@@ -19,6 +19,16 @@ export default function Generate() {
     const [semester, setSemester] = useState("1st")
     const [versionName, setVersionName] = useState("")
     const [effectiveDate, setEffectiveDate] = useState("")
+
+    const [sectionId, setSectionId] = useState<number | null>(null)
+    // useEffect(() => {
+    //     if (sections?.length > 0 && !sectionId) {
+    //         setSectionId(sections[0].id)
+    //     }
+    // }, [sections])
+
+    // console.log(sections)
+
 
     // ✅ LOCK STATE (OUTSIDE ACTION)
     const [engines, setEngines] = useState({
@@ -94,7 +104,7 @@ export default function Generate() {
 
                         {/* ROOM */}
                         <div className="flex items-center justify-between border rounded-lg p-4">
-                            
+
                             {/* ACTION AREA */}
                             <div
                                 onClick={() => {
@@ -119,26 +129,52 @@ export default function Generate() {
                         </div>
 
                         {/* CURRICULUM */}
-                        <div className="flex items-center justify-between border rounded-lg p-4">
+                        <div className="border rounded-lg p-4 space-y-3">
 
-                            <div
-                                onClick={() => {
-                                    if (engines.curriculum) {
-                                        router.post('/setup/fetch-curriculum')
-                                    }
-                                }}
-                                className={`flex-1 cursor-pointer ${!engines.curriculum ? 'opacity-50' : ''}`}
-                            >
-                                <p className="font-medium">📚 Curriculum Fetch Engine</p>
-                                <p className="text-xs text-gray-500">Assigns subjects to sections.</p>
+                            <div>
+                                <label className="text-sm font-medium">Select Section</label>
+
+                                <select
+                                    value={sectionId ?? ''}
+                                    onChange={(e) => setSectionId(Number(e.target.value))}
+                                    className="w-full border rounded-lg px-3 py-2 mt-1"
+                                >
+                                    <option value="">
+                                        Select Section
+                                    </option>
+
+                                    {sections?.map((section: any) => (
+                                        <option key={section.id} value={section.id}>
+                                            {section.section_name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
-                            <button
-                                onClick={() => toggleLock('curriculum')}
-                                className="ml-3 text-lg"
-                            >
-                                {engines.curriculum ? '🔓' : '🔒'}
-                            </button>
+                            <div className="flex items-center justify-between">
+                                <div
+                                    onClick={() => {
+                                        if (engines.curriculum && sectionId) {
+                                            router.post('/setup/fetch-curriculum', {
+                                                section_id: sectionId
+                                            })
+                                        } else {
+                                            alert("Please select a section first.")
+                                        }
+                                    }}
+                                    className={`flex-1 cursor-pointer ${!engines.curriculum ? 'opacity-50' : ''}`}
+                                >
+                                    <p className="font-medium">📚 Curriculum Fetch Engine</p>
+                                    <p className="text-xs text-gray-500">Assigns subjects to sections.</p>
+                                </div>
+
+                                <button
+                                    onClick={() => toggleLock('curriculum')}
+                                    className="ml-3 text-lg"
+                                >
+                                    {engines.curriculum ? '🔓' : '🔒'}
+                                </button>
+                            </div>
 
                         </div>
 
@@ -148,7 +184,9 @@ export default function Generate() {
                             <div
                                 onClick={() => {
                                     if (engines.teacher) {
-                                        router.post('/setup/rank-teachers')
+                                        router.post('/setup/rank-teachers', {
+                                            subject_id: 1 // 🔥 TEMP TEST
+                                        })
                                     }
                                 }}
                                 className={`flex-1 cursor-pointer ${!engines.teacher ? 'opacity-50' : ''}`}

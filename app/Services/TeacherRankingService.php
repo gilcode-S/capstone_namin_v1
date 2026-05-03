@@ -49,7 +49,7 @@ class TeacherRankingService
                 // SAVE RESULT
                 TeacherSubjectRanking::updateOrCreate(
                     [
-                        'teacher_id' => $teacher->id,
+                        'faculty_id' => $teacher->id,
                         'subject_id' => $subject->id
                     ],
                     [

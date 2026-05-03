@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ClassUnit;
-use App\Models\Faculty;
+use App\Models\Section;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -52,11 +52,18 @@ class GenerateController extends Controller
             'faculty_id' => $a->faculty_id,
         ])->values();
 
+
+        $sections = Section::all()->map(fn($s) => [
+            'id' => $s->id,
+            'section_name' => $s->section_name,
+        ])->values();
+
         return Inertia::render("Schedules/Generate", [
             'versions' => $versions,
             'timeSlots' => $timeSlots,
             'rooms' => $rooms,
             'assignments' => $assignments,
+            'sections' => $sections, // NEW
         ]);
     }
 

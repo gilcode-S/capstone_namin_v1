@@ -19,26 +19,24 @@ class SetupController extends Controller
 
         $service = new TeacherRankingService();
 
-        $ranked = $service->rank($subjectId);
+        $service->rank($subjectId);
 
-        foreach ($ranked as $index => $data) {
+        // foreach ($ranked as $index => $data) {
 
-            DB::table('teacher_rankings')->updateOrInsert(
-                [
-                    'teacher_id' => $data['teacher_id'],
-                    'subject_id' => $subjectId,
-                ],
-                [
-                    'score' => $data['score'],
-                    'rank_position' => $index + 1,
-                    'subject_type' => $data['type'] ?? 'Minor',
-                ]
-            );
-        }
+        //     DB::table('teacher_rankings')->updateOrInsert(
+        //         [
+        //             'teacher_id' => $data['teacher_id'],
+        //             'subject_id' => $subjectId,
+        //         ],
+        //         [
+        //             'score' => $data['score'],
+        //             'rank_position' => $index + 1,
+        //             'subject_type' => $data['type'] ?? 'Minor',
+        //         ]
+        //     );
+        // }
 
-        return response()->json([
-            'status' => 'Teacher ranking completed and locked'
-        ]);
+        return redirect()->back()->with('success', 'Teacher ranking completed and locked');
     }
 
     /**
@@ -69,9 +67,7 @@ class SetupController extends Controller
             );
         }
 
-        return response()->json([
-            'status' => 'Curriculum fetched and locked'
-        ]);
+        return redirect()->back()->with('success', 'curriculum lock completed and locked');
     }
 
     /**
@@ -91,18 +87,15 @@ class SetupController extends Controller
                     'time_slot_id' => $lock['time_slot_id'],
                 ],
                 [
-                    'day' => $lock['day_of_week'] ?? null,
+                    'day' => $lock['day'] ?? null, // FIXED
                     'shift' => $lock['shift'] ?? null,
+                    'is_pe_room' => $lock['is_pe_room'] ?? false, // ADD THIS TOO
                     'is_available' => true,
                     'is_online_slot' => false,
                 ]
             );
         }
 
-        return response()->json([
-            'status' => 'Room and timeslot locked'
-        ]);
+        return redirect()->back()->with('success', 'room timeslots completed and locked');
     }
 }
-
-

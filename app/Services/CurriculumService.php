@@ -19,8 +19,9 @@ class CurriculumService
         // get curriculum mapping
         $curriculum = Curriculum::where('program_id', $section->program_id)
             ->where('year_level', $section->year_level)
-            ->where('semester', $section->semester)
+            ->where('semester', $section->semester->id)
             ->get();
+
 
         $result = [];
 
@@ -40,10 +41,10 @@ class CurriculumService
 
             $result[] = [
                 'subject_id' => $subject->id,
-                'type' => $subject->type,
-                'program_id' => $subject->program_id,
+                'type' => $subject->subject_type,
+                'program_id' => $section->program_id,
                 'year_level' => $section->year_level,
-                'semester' => $section->semester,
+                'semester' => $section->semester->id,
             ];
         }
 
