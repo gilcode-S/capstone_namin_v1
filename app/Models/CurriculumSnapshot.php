@@ -1,9 +1,11 @@
 <?php
 
 namespace App\Models;
+
 use App\Models\Subject;
 use App\Models\Programs;
 use App\Models\Section;
+use App\Models\Curriculum;
 use App\Models\Faculty;
 use Illuminate\Database\Eloquent\Model;
 
@@ -44,5 +46,10 @@ class CurriculumSnapshot extends Model
     public function faculty()
     {
         return $this->belongsTo(Faculty::class, 'preferred_teacher_id');
+    }
+
+    public function curriculum()
+    {
+        return $this->belongsTo(Curriculum::class);
     }
 }

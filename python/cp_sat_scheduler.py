@@ -124,3 +124,4 @@ if __name__ == "__main__":
     result = generate_schedule(data)
 
     print(json.dumps({"schedule": result}))
+

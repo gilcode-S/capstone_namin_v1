@@ -93,8 +93,10 @@ Route::get('/conflicts', function () {
 
 Route::get('/conflicts/{versionId}', [ConflictController::class, 'index']);
 
-Route::post('/generate-schedule', [ScheduleController::class, 'generateSchedule']);
+Route::post('/generate-schedule', [GenerateController::class, 'generateSchedule']);
+Route::post('/generate-final-schedule', [GenerateController::class, 'generateFinal']);
 
+Route::post('/create-new-version', [GenerateController::class, 'createNewVersion']);
 // 🔘 BUTTON 1
 Route::post('/setup/rank-teachers', [SetupController::class, 'rankTeachers']);
 
@@ -104,7 +106,7 @@ Route::post('/setup/fetch-curriculum', [SetupController::class, 'fetchCurriculum
 // 🔘 BUTTON 3
 Route::post('/setup/lock-rooms', [SetupController::class, 'lockRooms']);
 
-Route::post('/generate-final-schedule', [ScheduleController::class, 'generateFinal']);
+
 
 Route::post('/generate-units/{sectionId}', function (
     $sectionId,

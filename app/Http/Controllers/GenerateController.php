@@ -16,6 +16,7 @@ use App\Models\ScheduleVersion;
 
 use App\Models\Semester;
 use App\Services\CPSATSchedulerService;
+use App\Services\SetScheduleService;
 use Illuminate\Support\Facades\Auth;
 
 class GenerateController extends Controller
@@ -127,4 +128,70 @@ class GenerateController extends Controller
             return back()->with('error', 'Generation failed. Check logs.');
         }
     }
+
+    public function generateSchedule(Request $request)
+    {
+        $service = new \App\Services\ScheduleGenerationService();
+
+        return $service->generate($request->version_id);
+    }
+
+    public function generateFinal(Request $request)
+    {
+        // --------------------------------------------------
+        // INPUT DATA FROM FRONTEND
+        // --------------------------------------------------
+        $versionId = $request->version_id; // schedule version
+        $cpSatResult = $request->schedule; // result from python
+
+        // --------------------------------------------------
+        // CALL SERVICE
+        // --------------------------------------------------
+        $service = new SetScheduleService();
+        $service->generate($versionId, $cpSatResult);
+
+        // --------------------------------------------------
+        // RESPONSE
+        // --------------------------------------------------
+        return response()->json([
+            'message' => 'Final Schedule Generated Successfully'
+        ]);
+    }
+
+
+    public function createNewVersion(Request $request)
+{
+    // Validate incoming request
+    $validated = $request->validate([
+        'academic_year' => 'required|string',
+        'semester' => 'required|string',
+        'effective_date' => 'required|date',
+        'version_name' => 'nullable|string',
+    ]);
+
+    try {
+        // Create new schedule version
+        $scheduleVersion = ScheduleVersion::create([
+            'name' => $validated['version_name'] ?? 'Schedule ' . now()->format('Y-m-d'),
+            'semester_id' => 1, // Replace with the actual semester ID if needed
+            'version_number' => ScheduleVersion::count() + 1, // Increment version number
+            'effective_date' => $validated['effective_date'],
+            'set_a_count' => 0, // You can adjust this based on your needs
+            'set_b_count' => 0, // You can adjust this based on your needs
+            'status' => 'draft',
+            'created_by' => Auth::id(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'version_id' => $scheduleVersion->id
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => 'Failed to create version',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+} 
 }

@@ -2,38 +2,83 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ScheduleGenerationService
 {
     public function generate($versionId)
     {
-        // STEP 1: collect precomputed data
-        $teachers = DB::table('teacher_rankings')->get();
-        $curriculum = DB::table('curriculum_snapshots')->get();
-        $rooms = DB::table('room_time_locks')->get();
+        // -----------------------------------------
+        // STEP 1: COLLECT DATA
+        // -----------------------------------------
+        $teachers = DB::table('teacher_subject_rankings')->get();
+        $units = DB::table('scheduling_units')->get();
+        $roomLocks = DB::table('room_time_locks')->get();
 
-        // STEP 2: build JSON payload
+        // -----------------------------------------
+        // STEP 2: TRANSFORM ROOMS (IMPORTANT FIX)
+        // -----------------------------------------
+        $rooms = $roomLocks->groupBy('room_id')->map(function ($items, $roomId) {
+            return [
+                'id' => $roomId,
+                'timeslots' => $items->map(function ($i) {
+                    return [
+                        'id' => $i->time_slot_id
+                    ];
+                })->values()
+            ];
+        })->values();
+
+        // -----------------------------------------
+        // STEP 3: BUILD PAYLOAD
+        // -----------------------------------------
         $payload = [
-            'teachers' => $teachers,
-            'curriculum' => $curriculum,
+            'teachers' => $teachers->values(),
+            'units' => $units->values(),
             'rooms' => $rooms,
         ];
 
-        // STEP 3: send to Python CP-SAT API
-        $response = Http::post('http://127.0.0.1:5000/generate', $payload);
+        $payloadJson = json_encode($payload);
 
-        $data = $response->json();
-    
-        DB::table('schedules')->where('version_id', $versionId)->delete();
-        // STEP 4: save results
+        $tempFile = tempnam(sys_get_temp_dir(), 'schedule_');
+        file_put_contents($tempFile, $payloadJson);
+
+        // -----------------------------------------
+        // STEP 4: RUN PYTHON
+        // -----------------------------------------
+        $python = base_path('python/cp_sat_scheduler.py');
+
+        $command = "python \"$python\" \"$tempFile\" 2>&1";
+        $result = shell_exec($command);
+
+        unlink($tempFile);
+
+        // -----------------------------------------
+        // STEP 5: PARSE RESULT
+        // -----------------------------------------
+        $data = json_decode($result, true);
+
+        if (!$data || !isset($data['schedule'])) {
+            Log::error("Invalid Python output: " . $result);
+            throw new \Exception("Invalid Python output: " . $result);
+        }
+
+        // -----------------------------------------
+        // STEP 6: CLEAR OLD DATA
+        // -----------------------------------------
+        DB::table('schedules')
+            ->where('schedule_version_id', $versionId)
+            ->delete();
+
+        // -----------------------------------------
+        // STEP 7: INSERT NEW SCHEDULE
+        // -----------------------------------------
         foreach ($data['schedule'] as $item) {
-
             DB::table('schedules')->insert([
                 'section_id' => $item['section_id'],
                 'subject_id' => $item['subject_id'],
-                'faculty    _id' => $item['teacher_id'],
+                'teacher_id' => $item['teacher_id'],
                 'room_id' => $item['room_id'],
                 'time_slot_id' => $item['timeslot_id'],
                 'is_online' => $item['is_online'],
@@ -46,7 +91,9 @@ class ScheduleGenerationService
             ]);
         }
 
-        // STEP 5: apply Set A / Set B conversion
+        // -----------------------------------------
+        // STEP 8: APPLY SET LOGIC
+        // -----------------------------------------
         $this->applySetLogic($versionId);
 
         return ['status' => 'Schedule Generated'];
@@ -54,9 +101,9 @@ class ScheduleGenerationService
 
     private function applySetLogic($versionId)
     {
-        // SET A: convert 2nd–4th year to ONLINE
+        // SET A: 2nd–4th year ONLINE
         DB::table('schedules')
-            ->where('version_id', $versionId)
+            ->where('schedule_version_id', $versionId)
             ->where('set_type', 'A')
             ->whereIn('year_level', [2, 3, 4])
             ->update([
@@ -65,9 +112,9 @@ class ScheduleGenerationService
                 'is_converted_online' => true
             ]);
 
-        // SET B: convert 1st year to ONLINE
+        // SET B: 1st year ONLINE
         DB::table('schedules')
-            ->where('version_id', $versionId)
+            ->where('schedule_version_id', $versionId)
             ->where('set_type', 'B')
             ->where('year_level', 1)
             ->update([
