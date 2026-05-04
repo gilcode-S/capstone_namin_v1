@@ -104,6 +104,8 @@ Route::post('/setup/fetch-curriculum', [SetupController::class, 'fetchCurriculum
 // 🔘 BUTTON 3
 Route::post('/setup/lock-rooms', [SetupController::class, 'lockRooms']);
 
+Route::post('/generate-final-schedule', [ScheduleController::class, 'generateFinal']);
+
 Route::post('/generate-units/{sectionId}', function (
     $sectionId,
     \App\Services\CurriculumToSchedulingService $service

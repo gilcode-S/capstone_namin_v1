@@ -25,7 +25,8 @@ class ScheduleGenerationService
         $response = Http::post('http://127.0.0.1:5000/generate', $payload);
 
         $data = $response->json();
-
+    
+        DB::table('schedules')->where('version_id', $versionId)->delete();
         // STEP 4: save results
         foreach ($data['schedule'] as $item) {
 
@@ -57,7 +58,7 @@ class ScheduleGenerationService
         DB::table('schedules')
             ->where('version_id', $versionId)
             ->where('set_type', 'A')
-            ->whereIn('year_level', [2,3,4])
+            ->whereIn('year_level', [2, 3, 4])
             ->update([
                 'is_online' => true,
                 'room_id' => null,

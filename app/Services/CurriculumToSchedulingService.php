@@ -33,7 +33,7 @@ class CurriculumToSchedulingService
                     'subject_id' => $subjectId,
                     'faculty_id' => $preferredTeacher,
                     'duration_hours' => 2,
-                    'meeting_group' => $subjectId,
+                    'meeting_group' => $sectionId . '-' . $subjectId,
                     'preferred_day' => $preferredDay,
                     'preferred_shift' => $preferredShift,
                 ]);
@@ -43,7 +43,7 @@ class CurriculumToSchedulingService
                     'subject_id' => $subjectId,
                     'faculty_id' => $preferredTeacher,
                     'duration_hours' => 1,
-                    'meeting_group' => $subjectId,
+                    'meeting_group' => $sectionId . '-' . $subjectId,
                     'preferred_day' => $preferredDay,
                     'preferred_shift' => $preferredShift,
                 ]);
@@ -54,7 +54,7 @@ class CurriculumToSchedulingService
                     'subject_id' => $subjectId,
                     'faculty_id' => $preferredTeacher,
                     'duration_hours' => 2,
-                    'meeting_group' => $subjectId,
+                    'meeting_group' => $sectionId . '-' . $subjectId,
                     'preferred_day' => $preferredDay,
                     'preferred_shift' => $preferredShift,
                 ]);
@@ -65,7 +65,7 @@ class CurriculumToSchedulingService
                     'subject_id' => $subjectId,
                     'faculty_id' => $preferredTeacher,
                     'duration_hours' => 1,
-                    'meeting_group' => $subjectId,
+                    'meeting_group' => $sectionId . '-' . $subjectId,
                     'preferred_day' => $preferredDay,
                     'preferred_shift' => $preferredShift,
                 ]);

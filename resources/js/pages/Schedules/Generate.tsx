@@ -58,7 +58,7 @@ export default function Generate() {
 
         setGenerating(true)
 
-        router.post(`/schedules/generate`, {
+        router.post(`/generate-schedule`, {
             academic_year: academicYear,
             semester: semester,
             effective_date: effectiveDate
