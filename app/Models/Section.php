@@ -14,40 +14,43 @@ class Section extends Model
     //
 
 
-    protected $fillable = [
-        'program_id',
-        'semester_id',
-        'section_name',
-        'year_level',
-        'shift',
-        'student_count',
-        'octoberian',
-    ];
+    protected $guarded = [];
 
     public function program()
     {
-        return $this->belongsTo(Programs::class, 'program_id', 'id');
+        return $this->belongsTo(Programs::class);
     }
 
-    public function department()
+    // Intercept the save process to generate the Section Code (e.g., BC2MA-O)
+    protected static function booted()
     {
-        return $this->belongsTo(Department::class);
-    }
-    public function snapshots()
-    {
-        return $this->hasMany(CurriculumSnapshot::class);
-    }
-    public function semester()
-    {
-        return $this->belongsTo(Semester::class);
-    }
-    public function subjects()
-    {
-        return $this->belongsToMany(Subject::class, 'section_subject_assignments');
-    }
+        static::saving(function ($section) {
+            // Ensure the program is loaded to get the code
+            $programCode = $section->program->code ?? Programs::find($section->program_id)->code;
 
-    public function curriculums()
-    {
-        return $this->hasMany(Curriculum::class, 'program_id', 'program_id');
+            // Math: Year 1=1, Year 2=3, Year 3=5, Year 4=7
+            $yearBase = ($section->year_level * 2) - 1;
+
+            // Add +1 if it is the second semester
+            $timeCode = $section->semester == 2 ? $yearBase + 1 : $yearBase;
+
+            // Shift mapping
+            $shiftCode = match ($section->shift) {
+                'Morning' => 'M',
+                'Afternoon' => 'D',
+                'Evening' => 'E',
+                default => 'X'
+            };
+
+            // Combine: BC + 2 + M + A
+            $generatedName = $programCode . $timeCode . $shiftCode . strtoupper($section->letter);
+
+            // Append Octoberian if checked
+            if ($section->is_octoberian) {
+                $generatedName .= '-O';
+            }
+
+            $section->name = $generatedName;
+        });
     }
 }

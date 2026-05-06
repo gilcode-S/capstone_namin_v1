@@ -4,139 +4,46 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Programs;
-use App\Models\Department;
-use App\Models\Section;
-use App\Models\Curriculum;
+use App\Models\Room;
+use App\Models\Teacher;
+use App\Models\Domain;
 use App\Models\CurriculumSnapshot;
 use App\Models\DomainGroup;
 
 class Subject extends Model
 {
-    //
-    // protected $fillable = [
-    //     'program_id',
-    //     'subject_code',
-    //     'subject_name',
-    //     'subject_type',
-    //     'units',
-    //     'lecture_hours',
-    //     'lab_hours',
-    //     'hours_per_week',
-    //     'room_type',
-    //     'year_level',
-    //     'semester',
-    //     'domains',
-    //     'preferred_teacher',
-    //     'preferred_day',
-    //     'preferred_shift',
-    //     'room_type_required',
-    // ];
-    protected $fillable = [
-        'program_id',
-        'subject_code',
-        'subject_name',
-        'subject_type',
-        'hours_per_week',
-        'room_type',
-        'units',
-        'year_level',
-        'semester',
-
-        // NEW SYSTEM
-        'preferred_teacher_id',
-        'preferred_room_id',
-        'prerequisite_id',
-        'preferred_days',
-        'domain_group_id',
-        'preferred_shift',
-        'is_hard_constraint',
-    ];
-    protected $casts = [
-        'preferred_days' => 'array',
-
-        'is_hard_constraint' => 'boolean',
-    ];
-
-
-    public function snapshots()
-    {
-        return $this->hasMany(CurriculumSnapshot::class);
-    }
-
-    public function domainGroup()
-    {
-        return $this->belongsTo(DomainGroup::class, 'domain_group_id');
-    }
-
-    // public function preferredTeacher()
-    // {
-    //     return $this->belongsTo(Faculty::class, 'preferred_teacher_id');
-    // }
-    public function isMajor(): bool
-    {
-        return $this->subject_type === 'major';
-    }
-    public function prerequisite()
-    {
-        return $this->belongsTo(Subject::class, 'prerequisite_id');
-    }
-    public function isMinor(): bool
-    {
-        return $this->subject_type === 'minor';
-    }
-
-    public function setDomainAutomatically()
-    {
-        if ($this->isMajor() && $this->program) {
-            $this->domains = [$this->program->domain ?? null];
-        }
-    }
-    // public function getDomainAttribute()
-    // {
-    //     return $this->program?->department?->domain;
-    // }
-    public function department()
-    {
-        return $this->belongsTo(Department::class);
-    }
+    protected $guarded = [];
 
     public function program()
     {
         return $this->belongsTo(Programs::class);
     }
-    public function curriculums()
+    public function domain()
     {
-        return $this->hasMany(Curriculum::class);
-    }
-    public function sections()
-    {
-        return $this->belongsToMany(Section::class, 'section_subject_assignments');
+        return $this->belongsTo(Domain::class);
     }
 
-    // subjects that THIS subject requires
-    public function prerequisites()
+    // Self-referencing relationship for Prerequisites
+    public function prerequisite()
     {
-        return $this->belongsToMany(
-            Subject::class,
-            'subject_prerequisites',
-            'subject_id',
-            'prerequisite_subject_id'
-        );
+        return $this->belongsTo(Subject::class, 'prerequisite_subject_id');
     }
 
-    // subjects that REQUIRE this subject
-    public function dependents()
+    // Constraint Relationships
+    public function prefTeacher()
     {
-        return $this->belongsToMany(
-            Subject::class,
-            'subject_prerequisites',
-            'prerequisite_subject_id',
-            'subject_id'
-        );
+        return $this->belongsTo(Teacher::class, 'pref_teacher_id');
     }
-
-    public function getDisplayTypeAttribute()
+    public function prefRoom()
     {
-        return ucfirst($this->subject_type);
+        return $this->belongsTo(Room::class, 'pref_room_id');
+    }
+    public function reqTeacher()
+    {
+        return $this->belongsTo(Teacher::class, 'req_teacher_id');
+    }
+    public function reqRoom()
+    {
+        return $this->belongsTo(Room::class, 'req_room_id');
     }
 }

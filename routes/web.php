@@ -18,6 +18,7 @@ use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ScheduleVersionController;
 use App\Http\Controllers\SectionSubjectAssignmentController;
 use App\Http\Controllers\SemesterController;
+use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\TimeSlotController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -76,6 +77,16 @@ Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
         ->name('schedules.reset');
     // ✅ FIXED: VIEW CONFLICTS (needs versionId)
 
+
+
+    // PAGE 5: TEACHER MANAGEMENT
+    // This single line creates all standard routes (index, store, update, destroy)
+    Route::resource('teachers', TeacherController::class);
+
+    // PAGE 9 & 10: SCHEDULE GENERATION
+    Route::get('/schedules', [ScheduleController::class, 'index'])->name('schedules.index');
+    // The endpoint your React app will hit when the admin clicks "Generate Schedule"
+    Route::post('/schedules/generate', [ScheduleController::class, 'generate'])->name('schedules.generate');
 
     // RESOLVE CONFLICTS
     Route::post('/conflicts/{versionId}/resolve', [ConflictController::class, 'resolve'])

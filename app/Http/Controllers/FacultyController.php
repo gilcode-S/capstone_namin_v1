@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Teacher;
 use App\Models\Department;
-use App\Models\Faculty;
-use App\Models\Shift;
-use App\Models\Domain;
 use App\Models\DomainGroup;
-use App\Models\Schedule;
+use App\Models\Domain;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -15,261 +13,117 @@ class FacultyController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Faculty::with([
-            'department',
-            'schedules.timeslot',
-            'schedules.subject',
-            'schedules.room',
-            'availabilities',
-            'shifts'
-        ]);
+        $query = Teacher::with(['department', 'domainGroup', 'specialization']);
 
-        // SEARCH
         if ($request->search) {
-            $search = $request->search;
-
-            $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%$search%")
-                    ->orWhere('last_name', 'like', "%$search%")
-                    ->orWhereHas('schedules.subject', function ($q2) use ($search) {
-                        $q2->where('subject_name', 'like', "%$search%");
-                    });
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', "%{$request->search}%")
+                  ->orWhere('code', 'like', "%{$request->search}%");
             });
         }
 
-        // FILTER BY DEPARTMENT
         if ($request->department) {
             $query->where('department_id', $request->department);
         }
 
-        $faculties = $query->paginate(15)->withQueryString();
+        $teachers = $query->paginate(10)->withQueryString();
 
-        // ==============================
-        // 🔥 AVERAGE WORKLOAD CALC
-        // ==============================
-        $avgLoad = $faculties->getCollection()->avg(function ($f) {
-
-            $validSchedules = $f->schedules->filter(function ($s) {
-                return $s->timeslot &&
-                    strtotime($s->timeslot->end_time) > strtotime($s->timeslot->start_time);
-            });
-
-            $totalMinutes = $validSchedules->sum(function ($s) {
-                $start = strtotime($s->timeslot->start_time);
-                $end = strtotime($s->timeslot->end_time);
-                return ($end - $start) / 60;
-            });
-
-            $hours = round($totalMinutes / 60, 1);
-
-            $maxLoad = $f->max_load_units > 0 ? $f->max_load_units : 21;
-
-            return $maxLoad > 0
-                ? min(100, ($hours / $maxLoad) * 100)
+        $avgLoad = $teachers->getCollection()->avg(function ($t) {
+            return $t->max_hours > 0
+                ? min(100, (0 / $t->max_hours) * 100)
                 : 0;
         });
 
         return Inertia::render('Facultys/Index', [
-            'faculties' => $faculties->through(function ($f) {
-
-                // VALID SCHEDULES
-                $validSchedules = $f->schedules->filter(function ($s) {
-                    return $s->timeslot &&
-                        strtotime($s->timeslot->end_time) > strtotime($s->timeslot->start_time);
-                });
-
-                // HOURS
-                $totalMinutes = $validSchedules->sum(function ($s) {
-                    $start = strtotime($s->timeslot->start_time);
-                    $end = strtotime($s->timeslot->end_time);
-                    return ($end - $start) / 60;
-                });
-
-                $hours = round($totalMinutes / 60, 1);
-
-                // MAX LOAD
-                $maxLoad = $f->max_load_units > 0 ? $f->max_load_units : 21;
-
-                // WORKLOAD %
-                $workload = $maxLoad > 0
-                    ? min(100, round(($hours / $maxLoad) * 100))
-                    : 0;
-
-                // SUBJECTS (FROM SCHEDULE — FIXED)
-                $subjects = Schedule::with('subject')
-                    ->where('teacher_id', $f->id)
-                    ->get()
-                    ->pluck('subject.subject_name')
-                    ->filter()
-                    ->unique()
-                    ->values();
-
-                // DAYS
-                $days = $validSchedules
-                    ->pluck('timeslot.day_of_week')
-                    ->filter()
-                    ->unique()
-                    ->values();
-
-                // AVAILABILITY
-                $availability = $f->availabilities->map(function ($a) {
-                    return [
-                        'day_of_week' => $a->day_of_week,
-                        'start_time' => $a->start_time,
-                        'end_time' => $a->end_time,
-                    ];
-                })->values();
-
-                // SCHEDULE FORMAT
-                $schedule = $validSchedules->map(function ($s) {
-                    return [
-                        'day' => $s->timeslot->day_of_week ?? null,
-                        'start_time' => $s->timeslot->start_time ?? null,
-                        'end_time' => $s->timeslot->end_time ?? null,
-                        'subject' => $s->subject->subject_name ?? 'N/A',
-                        'room' => $s->room->room_name ?? 'N/A',
-                    ];
-                })->values();
-
+            'faculties' => $teachers->through(function ($t) {
                 return [
-                    ...$f->toArray(),
+                    ...$t->toArray(),
 
-                    'assigned_load' => $hours,
-                    'workload_percent' => $workload,
+                    'assigned_load' => 0,
+                    'workload_percent' => $t->max_hours
+                        ? 0
+                        : 0,
 
-                    'subjects' => $subjects,
-                    'teaching_days' => $days,
-
-                    'availability_full' => $availability,
-                    'schedule_full' => $schedule,
+                    'availability_full' => $t->availability_days ?? [],
+                    'schedule_full' => [],
+                    'subjects' => [],
                 ];
             }),
 
             'departments' => Department::all(),
-            'domainGroups' => DomainGroup::all(),
+            'domainGroups' => DomainGroup::with('domains')->get(),
             'domains' => Domain::all(),
+
             'filters' => [
                 'search' => $request->search,
                 'department' => $request->department
             ],
 
             'stats' => [
-                'total' => Faculty::count(),
-                'subjects' => \App\Models\Subject::count(),
-                'avg_load' => round($avgLoad, 1), // ✅ FIXED HERE
+                'total' => Teacher::count(),
+                'avg_load' => round($avgLoad, 1),
             ],
-
-            'shifts' => Shift::all(),
         ]);
     }
 
-    // ===========================
-    // STORE
-    // ===========================
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'code' => 'required|unique:teachers,code',
+            'name' => 'required|string',
+
             'department_id' => 'required|exists:departments,id',
-            'faculty_code' => 'nullable|unique:faculties,faculty_code',
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'nullable|email|unique:faculties,email',
-
-            'employment_type' => 'nullable|in:full_time,part_time',
-
-            'current_load' => 'nullable|integer|min:0', // ✅ NEW
-            'max_load_units' => 'required|integer|min:1',
-
-            'status' => 'required|in:active,inactive',
-
-            'availability' => 'nullable|array',
-            'availability.*' => 'in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
-
-            'shifts' => 'nullable|array',
-            'shifts.*' => 'exists:shifts,id',
-
-            // ✅ FIXED
-            'qualification_level' => 'nullable|string|max:255',
-            'years_experience' => 'nullable|integer|min:0',
+            'degree' => 'required|in:Undergraduate,Masters,PhD',
 
             'domain_group_id' => 'required|exists:domain_groups,id',
-            'domain_id' => 'required|exists:domains,id',
+            'specialization_id' => 'nullable|exists:domains,id',
+            'custom_specialization' => 'nullable|string',
+
+            'experience_years' => 'required|integer|min:0',
+
+            'min_hours' => 'required|integer|min:0',
+            'max_hours' => 'required|integer|gte:min_hours',
+
+            'availability_days' => 'required|array',
+            'shift_preferences' => 'required|array',
         ]);
 
-        $faculty = Faculty::create($validated);
+        Teacher::create($validated);
 
-        if ($request->availability) {
-            foreach ($request->availability as $day) {
-                $faculty->availabilities()->create([
-                    'day_of_week' => $day,
-                    'start_time' => '07:00',
-                    'end_time' => '22:00',
-                ]);
-            }
-        }
-
-        $faculty->shifts()->sync($request->shifts ?? []);
-
-        return redirect()->back()->with('success', 'Faculty created');
+        return redirect()->back()->with('success', 'Teacher created');
     }
 
-    // ===========================
-    // UPDATE
-    // ===========================
-    public function update(Request $request, Faculty $faculty)
+    public function update(Request $request, Teacher $teacher)
     {
         $validated = $request->validate([
+            'code' => 'required|unique:teachers,code,' . $teacher->id,
+            'name' => 'required|string',
+
             'department_id' => 'required|exists:departments,id',
-            'faculty_code' => 'nullable|unique:faculties,faculty_code,' . $faculty->id,
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'nullable|email|unique:faculties,email,' . $faculty->id,
-
-            'employment_type' => 'nullable|in:full_time,part_time',
-
-            'current_load' => 'nullable|integer|min:0', // ✅ NEW
-            'max_load_units' => 'required|integer|min:1',
-
-            'status' => 'required|in:active,inactive',
-
-            'availability' => 'nullable|array',
-            'availability.*' => 'in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
-
-            'shifts' => 'nullable|array',
-            'shifts.*' => 'exists:shifts,id',
-
-            // ✅ FIXED
-            'qualification_level' => 'nullable|string|max:255',
-            'years_experience' => 'nullable|integer|min:0',
+            'degree' => 'required|in:Undergraduate,Masters,PhD',
 
             'domain_group_id' => 'required|exists:domain_groups,id',
-            'domain_id' => 'required|exists:domains,id',
+            'specialization_id' => 'nullable|exists:domains,id',
+            'custom_specialization' => 'nullable|string',
+
+            'experience_years' => 'required|integer|min:0',
+
+            'min_hours' => 'required|integer|min:0',
+            'max_hours' => 'required|integer|gte:min_hours',
+
+            'availability_days' => 'required|array',
+            'shift_preferences' => 'required|array',
         ]);
 
-        $faculty->update($validated);
+        $teacher->update($validated);
 
-        $faculty->availabilities()->delete();
-
-        if ($request->availability) {
-            foreach ($request->availability as $day) {
-                $faculty->availabilities()->create([
-                    'day_of_week' => $day,
-                    'start_time' => '07:00',
-                    'end_time' => '22:00',
-                ]);
-            }
-        }
-
-        $faculty->shifts()->sync($request->shifts ?? []);
-
-        return redirect()->back()->with('success', 'Faculty updated');
+        return redirect()->back()->with('success', 'Teacher updated');
     }
-    // ===========================
-    // DELETE
-    // ===========================
-    public function destroy(Faculty $faculty)
+
+    public function destroy(Teacher $teacher)
     {
-        $faculty->delete();
-        return redirect()->back()->with('success', 'Faculty Deleted');
+        $teacher->delete();
+
+        return redirect()->back()->with('success', 'Teacher deleted');
     }
 }

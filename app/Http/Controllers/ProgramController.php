@@ -25,13 +25,14 @@ class ProgramController extends Controller
         // validation
         $validated = $request->validate([
             'department_id' => 'required|exists:departments,id',
-            'program_code' => 'required|unique:programs,program_code',
-            'program_name' => 'required'
+            'code' => 'required|unique:programs,code',
+            'name' => 'required'
         ]);
+
 
         Programs::create($validated);
         return redirect()->back()->with('success', 'Program Created');
-    } 
+    }
 
 
     public function update(Request $request, Programs $program)
@@ -39,12 +40,13 @@ class ProgramController extends Controller
         // validation
         $validated = $request->validate([
             'department_id' => 'required|exists:departments,id',
-            'program_code' => 'required|unique:programs,program_code,' . $program->id,
-            'program_name' => 'required'
+            'code' => 'required|unique:programs,code,' . $program->id,
+            'name' => 'required'
         ]);
 
+
         $program->update($validated);
-        return redirect()->back()->with('success' , 'Program Updated');
+        return redirect()->back()->with('success', 'Program Updated');
     }
 
     public function destroy(Programs $program)
@@ -52,5 +54,4 @@ class ProgramController extends Controller
         $program->delete();
         return redirect()->back()->with('success', 'Program Deleted');
     }
-
 }

@@ -11,27 +11,14 @@ use App\Models\Curriculum;
 class Programs extends Model
 {
     //
-    protected $fillable = [
-        'department_id',
-        'program_code',
-        'program_name'
-    ];
+    protected $guarded = [];
+
     public function department()
     {
-        return $this->belongsTo(Department::class, 'department_id', 'id');
+        return $this->belongsTo(Department::class);
     }
-
     public function sections()
     {
         return $this->hasMany(Section::class);
-    }
-
-    public function subjects()
-    {
-        return $this->hasMany(Subject::class);
-    }
-    public function curriculums()
-    {
-        return $this->hasMany(Curriculum::class);
     }
 }

@@ -16,7 +16,7 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        // Super Admin
+
         // User::create([
         //     'name' => 'Super Admin',
         //     'email' => 'superadmin@example.com',
@@ -53,13 +53,13 @@ class DatabaseSeeder extends Seeder
             //DepartmentSeeder::class,
             //ProgramSeeder::class,
 
-           // SubjectSeeder::class,
+            // SubjectSeeder::class,
             // SectionSeeder::class,
             //RoomSeeder::class,
 
-             FacultySeeder::class,
 
-            //TimeSlotSeeder::class,
+            DomainSeeder::class,
+            // TimeSlotSeeder::class,
             // SemesterSeeder::class,
             // ScheduleVersionSeeder::class,
             // AssignmentSeeder::class,

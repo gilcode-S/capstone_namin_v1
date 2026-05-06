@@ -13,14 +13,14 @@ import { Label } from '@/components/ui/label'
 
 interface Program {
     id: number
-    program_name: string
-    program_code: string
+    name: string
+    code: string
 }
 
 interface Department {
     id: number
     department_code: string
-    department_name: string
+    name: string
     domain_group_id: number | ''
     domainGroup?: {
         id: number
@@ -30,20 +30,7 @@ interface Department {
 }
 
 
-// const DOMAINS = [
-//     "Computer Studies / IT",
-//     "Engineering",
-//     "Business & Accountancy",
-//     "Education",
-//     "Health Sciences",
-//     "Arts & Humanities",
-//     "Sciences & Mathematics",
-//     "Agriculture & Fisheries",
-//     "Hospitality / Tourism",
-//     "Law / Security / Public Service",
-//     "Maritime",
-//     "Fine Arts / Design / Architecture"
-// ]
+
 /* ================= PAGE ================= */
 
 const Index = () => {
@@ -62,13 +49,13 @@ const Index = () => {
 
     const [deptForm, setDeptForm] = useState({
         department_code: null as string | null,
-        department_name: '',
+        name: '',
         domain_group_id: ''
     })
 
     const [programForm, setProgramForm] = useState({
-        program_name: '',
-        program_code: '',
+        name: '',
+        code: '',
         department_id: ''
     })
 
@@ -87,7 +74,7 @@ const Index = () => {
     const handleEditDept = (dept: Department) => {
         setDeptForm({
             department_code: dept.department_code,
-            department_name: dept.department_name.replace(" Department", ""),
+            name: dept.name.replace(" Department", ""),
             domain_group_id: dept.domain_group_id ? String(dept.domain_group_id) : '' // ✅ CORRECT
         })
 
@@ -98,8 +85,8 @@ const Index = () => {
     }
     const handleEditProgram = (p: any) => {
         setProgramForm({
-            program_name: p.program_name,
-            program_code: p.program_code,
+            name: p.name,
+            code: p.code,
             department_id: p.department_id
         })
 
@@ -128,7 +115,7 @@ const Index = () => {
         const payload = {
             ...deptForm,
             domain_group_id: Number(deptForm.domain_group_id),
-            department_name: deptForm.department_name + " Department"
+            name: deptForm.name + " Department"
         }
 
         if (isEditDept && editDeptId) {
@@ -154,8 +141,8 @@ const Index = () => {
             onSuccess: () => {
                 setOpenProgram(false)
                 setProgramForm({
-                    program_name: '',
-                    program_code: '',
+                    name: '',
+                    code: '',
                     department_id: ''
                 })
             }
@@ -168,7 +155,7 @@ const Index = () => {
         setEditDeptId(null)
         setDeptForm({
             department_code: null,
-            department_name: '',
+            name: '',
             domain_group_id: ''
         })
 
@@ -226,7 +213,7 @@ const Index = () => {
                                 <tbody>
                                     {departments.map(d => (
                                         <tr key={d.id} className="border-t">
-                                            <td className="px-4 py-3">{d.department_name}</td>
+                                            <td className="px-4 py-3">{d.name}</td>
                                             <td className="px-4 py-3 text-gray-500">{d.domain_group?.name}</td>
                                             <td className="px-4 py-3 text-center space-x-2">
                                                 <button onClick={() => handleEditDept(d)}>
@@ -270,11 +257,11 @@ const Index = () => {
                                         <tr key={p.id} className="border-t">
 
                                             <td className="px-4 py-3">
-                                                {p.program_name}
+                                                {p.name}
                                             </td>
 
                                             <td className="px-4 py-3">
-                                                {p.program_code}
+                                                {p.code}
                                             </td>
 
                                             <td className="px-4 py-3 text-center space-x-2">
@@ -308,7 +295,7 @@ const Index = () => {
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h2 className="text-lg font-semibold">
-                                        {dept.department_name.replace(" Department", "")}
+                                        {dept.name.replace(" Department", "")}
                                     </h2>
                                     <p className="text-sm text-gray-500">{dept.domainGroup?.name}</p>
                                 </div>
@@ -328,8 +315,8 @@ const Index = () => {
                                     <tbody>
                                         {dept.programs.map(p => (
                                             <tr key={p.id} className="border-t">
-                                                <td className="px-4 py-3">{p.program_name}</td>
-                                                <td className="px-4 py-3">{p.program_code}</td>
+                                                <td className="px-4 py-3">{p.name}</td>
+                                                <td className="px-4 py-3">{p.code}</td>
                                                 <td className="px-4 py-3 text-center">
                                                     {/* <button
                                                         onClick={() => deleteProgram(p.id)}
@@ -359,8 +346,8 @@ const Index = () => {
                         if (!open) {
                             setEditProgramId(null)
                             setProgramForm({
-                                program_name: '',
-                                program_code: '',
+                                name: '',
+                                code: '',
                                 department_id: ''
                             })
                         }
@@ -383,8 +370,8 @@ const Index = () => {
                                         setEditProgramId(null)
 
                                         setProgramForm({
-                                            program_name: '',
-                                            program_code: '',
+                                            name: '',
+                                            code: '',
                                             department_id: ''
                                         })
 
@@ -397,17 +384,17 @@ const Index = () => {
 
                             <Label>Program Name</Label>
                             <Input
-                                value={programForm.program_name}
+                                value={programForm.name}
                                 onChange={(e) =>
-                                    setProgramForm({ ...programForm, program_name: e.target.value })
+                                    setProgramForm({ ...programForm, name: e.target.value })
                                 }
                             />
 
                             <Label>Program Code</Label>
                             <Input
-                                value={programForm.program_code}
+                                value={programForm.code}
                                 onChange={(e) =>
-                                    setProgramForm({ ...programForm, program_code: e.target.value })
+                                    setProgramForm({ ...programForm, code: e.target.value })
                                 }
                             />
 
@@ -422,7 +409,7 @@ const Index = () => {
                                 <option value="">Select Department</option>
                                 {departments.map((dept) => (
                                     <option key={dept.id} value={dept.id}>
-                                        {dept.department_name.replace(" Department", "")}
+                                        {dept.name.replace(" Department", "")}
                                     </option>
                                 ))}
                             </select>
@@ -461,9 +448,9 @@ const Index = () => {
                             /> */}
 
                             <Input
-                                value={deptForm.department_name}
+                                value={deptForm.name}
                                 onChange={(e) =>
-                                    setDeptForm({ ...deptForm, department_name: e.target.value })
+                                    setDeptForm({ ...deptForm, name: e.target.value })
                                 }
                                 placeholder="Department Name"
                             />
@@ -504,17 +491,17 @@ const Index = () => {
 
                             <Input
                                 placeholder="Program Name"
-                                value={programForm.program_name}
+                                value={programForm.name}
                                 onChange={(e) =>
-                                    setProgramForm({ ...programForm, program_name: e.target.value })
+                                    setProgramForm({ ...programForm, name: e.target.value })
                                 }
                             />
                             <Label>Program Code</Label>
                             <Input
                                 placeholder="Program Code"
-                                value={programForm.program_code}
+                                value={programForm.code}
                                 onChange={(e) =>
-                                    setProgramForm({ ...programForm, program_code: e.target.value })
+                                    setProgramForm({ ...programForm, code: e.target.value })
                                 }
                             />
                             <select
@@ -527,7 +514,7 @@ const Index = () => {
                                 <option value="">Select Department</option>
                                 {departments.map((dept) => (
                                     <option key={dept.id} value={dept.id}>
-                                        {dept.department_name.replace(" Department", "")}
+                                        {dept.name.replace(" Department", "")}
                                     </option>
                                 ))}
                             </select>

@@ -14,21 +14,21 @@ class ScheduleGenerationService
         // -----------------------------------------
         $teachers = DB::table('teacher_subject_rankings')->get();
         $units = DB::table('scheduling_units')->get();
-        $roomLocks = DB::table('room_time_locks')->get();
+        $rooms = DB::table('room_time_locks')->get();
 
         // -----------------------------------------
         // STEP 2: TRANSFORM ROOMS (IMPORTANT FIX)
         // -----------------------------------------
-        $rooms = $roomLocks->groupBy('room_id')->map(function ($items, $roomId) {
-            return [
-                'id' => $roomId,
-                'timeslots' => $items->map(function ($i) {
-                    return [
-                        'id' => $i->time_slot_id
-                    ];
-                })->values()
-            ];
-        })->values();
+        // $rooms = $roomLocks->groupBy('room_id')->map(function ($items, $roomId) {
+        //     return [
+        //         'id' => $roomId,
+        //         'timeslots' => $items->map(function ($i) {
+        //             return [
+        //                 'id' => $i->time_slot_id
+        //             ];
+        //         })->values()
+        //     ];
+        // })->values();
 
         // -----------------------------------------
         // STEP 3: BUILD PAYLOAD

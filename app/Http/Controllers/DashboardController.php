@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Faculty;
+use App\Models\Teacher;
 use App\Models\Room;
 use App\Models\Schedule;
 use App\Models\Section;
@@ -12,26 +12,53 @@ use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
+
+
     public function index()
     {
+
+        $fakeSchedules = collect([
+            (object)[
+                'room_id' => 1,
+                'teacher_id' => 1,
+                'timeslot_id' => 1,
+            ],
+            (object)[
+                'room_id' => 2,
+                'teacher_id' => 1,
+                'timeslot_id' => 2,
+            ],
+            (object)[
+                'room_id' => 1,
+                'teacher_id' => 2,
+                'timeslot_id' => 2,
+            ],
+        ]);
         // ================= BASIC COUNTS =================
-        $totalSchedules = Schedule::count();
-        $totalFaculty   = Faculty::count();
+        $totalSchedules = $fakeSchedules->count();
+        $totalFaculty   = Teacher::count();
         $totalRooms     = Room::count();
         $totalSubjects  = Subject::count();
         $totalSections  = Section::count();
 
         // ================= ROOM UTILIZATION =================
-        $usedRooms = Schedule::whereNotNull('room_id')
-            ->distinct('room_id')
-            ->count('room_id');
+        $usedRooms = $fakeSchedules
+            ->pluck('room_id')
+            ->unique()
+            ->count();
 
         $roomUtilization = $totalRooms > 0
             ? ($usedRooms / $totalRooms) * 100
             : 0;
 
         // ================= TEACHER WORKLOAD BALANCE =================
-        $teachers = Faculty::withCount('schedules')->get();
+        $teachers = Teacher::all()->map(function ($t) use ($fakeSchedules) {
+            $t->schedules_count = $fakeSchedules
+                ->where('teacher_id', $t->id)
+                ->count();
+
+            return $t;
+        });
 
         $loads = $teachers->pluck('schedules_count');
 
@@ -50,12 +77,14 @@ class DashboardController extends Controller
 
         // ================= CONFLICT DETECTION =================
         // (needed for resolution score)
-        $conflicts = Schedule::select('room_id', 'time_slot_id')
-            ->groupBy('room_id', 'time_slot_id')
-            ->havingRaw('COUNT(*) > 1')
-            ->get()
+        $conflicts = $fakeSchedules
+            ->groupBy(function ($item) {
+                return $item->room_id . '-' . $item->timeslot_id;
+            })
+            ->filter(function ($group) {
+                return $group->count() > 1;
+            })
             ->count();
-
         // ================= CONFLICT RESOLUTION =================
         $totalPossibleConflicts = max(1, $totalSchedules);
 

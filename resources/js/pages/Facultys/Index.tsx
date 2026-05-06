@@ -53,44 +53,52 @@ interface Schedule {
   room: string
 }
 
-interface Faculty {
+interface Teacher {
   id: number
-  department: Department
-  faculty_code: string
-  first_name: string
-  last_name: string
-  email: string
-  employment_type: string
-  max_load_units: number
-  qualification_level: string
-  years_experience: number
-  status: string
-  // availabilities: Availability[]
-  shifts: Shift[]
-  availability_full: Availability[]
-  schedule_full: Schedule[]
-  domain_group_id: DomainGroup[]
+  code: string
+  name: string
+
+  department?: {
+    id: number
+    name: string
+  }
+
+  domain_group?: {
+    id: number
+    name: string
+  }
+
+  specialization?: {
+    id: number
+    name: string
+  }
+
   min_hours: number
-  domain_id: Domain[]
-  current_load: number
+  max_hours: number
+
+  assigned_load: number
+  workload_percent: number
+
+  availability_full: string[]
 }
 
 const emptyForm = {
+  code: '',
+  name: '',
   department_id: '',
-  faculty_code: '',
-  first_name: '',
-  last_name: '',
-  email: '',
-  employment_type: '',
-  current_load: '', // ✅ NEW
-  max_load_units: '',
-  status: 'active',
-  availability: [],
-  shifts: [],
-  qualification_level: '',
-  years_experience: '',
+  degree: '',
+
   domain_group_id: '',
-  domain_id: ''
+  specialization_id: '',
+  custom_specialization: '',
+
+  experience_years: '',
+
+  min_hours: '',
+  max_hours: '',
+
+  availability_days: [],
+  shift_preferences: []
 }
 
 export default function Index() {
@@ -157,21 +165,26 @@ export default function Index() {
   ----------------------------*/
   const handleOpenEdit = (faculty: Faculty) => {
     setForm({
-      department_id: faculty.department?.id,
-      faculty_code: faculty.faculty_code,
-      first_name: faculty.first_name,
-      last_name: faculty.last_name,
-      email: faculty.email,
-      employment_type: faculty.employment_type,
-      qualification_level: faculty.qualification_level || '',
-      years_experience: faculty.years_experience || '',
-      current_load: faculty.current_load || '', // ✅ NEW
-      max_load_units: faculty.max_load_units,
-      status: faculty.status,
-      availability: faculty.availability_full?.map(a => a.day_of_week) || [],
-      shifts: faculty.shifts?.map(s => s.id) || [],
-      domain_group_id: faculty.domain_group_id,
-      domain_id: faculty.domain_id,
+      code: faculty.code || '',
+      name: faculty.name || '',
+
+      department_id: faculty.department?.id || '',
+      degree: faculty.degree || '',
+
+      domain_group_id: faculty.domain_group_id || '',
+      specialization_id: faculty.specialization_id || '',
+      custom_specialization: faculty.custom_specialization || '',
+
+      experience_years: faculty.experience_years || '',
+
+      min_hours: faculty.min_hours || '',
+      max_hours: faculty.max_hours || '',
+
+      // ✅ FIXED HERE
+      availability_days: faculty.availability_full || [],
+
+      // ⚠️ you don’t have this yet from backend
+      shift_preferences: faculty.shift_preferences || []
     })
 
     setIsEdit(true)
@@ -199,6 +212,25 @@ export default function Index() {
       ...form,
       [e.target.name]: e.target.value
     })
+  }
+
+
+  const handleDayChange = (day) => {
+    setForm(prev => ({
+      ...prev,
+      availability_days: prev.availability_days.includes(day)
+        ? prev.availability_days.filter(d => d !== day)
+        : [...prev.availability_days, day]
+    }))
+  }
+
+  const handleShiftChange = (shift) => {
+    setForm(prev => ({
+      ...prev,
+      shift_preferences: prev.shift_preferences.includes(shift)
+        ? prev.shift_preferences.filter(s => s !== shift)
+        : [...prev.shift_preferences, shift]
+    }))
   }
 
   /* ---------------------------
@@ -283,51 +315,40 @@ export default function Index() {
         : (prev.availability || []).filter(d => d !== value)
     }));
   };
-  const handleShiftChange = (e) => {
-    const value = Number(e.target.value);
-    const checked = e.target.checked;
+  // const handleShiftChange = (e) => {
+  //   const value = Number(e.target.value);
+  //   const checked = e.target.checked;
 
-    setForm(prev => {
-      let updated = checked
-        ? [...(prev.shifts || []), value]
-        : prev.shifts.filter(s => s !== value);
+  //   setForm(prev => {
+  //     let updated = checked
+  //       ? [...(prev.shifts || []), value]
+  //       : prev.shifts.filter(s => s !== value);
 
-      if (updated.length > 2) return prev;
+  //     if (updated.length > 2) return prev;
 
-      return { ...prev, shifts: updated };
-    });
-  }
+  //     return { ...prev, shifts: updated };
+  //   });
+  // }
 
   /* ---------------------------
      SUBMIT
   ----------------------------*/
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
     setLoading(true)
 
     const payload = {
       ...form,
-
-      // convert checkbox days → backend format
-      // availabilities: (form.availability || []).map(day => ({
-      //   day_of_week: day,
-      //   start_time: "08:00",
-      //   end_time: "17:00"
-      // }))
-      availability: form.availability || []
+      experience_years: Number(form.experience_years),
+      min_hours: Number(form.min_hours),
+      max_hours: Number(form.max_hours),
     }
-
-    console.log("PAYLOAD:", payload)
 
     if (isEdit && editId) {
       router.put(`/faculty/${editId}`, payload, {
         onSuccess: () => {
           setLoading(false)
           handleClose()
-        },
-        onError: (errors) => {
-          console.log("ERRORS:", errors)
-          setLoading(false)
         }
       })
     } else {
@@ -335,10 +356,6 @@ export default function Index() {
         onSuccess: () => {
           setLoading(false)
           handleClose()
-        },
-        onError: (errors) => {
-          console.log("ERRORS:", errors)
-          setLoading(false)
         }
       })
     }
@@ -668,13 +685,13 @@ export default function Index() {
 
                     {/* TEACHER */}
                     <td className="p-3 font-medium">
-                      {f.first_name} {f.last_name}
+                      {f.name}
                     </td>
 
                     {/* DEPARTMENT */}
                     <td className="p-3">
                       <span className="px-2 py-1 rounded-md bg-gray-100 text-xs">
-                        {f.department?.department_name}
+                        {f.department?.name}
                       </span>
                     </td>
 
@@ -701,7 +718,7 @@ export default function Index() {
                     {/* HOURS + PROGRESS */}
                     <td className="p-3 w-[180px]">
                       <div className="text-xs mb-1">
-                        {f.assigned_load}/{f.max_load_units}
+                        {f.min_hours} / {f.max_hours}
                       </div>
 
                       <div className="w-full bg-gray-200 h-2 rounded-full">
@@ -720,13 +737,8 @@ export default function Index() {
                     {/* AVAILABILITY ✅ FIXED */}
                     <td className="p-3">
                       <div className="flex gap-1 flex-wrap">
-                        {f.availability_full?.slice(0, 3).map((a: any, i: number) => (
-                          <span
-                            key={i}
-                            className="px-2 py-1 text-xs bg-gray-100 rounded-md"
-                          >
-                            {a.day_of_week}
-                          </span>
+                        {f.availability_full?.slice(0, 3).map(day => (
+                          <span key={day}>{day}</span>
                         ))}
 
                         {f.availability_full?.length > 3 && (
@@ -809,31 +821,25 @@ export default function Index() {
               className="max-h-[70vh] overflow-y-auto p-6 space-y-5 bg-[#F7F7F7]"
             >
 
-              {/* FULL NAME */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* NAME */}
+              <div>
+                <Label>Full Name</Label>
                 <Input
-                  name="first_name"
-                  placeholder="First Name"
-                  value={form.first_name}
-                  onChange={handleChange}
-                  required
-                />
-
-                <Input
-                  name="last_name"
-                  placeholder="Last Name"
-                  value={form.last_name}
+                  name="name"
+                  placeholder="Juan Dela Cruz"
+                  value={form.name}
                   onChange={handleChange}
                   required
                 />
               </div>
-              {/* FACULTY CODE */}
+
+              {/* CODE */}
               <div>
-                <Label>Faculty Code</Label>
+                <Label>Teacher Code</Label>
                 <Input
-                  name="faculty_code"
-                  placeholder="e.g. FAC-001"
-                  value={form.faculty_code}
+                  name="code"
+                  placeholder="TCH-001"
+                  value={form.code}
                   onChange={handleChange}
                   required
                 />
@@ -847,108 +853,138 @@ export default function Index() {
                   value={form.department_id}
                   onChange={handleChange}
                   className="w-full border rounded-md px-3 py-2"
+                  required
                 >
                   <option value="">Select Department</option>
                   {departments.map(d => (
                     <option key={d.id} value={d.id}>
-                      {d.department_name}
+                      {d.name}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* QUALIFICATION + EXPERIENCE */}
+              {/* DEGREE + EXPERIENCE */}
               <div className="grid grid-cols-2 gap-3">
-                <select
-                  name="qualification_level"
-                  value={form.qualification_level}
-                  onChange={handleChange}
-                  className="border rounded-md px-3 py-2"
-                >
-                  <option value="">Highest Qualification</option>
-                  <option value="Bachelor">Bachelor’s Degree</option>
-                  <option value="Master">Master’s Degree</option>
-                  <option value="Doctorate">Doctorate</option>
-                </select>
+                <div>
+                  <Label>Degree</Label>
+                  <select
+                    name="degree"
+                    value={form.degree}
+                    onChange={handleChange}
+                    className="border rounded-md px-3 py-2 w-full"
+                    required
+                  >
+                    <option value="">Select Degree</option>
+                    <option value="Undergraduate">Undergraduate</option>
+                    <option value="Masters">Masters</option>
+                    <option value="PhD">PhD</option>
+                  </select>
+                </div>
 
-                <Input
-                  type="number"
-                  name="years_experience"
-                  placeholder="Years Experience"
-                  value={form.years_experience}
-                  onChange={handleChange}
-                />
+                <div>
+                  <Label>Years of Experience</Label>
+                  <Input
+                    type="number"
+                    name="experience_years"
+                    placeholder="e.g. 5"
+                    value={form.experience_years}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
               </div>
-              {/* DOMAIN + PROGRAM */}
-              {/* DOMAIN + PROGRAM (DEPENDENT DROPDOWN) */}
+
+              {/* DOMAIN + SPECIALIZATION */}
               <div className="grid grid-cols-2 gap-3">
 
-                {/* DOMAIN */}
-                <select
-                  name="domain_group_id"
-                  value={form.domain_group_id}
-                  onChange={handleChange}
-                  className="border rounded-md px-3 py-2"
-                >
-                  <option value="">Select Domain Group</option>
-                  {domainGroups.map(dg => (
-                    <option key={dg.id} value={dg.id}>
-                      {dg.name}
-                    </option>
-                  ))}
-                </select>
-
-                {/* PROGRAM */}
-                <select
-                  name="domain_id"
-                  value={form.domain_id}
-                  onChange={handleChange}
-                  disabled={!form.domain_group_id}
-                  className="border rounded-md px-3 py-2"
-                >
-                  <option value="">Select Domain</option>
-
-                  {domains
-                    .filter(d => d.domain_group_id == Number(form.domain_group_id))
-                    .map(d => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
+                <div>
+                  <Label>Domain Group</Label>
+                  <select
+                    name="domain_group_id"
+                    value={form.domain_group_id}
+                    onChange={handleChange}
+                    className="border rounded-md px-3 py-2 w-full"
+                    required
+                  >
+                    <option value="">Select Domain Group</option>
+                    {domainGroups.map(dg => (
+                      <option key={dg.id} value={dg.id}>
+                        {dg.name}
                       </option>
                     ))}
-                </select>
+                  </select>
+                </div>
 
+                <div>
+                  <Label>Specialization</Label>
+                  <select
+                    name="specialization_id"
+                    value={form.specialization_id}
+                    onChange={handleChange}
+                    disabled={!form.domain_group_id}
+                    className="border rounded-md px-3 py-2 w-full"
+                  >
+                    <option value="">Select Specialization</option>
+
+                    {domains
+                      .filter(d => d.domain_group_id == Number(form.domain_group_id))
+                      .map(d => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+              </div>
+
+              {/* CUSTOM SPECIALIZATION */}
+              <div>
+                <Label>Custom Specialization (Optional)</Label>
+                <Input
+                  name="custom_specialization"
+                  placeholder="e.g. AI Research"
+                  value={form.custom_specialization}
+                  onChange={handleChange}
+                />
               </div>
 
               {/* HOURS */}
               <div className="grid grid-cols-2 gap-3">
-                <Input
-                  type="number"
-                  name="current_load"
-                  placeholder="Min Weekly Hours"
-                  value={form.current_load}
-                  onChange={handleChange}
-                />
+                <div>
+                  <Label>Min Hours</Label>
+                  <Input
+                    type="number"
+                    name="min_hours"
+                    value={form.min_hours}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
 
-                <Input
-                  type="number"
-                  name="max_load_units"
-                  placeholder="Maximum Weekly Hours"
-                  value={form.max_load_units}
-                  onChange={handleChange}
-                />
+                <div>
+                  <Label>Max Hours</Label>
+                  <Input
+                    type="number"
+                    name="max_hours"
+                    value={form.max_hours}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
               </div>
 
               {/* AVAILABILITY */}
               <div>
-                <Label>Availability (Min 4)</Label>
+                <Label>Availability Days</Label>
                 <div className="grid grid-cols-3 gap-2 mt-2 text-sm">
                   {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => (
                     <label key={day} className="flex items-center gap-2">
                       <input
                         type="checkbox"
-                        value={day}
-                        checked={form.availability?.includes(day)}
-                        onChange={handleCheckboxChange}
+                        checked={(form.availability_days || []).includes(day)}
+                        onChange={() => handleDayChange(day)}
                       />
                       {day}
                     </label>
@@ -958,23 +994,22 @@ export default function Index() {
 
               {/* SHIFT */}
               <div>
-                <Label>Preferred Shift (Max 2)</Label>
+                <Label>Shift Preferences</Label>
                 <div className="flex gap-6 mt-2 text-sm">
-                  {shifts.map((shift) => (
-                    <label key={shift.id} className="flex items-center gap-2">
+                  {["Morning", "Afternoon", "Evening"].map(shift => (
+                    <label key={shift} className="flex items-center gap-2">
                       <input
                         type="checkbox"
-                        value={shift.id}
-                        checked={form.shifts?.includes(shift.id)}
-                        onChange={handleShiftChange}
+                        checked={(form.shift_preferences || []).includes(shift)}
+                        onChange={() => handleShiftChange(shift)}
                       />
-                      {shift.name}
+                      {shift}
                     </label>
                   ))}
                 </div>
               </div>
 
-              {/* FOOTER */}
+              {/* SUBMIT */}
               <div className="pt-4">
                 <Button className="w-full bg-black text-white">
                   {isEdit ? "Save Changes" : "Add Teacher"}

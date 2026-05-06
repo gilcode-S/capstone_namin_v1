@@ -41,6 +41,7 @@ export const sidebarConfig = {
       items: [
         { title: "Rooms", href: "/rooms", icon: Folder },
         { title: "Faculty", href: "/faculty", icon: Users },
+        { title: "Teacher", href: "/teachers", icon: Users },
         { title: "Time Slots", href: "/time-slots", icon: Clock10Icon }
       ]
     },

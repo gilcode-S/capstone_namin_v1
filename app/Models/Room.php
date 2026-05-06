@@ -9,38 +9,19 @@ use App\Models\Schedule;
 class Room extends Model
 {
     //
-    protected $fillable = [
-        'department_id',
-        'room_name',
-        'room_type', // keep (legacy)
-        'resource_type', // NEW
-        'capacity',
-        'building',
-        'floor',
-        'equipment',
-        'status', // old
-        'resource_status' // NEW
-    ];
+    protected $guarded = [];
 
-    protected $casts = [
-        'equipment' => 'array'
-    ];
-    public function department()
+    // Intercept the save process to generate the Room Name (e.g., C201 Computer Lab)
+    protected static function booted()
     {
-        return $this->belongsTo(Department::class);
-    }
+        static::saving(function ($room) {
+            $baseName = $room->building . $room->floor . $room->room_number;
 
-    public function schedules()
-    {
-        return $this->hasMany(Schedule::class);
-    }
+            if ($room->description_name) {
+                $baseName .= ' ' . $room->description_name;
+            }
 
-    public function isValidForSubject($subject): bool
-    {
-        if ($subject->room_type) {
-            return $this->resource_type === $subject->room_type;
-        }
-
-        return true;
+            $room->generated_name = $baseName;
+        });
     }
 }

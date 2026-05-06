@@ -8,15 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Domain extends Model
 {
-    protected $fillable = ['name'];
+    protected $guarded = [];
 
-    public function departments()
+    public function group()
     {
-        return $this->hasMany(Department::class);
+        return $this->belongsTo(DomainGroup::class, 'domain_group_id');
     }
-
-    public function domainGroup()
-{
-    return $this->belongsTo(DomainGroup::class);
-}
 }
