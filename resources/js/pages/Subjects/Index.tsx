@@ -20,22 +20,35 @@ import Pagination from '@/components/Pagination'
 import StatCard from '@/components/StatCard'
 interface Program {
     id: number
-    program_name: string
+    name: string
 }
+
+
 
 interface Subject {
     id: number
-    program_id: number
-    subject_code: string
-    subject_name: string
+    name: string
+    code: string
+    type: string
     units: number
-    lecture_hours: number
-    lab_hours: number
-    year_level: number
-    semester: number
-    program: Program
-}
 
+    program_id?: number
+    domain_id?: number
+
+    prerequisite_subject_id?: number
+
+    program?: Program
+
+    prerequisite?: {
+        id: number
+        code: string
+        name: string
+    }
+    domain?: {
+        id: number
+        name: string
+    }
+}
 interface Filters {
     program_id?: string
     semester?: string
@@ -43,37 +56,68 @@ interface Filters {
 }
 
 const emptyForm = {
+    name: '',
+    code: '',
+    type: '',
+    units: '',
+
     program_id: '',
-    subject_code: '',
-    subject_name: '',
-    subject_type: '',
-    hours_per_week: '',
-    room_type: '',
-    // year_level: '',
-    // semester: '',
-    prerequisites: [],
+    prerequisite_subject_id: '',
+    domain_id: '',
 
-    preferred_teacher_id: '',
-    preferred_day: '',
-    preferred_shift: '',
+    pref_day: '',
+    pref_shift: '',
+    pref_teacher_id: '',
+    pref_room_id: '',
 
-    domain_group_id: '',
-    preferred_room_id: '',
+    req_day: '',
+    req_shift: '',
+    req_teacher_id: '',
+    req_room_id: '',
 }
 export default function Index() {
 
-    const { subjects, programs, filters, stats, allSubjects, teachers, domains, rooms } = usePage().props as unknown as {
+    const {
+        subjects,
+        programs,
+        filters,
+        stats,
+        allSubjects,
+        teachers,
+        domains,
+        rooms
+    } = usePage().props as unknown as {
         subjects: {
-            data: Subject[],
+            data: Subject[]
             links: any[]
-        },
-        programs: Program[],
-        filters: Filters,
+        }
+
+        programs: Program[]
+
+        filters: Filters
+
+        stats: {
+            total_subject: number
+            total_minor: number
+            total_major: number
+        }
+
+        allSubjects: Subject[]
+
+        domains: {
+            id: number
+            name: string
+        }[]
+
+        rooms: {
+            id: number
+            generated_name: string
+        }[]
+
         teachers: {
             id: number
-            first_name: string
-            last_name: string
-            faculty_code: string
+            code: string
+            name: string
         }[]
     }
     console.log('teachers:', teachers);
@@ -126,22 +170,24 @@ export default function Index() {
 
     const handleOpenEdit = (subject: any) => {
         setForm({
-            program_id: subject.program_id,
-            subject_code: subject.subject_code,
-            subject_name: subject.subject_name,
-            subject_type: subject.subject_type,
-            hours_per_week: subject.hours_per_week,
-            room_type: subject.room_type,
-            // year_level: subject.year_level,
-            // semester: subject.semester,
+            name: subject.name || '',
+            code: subject.code || '',
+            type: subject.type || '',
+            units: subject.units || '',
 
-            prerequisites: subject.prerequisites?.map((p: any) => p.id) || [],
-            domain_group_id: subject.domain_group_id || '',
+            program_id: subject.program_id || '',
+            prerequisite_subject_id: subject.prerequisite_subject_id || '',
+            domain_id: subject.domain_id || '',
 
-            preferred_teacher_id: subject.preferred_teacher_id || '',
-            preferred_day: subject.preferred_day || '',
-            preferred_shift: subject.preferred_shift || '',
-            preferred_room_id: subject.preferred_room_id || '',
+            pref_day: subject.pref_day || '',
+            pref_shift: subject.pref_shift || '',
+            pref_teacher_id: subject.pref_teacher_id || '',
+            pref_room_id: subject.pref_room_id || '',
+
+            req_day: subject.req_day || '',
+            req_shift: subject.req_shift || '',
+            req_teacher_id: subject.req_teacher_id || '',
+            req_room_id: subject.req_room_id || '',
         })
 
         setIsEdit(true)
@@ -171,16 +217,33 @@ export default function Index() {
         e.preventDefault()
         setLoading(true)
 
-        // ✅ CLEANUP LOGIC (PUT HERE)
         const payload = {
             ...form,
-            program_id: form.subject_type === 'minor' ? null : form.program_id,
-            hours_per_week: Number(form.hours_per_week), // ✅ FIX
-            // year_level: Number(form.year_level),
-            // semester: Number(form.semester),
-            domain_group_id: form.domain_group_id || null,
-            preferred_teacher_id: form.preferred_teacher_id || null,
-            preferred_room_id: form.preferred_room_id || null,
+
+            units: Number(form.units),
+
+            // Major only
+            program_id:
+                form.type === 'Major'
+                    ? form.program_id || null
+                    : null,
+
+            // Minor only
+            domain_id:
+                form.type === 'Minor'
+                    ? form.domain_id || null
+                    : null,
+
+            prerequisite_subject_id:
+                form.prerequisite_subject_id || null,
+
+            // Preferred
+            pref_teacher_id: form.pref_teacher_id || null,
+            pref_room_id: form.pref_room_id || null,
+
+            // Required
+            req_teacher_id: form.req_teacher_id || null,
+            req_room_id: form.req_room_id || null,
         }
 
         if (isEdit && editId) {
@@ -268,7 +331,7 @@ export default function Index() {
                                 <option value="">All Departments</option>
                                 {programs.map(program => (
                                     <option key={program.id} value={program.id}>
-                                        {program.program_name}
+                                        {program.name}
                                     </option>
                                 ))}
                             </select>
@@ -344,10 +407,10 @@ export default function Index() {
                                     <th className="px-6 py-3 text-left">Code</th>
                                     <th className="px-6 py-3 text-left">Type</th>
                                     <th className="px-6 py-3 text-left">Unit</th>
-                                    <th className="px-6 py-3 text-left">Room Type</th>
+
                                     <th className="px-6 py-3 text-left">Prerequisites</th>
                                     <th className="px-6 py-3 text-left">
-                                        {filters.subject_type === 'minor' ? 'Domain' : 'Program'}
+                                        {filters.subject_type === 'Minor' ? 'Domain' : 'Program'}
                                     </th>
                                     <th className="px-6 py-3 text-left">Actions</th>
                                 </tr>
@@ -363,58 +426,34 @@ export default function Index() {
 
                                         {/* SUBJECT */}
                                         <td className="px-6 py-4 font-medium text-gray-900">
-                                            {subject.subject_name}
+                                            {subject.name}
                                         </td>
 
                                         {/* CODE */}
                                         <td className="px-6 py-4 text-gray-500">
-                                            {subject.subject_code}
+                                            {subject.code}
                                         </td>
 
                                         {/* TYPE */}
                                         <td className="px-6 py-4">
                                             <span className="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-700">
-                                                {subject.subject_type === 'major' ? 'Major' : 'Minor'}
+                                                {subject.type === 'Major' ? 'Major' : 'Minor'}
                                             </span>
                                         </td>
 
                                         {/* UNIT */}
                                         <td className="px-6 py-4 text-gray-700">
-                                            {subject.units ?? subject.hours_per_week ?? 0}
+                                            {subject.units ?? 0}
                                         </td>
 
-                                        {/* ROOM TYPE */}
-                                        <td className="px-6 py-4">
-                                            <span
-                                                className={`px-2 py-1 text-xs rounded-full font-medium
-                        ${subject.room_type === 'lab'
-                                                        ? 'bg-green-100 text-green-700'
-                                                        : subject.room_type === 'court'
-                                                            ? 'bg-purple-100 text-purple-700'
-                                                            : 'bg-blue-100 text-blue-700'
-                                                    }`}
-                                            >
-                                                {subject.room_type === 'lab'
-                                                    ? 'Laboratory'
-                                                    : subject.room_type === 'court'
-                                                        ? 'Court'
-                                                        : 'Classroom'}
-                                            </span>
-                                        </td>
+
 
                                         {/* PREREQUISITES */}
                                         <td className="px-6 py-4">
-                                            {subject.prerequisites?.length ? (
-                                                <div className="flex flex-wrap gap-1">
-                                                    {subject.prerequisites.map((pre: any) => (
-                                                        <span
-                                                            key={pre.id}
-                                                            className="px-2 py-1 text-xs bg-gray-200 rounded-full"
-                                                        >
-                                                            {pre.subject_code}
-                                                        </span>
-                                                    ))}
-                                                </div>
+                                            {subject.prerequisite ? (
+                                                <span className="px-2 py-1 text-xs bg-gray-200 rounded-full">
+                                                    {subject.prerequisite.code}
+                                                </span>
                                             ) : (
                                                 <span className="text-gray-400 text-xs">None</span>
                                             )}
@@ -422,7 +461,9 @@ export default function Index() {
 
                                         {/* PROGRAM */}
                                         <td className="px-6 py-4 text-gray-700">
-                                            {subject.program?.program_name ?? 'None'}
+                                            {subject.type === 'Minor'
+                                                ? subject.domain?.name ?? 'None'
+                                                : subject.program?.name ?? 'None'}
                                         </td>
 
                                         {/* ACTIONS */}
@@ -486,8 +527,8 @@ export default function Index() {
                                 <div>
                                     <Label>Subject Name</Label>
                                     <Input
-                                        name="subject_name"
-                                        value={form.subject_name}
+                                        name="name"
+                                        value={form.name}
                                         onChange={handleChange}
                                         placeholder="Calculus 1"
                                         className="h-11 rounded-md"
@@ -497,8 +538,8 @@ export default function Index() {
                                 <div>
                                     <Label>Course Code</Label>
                                     <Input
-                                        name="subject_code"
-                                        value={form.subject_code}
+                                        name="code"
+                                        value={form.code}
                                         onChange={handleChange}
                                         placeholder="MATH101"
                                         className="h-11 rounded-md"
@@ -508,14 +549,14 @@ export default function Index() {
                                 <div>
                                     <Label>Subject Type</Label>
                                     <select
-                                        name="subject_type"
-                                        value={form.subject_type}
+                                        name="type"
+                                        value={form.type}
                                         onChange={handleChange}
                                         className="w-full h-11 rounded-md border px-3"
                                     >
                                         <option value="">Minor or Major</option>
-                                        <option value="major">Major</option>
-                                        <option value="minor">Minor</option>
+                                        <option value="Major">Major</option>
+                                        <option value="Minor">Minor</option>
                                     </select>
                                 </div>
 
@@ -523,8 +564,8 @@ export default function Index() {
                                     <Label>Hours/Week</Label>
                                     <Input
                                         type="number"
-                                        name="hours_per_week"
-                                        value={form.hours_per_week}
+                                        name="units"
+                                        value={form.units}
                                         onChange={handleChange}
                                         placeholder="3"
                                         className="h-11 rounded-md"
@@ -533,7 +574,7 @@ export default function Index() {
                             </div>
 
                             {/* PROGRAM */}
-                            {form.subject_type === 'major' && (
+                            {form.type === 'Major' && (
                                 <div>
                                     <Label>Program</Label>
                                     <select
@@ -545,20 +586,20 @@ export default function Index() {
                                         <option value="">*If Major* Select program</option>
                                         {programs.map((p: any) => (
                                             <option key={p.id} value={p.id}>
-                                                {p.program_name}
+                                                {p.name}
                                             </option>
                                         ))}
                                     </select>
                                 </div>
                             )}
 
-                            {form.subject_type === 'minor' && (
+                            {form.type === 'Minor' && (
                                 <div>
                                     <Label>Domain</Label>
 
                                     <select
-                                        name="domain_group_id"
-                                        value={form.domain_group_id}
+                                        name="domain_id"
+                                        value={form.domain_id}
                                         onChange={handleChange}
                                         className="w-full h-11 rounded-md border px-3"
                                     >
@@ -574,80 +615,32 @@ export default function Index() {
                             )}
 
                             {/* PREREQUISITES */}
-                            {form.subject_type === 'major' && (
+                            {/* PREREQUISITE */}
+                            {form.type === 'Major' && (
                                 <div>
-                                    <Label>Prerequisites</Label>
+                                    <Label>Prerequisite Subject</Label>
 
-                                    <div className="border rounded-md p-2 flex flex-wrap gap-2 min-h-[44px]">
+                                    <select
+                                        name="prerequisite_subject_id"
+                                        value={form.prerequisite_subject_id}
+                                        onChange={handleChange}
+                                        className="w-full h-11 rounded-md border px-3"
+                                    >
+                                        <option value="">None</option>
 
-                                        {/* SELECTED PREREQUISITES */}
-                                        {form.prerequisites.map((id: number) => {
-                                            const subject = allSubjects.find(
-                                                (s: any) => s.id === id && s.subject_type === 'major'
-                                            )
-
-                                            if (!subject) return null
-
-                                            return (
-                                                <span
-                                                    key={id}
-                                                    className="bg-gray-200 px-3 py-1 rounded-full text-sm flex items-center gap-1"
-                                                >
-                                                    {subject.subject_code}
-
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            setForm({
-                                                                ...form,
-                                                                prerequisites: form.prerequisites.filter(
-                                                                    (p: number) => p !== id
-                                                                )
-                                                            })
-                                                        }
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                </span>
-                                            )
-                                        })}
-
-                                        {/* ADD PREREQUISITE DROPDOWN (MAJOR ONLY) */}
-                                        <select
-                                            onChange={(e) => {
-                                                const value = Number(e.target.value)
-                                                if (!value) return
-
-                                                if (!form.prerequisites.includes(value)) {
-                                                    setForm({
-                                                        ...form,
-                                                        prerequisites: [...form.prerequisites, value]
-                                                    })
-                                                }
-
-                                                e.target.value = ""
-                                            }}
-                                            className="outline-none flex-1 bg-transparent text-sm"
-                                        >
-                                            <option value="">Select prerequisite (Major only)</option>
-
-                                            {allSubjects
-                                                .filter((s: any) => s.subject_type === 'major')
-                                                .map((s: any) => (
-                                                    <option key={s.id} value={s.id}>
-                                                        {s.subject_code} - {s.subject_name}
-                                                    </option>
-                                                ))}
-                                        </select>
-
-                                    </div>
+                                        {allSubjects.map((s: any) => (
+                                            <option key={s.id} value={s.id}>
+                                                {s.code} - {s.name}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                             )}
 
 
 
                             {/* ROOM TYPE */}
-                            <div>
+                            {/* <div>
                                 <Label>Required Room Type</Label>
                                 <select
                                     name="room_type"
@@ -660,7 +653,7 @@ export default function Index() {
                                     <option value="laboratory">Computer Lab</option>
                                     <option value="pe_room">PE Room</option>
                                 </select>
-                            </div>
+                            </div> */}
 
                             {/* ADVANCED */}
                             <div className="border-t pt-4 mt-2">
@@ -682,8 +675,8 @@ export default function Index() {
                                         <div>
                                             <Label>Preferred Day to Schedule</Label>
                                             <select
-                                                name="preferred_day"
-                                                value={form.preferred_day}
+                                                name="pref_day"
+                                                value={form.pref_day}
                                                 onChange={handleChange}
                                                 className="w-full h-11 rounded-md border px-3"
                                             >
@@ -702,8 +695,8 @@ export default function Index() {
                                         <div>
                                             <Label>Preferred Teacher</Label>
                                             <select
-                                                name="preferred_teacher_id"
-                                                value={form.preferred_teacher_id}
+                                                name="pref_teacher_id"
+                                                value={form.pref_teacher_id}
                                                 onChange={handleChange}
                                                 className="w-full h-11 rounded-md border px-3"
                                             >
@@ -711,7 +704,7 @@ export default function Index() {
 
                                                 {teachers.map((t) => (
                                                     <option key={t.id} value={t.id}>
-                                                        {t.first_name} {t.last_name} ({t.faculty_code})
+                                                        {t.name} ({t.code})
                                                     </option>
                                                 ))}
                                             </select>
@@ -721,8 +714,8 @@ export default function Index() {
                                         <div>
                                             <Label>Preferred Shift</Label>
                                             <select
-                                                name="preferred_shift"
-                                                value={form.preferred_shift}
+                                                name="pref_shift"
+                                                value={form.pref_shift}
                                                 onChange={handleChange}
                                                 className="w-full h-11 rounded-md border px-3"
                                             >
@@ -733,12 +726,51 @@ export default function Index() {
                                             </select>
                                         </div>
 
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+
+                                            <div>
+                                                <Label>Required Day</Label>
+
+                                                <select
+                                                    name="req_day"
+                                                    value={form.req_day}
+                                                    onChange={handleChange}
+                                                    className="w-full h-11 rounded-md border px-3"
+                                                >
+                                                    <option value="">None</option>
+                                                    <option value="Monday">Monday</option>
+                                                    <option value="Tuesday">Tuesday</option>
+                                                    <option value="Wednesday">Wednesday</option>
+                                                    <option value="Thursday">Thursday</option>
+                                                    <option value="Friday">Friday</option>
+                                                    <option value="Saturday">Saturday</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <Label>Required Shift</Label>
+
+                                                <select
+                                                    name="req_shift"
+                                                    value={form.req_shift}
+                                                    onChange={handleChange}
+                                                    className="w-full h-11 rounded-md border px-3"
+                                                >
+                                                    <option value="">None</option>
+                                                    <option value="Morning">Morning</option>
+                                                    <option value="Afternoon">Afternoon</option>
+                                                    <option value="Evening">Evening</option>
+                                                </select>
+                                            </div>
+
+                                        </div>
+
                                         {/* PREFERRED ROOM */}
                                         <div>
                                             <Label>Preferred Room</Label>
                                             <select
-                                                name="preferred_room_id"
-                                                value={form.preferred_room_id}
+                                                name="pref_room_id"
+                                                value={form.pref_room_id}
                                                 onChange={handleChange}
                                                 className="w-full h-11 rounded-md border px-3"
                                             >
@@ -746,13 +778,14 @@ export default function Index() {
 
                                                 {rooms.map((r: any) => (
                                                     <option key={r.id} value={r.id}>
-                                                        {r.room_name}
+                                                        {r.generated_name}
                                                     </option>
                                                 ))}
                                             </select>
                                         </div>
 
                                     </div>
+
                                 )}
 
                             </div>
