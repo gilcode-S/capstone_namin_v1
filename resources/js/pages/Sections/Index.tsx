@@ -17,45 +17,48 @@ import AppLayout from '@/layouts/app-layout'
 import StatCard from '@/components/StatCard'
 interface Program {
   id: number
-  program_name: string
-  program_code: string,
+  name: string
+  code: string
+
   department?: {
     id: number
-    department_name: string
+    name: string
   }
 }
 
-interface Semester {
-  id: number
-  school_year: string
-  term: string
-}
 
 interface Section {
   id: number
+
+  name: string
+
   program_id: number
-  semester_id: number
-  section_name: string
+
   year_level: number
-  student_count: number
+
+  semester: number
+
   shift: string
-  octoberian: boolean
+
+  letter: string
+
+  is_octoberian: boolean
+
+  capacity: number
+
   program: Program
-  semester: Semester
 }
 
 
 const emptyForm = {
   program_id: '',
-  semester_id: '',
-  section_name: '',
   year_level: '',
-  student_count: '',
+  semester: '',
   shift: '',
-  octoberian: false,
-  section_letter: '',
+  letter: '',
+  capacity: '',
+  is_octoberian: false,
 }
-
 export default function Index() {
 
   const { sections, programs, stats, semesters, filters: initialFilters, view: initialView, errors, sectionLetters, departments, subject_type } = usePage().props as unknown as {
@@ -80,13 +83,12 @@ export default function Index() {
 
 
   const [filters, setFilters] = useState({
-    set: initialFilters?.set || '',
+    section: initialFilters?.section || '',
     department: initialFilters?.department || '',
     shift: initialFilters?.shift || '',
-    section: initialFilters?.section || '',
     year_level: initialFilters?.year_level || '',
-    subject_type: initialFilters?.subject_type || '',
-    program: initialFilters?.program || '', 
+    program: initialFilters?.program || '',
+    letter: initialFilters?.letter || '',
   })
 
   // const [filters, setFilter] = useState({
@@ -120,27 +122,23 @@ export default function Index() {
     if (
       !form.program_id ||
       !form.year_level ||
+      !form.semester ||
       !form.shift ||
-      !form.section_letter ||
-      !form.semester_id
+      !form.letter
     ) return ''
 
-    const program = programs.find(p => p.id == form.program_id)
-    const semester = semesters.find(s => s.id == form.semester_id)
+    const program = programs.find(
+      p => p.id == form.program_id
+    )
 
-    if (!program || !semester) return ''
+    if (!program) return ''
 
+    const yearBase = (form.year_level * 2) - 1
 
-    const semNumberMap: any = {
-      '1st': 1,
-      '2nd': 2,
-      'summer': 3,
-    }
-
-    const semNumber = semNumberMap[semester.term.toLowerCase()] || 1
-
-    const yearBase =
-      (form.year_level - 1) * 2 + semNumber
+    const timeCode =
+      Number(form.semester) === 2
+        ? yearBase + 1
+        : yearBase
 
     const SHIFT_CODES: any = {
       Morning: 'M',
@@ -149,13 +147,13 @@ export default function Index() {
     }
 
     let code =
-      program.program_code +
-      yearBase +
+      program.code +
+      timeCode +
       SHIFT_CODES[form.shift] +
-      form.section_letter
+      form.letter.toUpperCase()
 
-    if (semester.term === 'summer') {
-      code += '-S'
+    if (form.is_octoberian) {
+      code += '-O'
     }
 
     return code
@@ -173,13 +171,12 @@ export default function Index() {
   const handleOpenEdit = (section: Section) => {
     setForm({
       program_id: section.program_id,
-      semester_id: section.semester_id,
-      section_name: section.section_name,
       year_level: section.year_level,
-      student_count: section.student_count,
+      semester: section.semester,
       shift: section.shift,
-      octoberian: section.octoberian ?? false,
-      section_letter: section.section_name.slice(-1),
+      letter: section.letter,
+      capacity: section.capacity,
+      is_octoberian: section.is_octoberian,
     })
 
     setIsEdit(true)
@@ -335,7 +332,7 @@ export default function Index() {
                 <option value="">All Departments</option>
                 {departments.map((d: any) => (
                   <option key={d.id} value={d.id}>
-                    {d.department_name}
+                    {d.name}
                   </option>
                 ))}
               </select>
@@ -348,15 +345,20 @@ export default function Index() {
                 <option value="">All Programs</option>
                 {programs.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.program_name}
+                    {p.name}
                   </option>
                 ))}
               </select>
 
               {/* SECTION LETTER */}
-              <select value={filters.set}
-                onChange={(e) => handleFilterChange('set', e.target.value)}>
+              <select
+                value={filters.letter}
+                onChange={(e) =>
+                  handleFilterChange('letter', e.target.value)
+                }
+              >
                 <option value="">All Sections</option>
+
                 {sectionLetters.map((letter: string) => (
                   <option key={letter} value={letter}>
                     Section {letter}
@@ -399,20 +401,20 @@ export default function Index() {
 
                     {/* SECTION */}
                     <td className="px-6 py-4 font-medium">
-                      {sec.section_name}
+                      {sec.name}
                     </td>
 
                     {/* DEPARTMENT */}
                     <td className="px-6 py-4">
                       <span className="px-2 py-1 bg-gray-100 rounded-md text-xs">
-                        {sec.program?.department?.department_name}
+                        {sec.program?.department?.name}
                       </span>
                     </td>
 
                     {/* PROGRAM */}
                     <td className="px-6 py-4">
                       <span className="px-2 py-1 bg-gray-100 rounded-md text-xs">
-                        {sec.program?.program_name}
+                      {sec.program?.name}
                       </span>
                     </td>
 
@@ -432,7 +434,7 @@ export default function Index() {
 
                     {/* CAPACITY */}
                     <td className="px-6 py-4">
-                      {sec.student_count || 0}
+                      {sec.capacity}
                     </td>
 
                     {/* ACTION */}
@@ -495,7 +497,7 @@ export default function Index() {
                   <option value="">e.g. BS Computer Science, BS Accounting</option>
                   {programs.map(program => (
                     <option key={program.id} value={program.id}>
-                      {program.program_name}
+                      {program.name}
                     </option>
                   ))}
                 </select>
@@ -525,17 +527,20 @@ export default function Index() {
                 <div>
                   <Label>Sem</Label>
                   <select
-                    name="semester_id"
-                    value={form.semester_id}
+                    name="semester"
+                    value={form.semester}
                     onChange={handleChange}
                     className="w-full h-11 rounded-lg border px-3"
                   >
-                    <option value="">Semester</option>
-                    {semesters.map(sem => (
-                      <option key={sem.id} value={sem.id}>
-                        {sem.term}
-                      </option>
-                    ))}
+                    <option value="">Select Semester</option>
+
+                    <option value="1">
+                      1st Semester
+                    </option>
+
+                    <option value="2">
+                      2nd Semester
+                    </option>
                   </select>
                 </div>
 
@@ -559,21 +564,21 @@ export default function Index() {
                 <div>
                   <Label>Section Letter</Label>
                   <Input
-                    name="section_letter"
+                    name="letter"
                     placeholder="A, B, C"
                     maxLength={1}
-                    value={form.section_letter}
+                    value={form.letter}
                     onChange={(e) =>
                       setForm({
                         ...form,
-                        section_letter: e.target.value.toUpperCase()
+                        letter: e.target.value.toUpperCase()
                       })
                     }
                     className="h-11 rounded-lg"
                   />
-                  {errors.section_letter && (
+                  {errors.letter && (
                     <p className="text-red-500 text-xs mt-1">
-                      {errors.section_letter}
+                      {errors.letter}
                     </p>
                   )}
                 </div>
@@ -592,9 +597,9 @@ export default function Index() {
                 <Label>Capacity</Label>
                 <Input
                   type="number"
-                  name="student_count"
+                  name="capacity"
                   placeholder="e.g. 40"
-                  value={form.student_count}
+                  value={form.capacity}
                   onChange={handleChange}
                   className="h-11 rounded-lg"
                 />
@@ -604,8 +609,8 @@ export default function Index() {
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  name="octoberian"
-                  checked={form.octoberian}
+                  name="is_octoberian"
+                  checked={form.is_octoberian}
                   onChange={handleChange}
                   className="w-4 h-4"
                 />

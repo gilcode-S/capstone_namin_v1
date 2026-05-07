@@ -5,99 +5,82 @@ namespace App\Http\Controllers;
 use App\Models\Department;
 use App\Models\Programs;
 use App\Models\Section;
-use App\Models\Semester;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class SectionController extends Controller
 {
-    //
-
-    private function generateSectionCode($program, $year, $semesterId, $shift, $letter)
-    {
-        $semNumberMap = [
-            '1st' => 1,
-            '2nd' => 2,
-            'summer' => 3,
-        ];
-
-        $semNumber = $semNumberMap[strtolower($semesterId->term)] ?? 1;
-        $yearBase = ($year - 1) * 2 + $semNumber;
-
-        $SHIFT_CODES = [
-            'Morning' => 'M',
-            'Afternoon' => 'D',
-            'Evening' => 'E',
-        ];
-
-        $code = $program->program_code
-            . $yearBase
-            . $SHIFT_CODES[$shift]
-            . strtoupper($letter);
-
-        if ($semesterId === 'summer') {
-            $code .= '-S';
-        }
-
-        return $code;
-    }
-
     public function index(Request $request)
     {
-        $view = $request->view ?? 'grid';
+        $query = Section::with([
+            'program.department'
+        ]);
 
-        $query = Section::with(['program.department', 'semester']);
-
+        // SEARCH
         if ($request->section) {
-            $query->where('section_name', 'like', '%' . $request->section . '%');
+            $query->where('name', 'like', '%' . $request->section . '%');
         }
 
+        // YEAR
         if ($request->year_level) {
-            $query->where('year_level', (int) $request->year_level);
+            $query->where('year_level', $request->year_level);
         }
-        if ($request->filled('program')) {
+
+        // PROGRAM
+        if ($request->program) {
             $query->where('program_id', $request->program);
         }
-        if ($request->filled('department')) {
+
+        // DEPARTMENT
+        if ($request->department) {
             $query->whereHas('program.department', function ($q) use ($request) {
                 $q->where('id', $request->department);
             });
         }
 
+        // SHIFT
         if ($request->shift) {
             $query->where('shift', $request->shift);
         }
 
-        // ✅ FIXED section filter (exact match last letter)
-        if ($request->set) {
-            $query->whereRaw('RIGHT(section_name, 1) = ?', [strtoupper($request->set)]);
+        // LETTER
+        if ($request->letter) {
+            $query->where('letter', $request->letter);
         }
 
-        // ✅ GET section letters dynamically
-        $sectionLetters = Section::select(
-            DB::raw('RIGHT(section_name, 1) as letter')
-        )->distinct()->pluck('letter');
+        $sectionLetters = Section::distinct()
+            ->pluck('letter');
 
         return Inertia::render('Sections/Index', [
-            'sections' => $query->latest()->paginate(25)->withQueryString(),
+            'sections' => $query
+                ->latest()
+                ->paginate(10)
+                ->withQueryString(),
+
+            'programs' => Programs::with('department')->get(),
+
             'departments' => Department::all(),
 
-            'programs' => Programs::with('department')->get(), // 👈 include department
-            'semesters' => Semester::all(),
+            'sectionLetters' => $sectionLetters,
 
-            'sectionLetters' => $sectionLetters, // 👈 NEW
-
-            'view' => $view,
-
-            'filters' => $request->only(['set', 'department', 'shift', 'section', 'year_level' .   'program']),
+            'filters' => $request->only([
+                'section',
+                'year_level',
+                'program',
+                'department',
+                'shift',
+                'letter',
+            ]),
 
             'stats' => [
                 'total_sections' => Section::count(),
-                'total_students' => Section::sum('student_count'),
+
+                'total_capacity' => Section::sum('capacity'),
 
                 'total_morning' => Section::where('shift', 'Morning')->count(),
+
                 'total_afternoon' => Section::where('shift', 'Afternoon')->count(),
+
                 'total_evening' => Section::where('shift', 'Evening')->count(),
             ]
         ]);
@@ -107,83 +90,56 @@ class SectionController extends Controller
     {
         $validated = $request->validate([
             'program_id' => 'required|exists:programs,id',
-            'semester_id' => 'required|exists:semesters,id',
-            'year_level' => 'required|integer',
+            'year_level' => 'required|integer|min:1|max:4',
+            'semester' => 'required|integer|min:1|max:2',
             'shift' => 'required|in:Morning,Afternoon,Evening',
-            'section_letter' => 'required|string|max:1',
-            'student_count' => 'nullable|integer',
+            'letter' => 'required|string|max:1',
+            'capacity' => 'required|integer|min:1',
+            'is_octoberian' => 'nullable|boolean',
         ]);
-
-        $program = Programs::find($validated['program_id']);
-        $semester = Semester::find($validated['semester_id']);
-
-        $sectionCode = $this->generateSectionCode(
-            $program,
-            $validated['year_level'],
-            $semester, // ✅ PASS MODEL
-            $validated['shift'],
-            $validated['section_letter']
-        );
-
-        $exists = Section::where('section_name', $sectionCode)->exists();
-
-        if ($exists) {
-            return back()->withErrors([
-                'section_letter' => 'Section already exists!'
-            ]);
-        }
 
         Section::create([
             'program_id' => $validated['program_id'],
-            'semester_id' => $validated['semester_id'],
             'year_level' => $validated['year_level'],
+            'semester' => $validated['semester'],
             'shift' => $validated['shift'],
-            'student_count' => $validated['student_count'],
-            'section_name' => $sectionCode,
+            'letter' => strtoupper($validated['letter']),
+            'capacity' => $validated['capacity'],
+            'is_octoberian' => $validated['is_octoberian'] ?? false,
         ]);
 
-        return back()->with('success', 'Section Created');
+        return back()->with('success', 'Section created successfully.');
     }
 
     public function update(Request $request, Section $section)
     {
         $validated = $request->validate([
             'program_id' => 'required|exists:programs,id',
-            'semester_id' => 'required|exists:semesters,id',
-            'year_level' => 'required|integer',
+            'year_level' => 'required|integer|min:1|max:4',
+            'semester' => 'required|integer|min:1|max:2',
             'shift' => 'required|in:Morning,Afternoon,Evening',
-            'section_letter' => 'required|string|max:1',
-            'student_count' => 'nullable|integer',
-            'octoberian' => 'nullable|boolean',
+            'letter' => 'required|string|max:1',
+            'capacity' => 'required|integer|min:1',
+            'is_octoberian' => 'nullable|boolean',
         ]);
-
-        $program = Programs::find($validated['program_id']);
-        $semester = Semester::find($validated['semester_id']);
-
-        $sectionCode = $this->generateSectionCode(
-            $program,
-            $validated['year_level'],
-            $semester,
-            $validated['shift'],
-            $validated['section_letter']
-        );
 
         $section->update([
             'program_id' => $validated['program_id'],
-            'semester_id' => $validated['semester_id'],
             'year_level' => $validated['year_level'],
+            'semester' => $validated['semester'],
             'shift' => $validated['shift'],
-            'student_count' => $validated['student_count'],
-            'octoberian' => $validated['octoberian'] ?? false,
-            'section_name' => $sectionCode,
+            'letter' => strtoupper($validated['letter']),
+            'capacity' => $validated['capacity'],
+            'is_octoberian' => $validated['is_octoberian'] ?? false,
         ]);
 
-        return back()->with('success', 'section updated');
+        return back()->with('success', 'Section updated successfully.');
     }
+
     public function destroy(Section $section)
     {
         $section->delete();
 
-        return redirect()->back()->with('success', 'Section Deleted');
+        return back()->with('success', 'Section deleted successfully.');
     }
 }
