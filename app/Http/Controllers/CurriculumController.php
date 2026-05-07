@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Curriculum;
+use App\Models\CurriculumSubject;
 use App\Models\Department;
 use App\Models\Programs;
 use App\Models\Subject;
@@ -16,23 +16,42 @@ class CurriculumController extends Controller
         $departmentId = $request->department_id;
         $programId = $request->program_id;
 
+        /*
+        |--------------------------------------------------------------------------
+        | FILTERS
+        |--------------------------------------------------------------------------
+        */
+
         $departments = Department::all();
 
         $programs = $departmentId
             ? Programs::where('department_id', $departmentId)->get()
             : collect();
 
+        /*
+        |--------------------------------------------------------------------------
+        | SUBJECTS
+        |--------------------------------------------------------------------------
+        */
+
         $subjects = $programId
             ? Subject::where(function ($q) use ($programId) {
                 $q->where('program_id', $programId)
-                    ->orWhere('subject_type', 'minor');
+                    ->orWhere('type', 'Minor');
             })->get()
             : collect();
+
+        /*
+        |--------------------------------------------------------------------------
+        | CURRICULUM
+        |--------------------------------------------------------------------------
+        */
 
         $curriculum = collect();
 
         if ($programId) {
-            $curriculum = Curriculum::with('subject')
+
+            $curriculum = CurriculumSubject::with('subject')
                 ->where('program_id', $programId)
                 ->get()
                 ->groupBy('year_level')
@@ -40,19 +59,26 @@ class CurriculumController extends Controller
 
                     $semesters = $yearGroup->groupBy('semester');
 
-                    return collect([1, 2, 3])->mapWithKeys(function ($sem) use ($semesters) {
+                    return collect([1, 2])->mapWithKeys(function ($sem) use ($semesters) {
 
                         $semGroup = $semesters->get($sem, collect());
 
                         return [
                             $sem => [
-                                'major' => $semGroup->filter(
-                                    fn($c) => optional($c->subject)->subject_type === 'major'
-                                )->values(),
 
-                                'minor' => $semGroup->filter(
-                                    fn($c) => optional($c->subject)->subject_type === 'minor'
-                                )->values(),
+                                'major' => $semGroup
+                                    ->filter(
+                                        fn($c) =>
+                                        optional($c->subject)->type === 'Major'
+                                    )
+                                    ->values(),
+
+                                'minor' => $semGroup
+                                    ->filter(
+                                        fn($c) =>
+                                        optional($c->subject)->type === 'Minor'
+                                    )
+                                    ->values(),
                             ]
                         ];
                     });
@@ -61,80 +87,82 @@ class CurriculumController extends Controller
 
         return Inertia::render('Curriculum/Index', [
             'curriculum' => $curriculum,
+
             'departments' => $departments,
+
             'programs' => $programs,
+
             'subjects' => $subjects,
+
             'selectedDepartment' => $departmentId,
+
             'selectedProgram' => $programId,
         ]);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | STORE
+    |--------------------------------------------------------------------------
+    */
+
     public function store(Request $request)
     {
         $validated = $request->validate([
             'program_id' => 'required|exists:programs,id',
             'subject_id' => 'required|exists:subjects,id',
             'year_level' => 'required|integer|min:1|max:4',
-            'semester' => 'required|integer|in:1,2,3',
-            'ignore_prereq' => 'nullable|boolean',
+            'semester' => 'required|integer|in:1,2',
         ]);
-    
-        $subject = Subject::with('prerequisites')
-            ->findOrFail($validated['subject_id']);
-    
-        // ✅ AUTO COPY TYPE HERE
-        $type = $subject->subject_type; // major or minor
-    
-        // prevent duplicate
-        $exists = Curriculum::where([
+
+        /*
+        |--------------------------------------------------------------------------
+        | PREVENT DUPLICATE
+        |--------------------------------------------------------------------------
+        */
+
+        $exists = CurriculumSubject::where([
             'program_id' => $validated['program_id'],
             'subject_id' => $validated['subject_id'],
             'year_level' => $validated['year_level'],
             'semester' => $validated['semester'],
         ])->exists();
-    
+
         if ($exists) {
-            return back()->with('error', 'Subject already exists in curriculum.');
+            return back()->with(
+                'error',
+                'Subject already exists in curriculum.'
+            );
         }
-    
-        // prerequisite check (keep your logic)
-        if (!$request->ignore_prereq) {
-            foreach ($subject->prerequisites as $pre) {
-                $hasPrerequisite = Curriculum::where([
-                    'program_id' => $validated['program_id'],
-                    'subject_id' => $pre->id,
-                ])
-                ->where(function ($q) use ($validated) {
-                    $q->where('year_level', '<', $validated['year_level'])
-                      ->orWhere(function ($q2) use ($validated) {
-                          $q2->where('year_level', $validated['year_level'])
-                             ->where('semester', '<', $validated['semester']);
-                      });
-                })
-                ->exists();
-    
-                if (!$hasPrerequisite) {
-                    return back()->with(
-                        'error',
-                        "Missing prerequisite: {$pre->subject_code}"
-                    );
-                }
-            }
-        }
-    
-        Curriculum::create([
+
+        /*
+        |--------------------------------------------------------------------------
+        | CREATE
+        |--------------------------------------------------------------------------
+        */
+
+        CurriculumSubject::create([
             'program_id' => $validated['program_id'],
             'subject_id' => $validated['subject_id'],
             'year_level' => $validated['year_level'],
             'semester' => $validated['semester'],
-            'type' => $type, // ✅ AUTO STORED HERE
         ]);
-    
-        return back()->with('success', 'Subject added to curriculum.');
+
+        return back()->with(
+            'success',
+            'Subject added to curriculum.'
+        );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE
+    |--------------------------------------------------------------------------
+    */
 
     public function update(Request $request, $id)
     {
-        $curriculum = Curriculum::findOrFail($id);
+        $curriculum = CurriculumSubject::findOrFail($id);
 
         $validated = $request->validate([
             'program_id' => 'required|exists:programs,id',
@@ -143,25 +171,51 @@ class CurriculumController extends Controller
             'semester' => 'required|integer|in:1,2',
         ]);
 
-        $exists = Curriculum::where($validated)
+        $exists = CurriculumSubject::where([
+            'program_id' => $validated['program_id'],
+            'subject_id' => $validated['subject_id'],
+            'year_level' => $validated['year_level'],
+            'semester' => $validated['semester'],
+        ])
             ->where('id', '!=', $id)
             ->exists();
 
         if ($exists) {
-            return back()->with('error', 'Duplicate curriculum entry.');
+            return back()->with(
+                'error',
+                'Duplicate curriculum entry.'
+            );
         }
 
         $curriculum->update($validated);
 
-        return back()->with('success', 'Curriculum updated.');
+        return back()->with(
+            'success',
+            'Curriculum updated.'
+        );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DELETE SINGLE SUBJECT
+    |--------------------------------------------------------------------------
+    */
 
     public function destroy($id)
     {
-        Curriculum::findOrFail($id)->delete();
+        CurriculumSubject::findOrFail($id)->delete();
 
-        return back()->with('success', 'Curriculum deleted.');
+        return back()->with(
+            'success',
+            'Curriculum deleted.'
+        );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DELETE ENTIRE SEMESTER
+    |--------------------------------------------------------------------------
+    */
 
     public function destroySemester(Request $request)
     {
@@ -171,12 +225,15 @@ class CurriculumController extends Controller
             'semester' => 'required|integer',
         ]);
 
-        Curriculum::where([
+        CurriculumSubject::where([
             'program_id' => $request->program_id,
             'year_level' => $request->year_level,
             'semester' => $request->semester,
         ])->delete();
 
-        return back()->with('success', 'Semester deleted successfully.');
+        return back()->with(
+            'success',
+            'Semester deleted successfully.'
+        );
     }
 }

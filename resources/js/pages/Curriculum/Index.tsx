@@ -103,7 +103,7 @@ export default function Curriculum({
                         <option value="">Select Department</option>
                         {departments.map((d: any) => (
                             <option key={d.id} value={d.id}>
-                                {d.department_name}
+                                {d.name}
                             </option>
                         ))}
                     </select>
@@ -117,7 +117,7 @@ export default function Curriculum({
                         <option value="">Select Program</option>
                         {programs.map((p: any) => (
                             <option key={p.id} value={p.id}>
-                                {p.program_name}
+                                {p.name}
                             </option>
                         ))}
                     </select>
@@ -131,7 +131,7 @@ export default function Curriculum({
                         {/* PROGRAM HEADER */}
                         <div className="flex justify-between items-center">
                             <h2 className="text-xl font-semibold">
-                                {programs.find((p: any) => p.id === activeProgram)?.program_name}
+                                {programs.find((p: any) => p.id === activeProgram)?.name}
                             </h2>
 
                             {editMode && (
@@ -176,7 +176,7 @@ export default function Curriculum({
 
                                                 const totalUnits = [...data.major, ...data.minor]
                                                     .reduce((sum: number, s: any) =>
-                                                        sum + (s.subject.hours_per_week || 0), 0)
+                                                        sum + (s.subject.units || 0), 0)
 
                                                 const maxRows = Math.max(data.minor.length, data.major.length)
 
@@ -240,23 +240,23 @@ export default function Curriculum({
                                                                         {/* MINOR */}
                                                                         <div className="pr-2">
                                                                             {minor
-                                                                                ? `${minor.subject.subject_code}  -  ${minor.subject.subject_name}`
+                                                                                ? `${minor.subject.code}  -  ${minor.subject.name}`
                                                                                 : ''}
                                                                         </div>
 
                                                                         <div className="text-center text-gray-500 tabular-nums">
-                                                                            {minor?.subject.hours_per_week || ''}
+                                                                            {minor?.subject.units || ''}
                                                                         </div>
 
                                                                         {/* MAJOR */}
                                                                         <div className="pr-2">
                                                                             {major
-                                                                                ? `${major.subject.subject_code} - ${major.subject.subject_name}`
+                                                                                ? `${major.subject.code} - ${major.subject.name}`
                                                                                 : ''}
                                                                         </div>
 
                                                                         <div className="text-center text-gray-500 tabular-nums">
-                                                                            {major?.subject.hours_per_week || ''}
+                                                                            {major?.subject.units || ''}
                                                                         </div>
 
                                                                         {/* DELETE buttons (kept logic, invisible placement safe) */}
@@ -293,10 +293,10 @@ export default function Curriculum({
                                                                 >
                                                                     <option value="">+ Add Minor</option>
                                                                     {subjects
-                                                                        .filter((s: any) => s.subject_type === 'minor')
+                                                                        .filter((s: any) => s.type === 'Minor')
                                                                         .map((s: any) => (
                                                                             <option key={s.id} value={s.id}>
-                                                                                {s.subject_code} - {s.subject_name}
+                                                                                {s.code} - {s.name}
                                                                             </option>
                                                                         ))}
                                                                 </select>
@@ -309,7 +309,7 @@ export default function Curriculum({
                                                                 >
                                                                     <option value="">+ Add Major</option>
                                                                     {subjects
-                                                                        .filter((s: any) => s.subject_type === 'major')
+                                                                        .filter((s: any) => s.type === 'Major')
                                                                         .map((s: any) => (
                                                                             <option key={s.id} value={s.id}>
                                                                                 {s.subject_code} - {s.subject_name}
