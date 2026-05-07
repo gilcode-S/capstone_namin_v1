@@ -28,37 +28,31 @@ interface Schedule {
 }
 interface Room {
     id: number
-    room_name: string
+    generated_name: string
 
-
-    resource_type: 'classroom' | 'laboratory' | 'auditorium'
-    resource_status: 'available' | 'occupied' | 'maintenance'
+    type: 'Classroom' | 'Lab' | 'PE' | 'Online'
 
     capacity: number
 
-    building?: string
-    floor?: string
+    building: string
+    floor: number
+    room_number: string
+
+    description_name?: string | null
 
     equipment?: string[]
 
-    department?: Department
-
     schedules?: Schedule[]
-
-
-    room_type?: string
-    status?: string
 }
 const emptyForm = {
-    room_number: '', // ✅ NEW
-    room_name: '',
-    resource_type: '',
+    room_number: '',
+    description_name: '',
+    type: '',
     capacity: '',
-    department_id: '',
     building: '',
     floor: '',
     equipment_text: '',
-    resource_status: 'available'
+    resource_status: 'available' // ✅ FIX
 }
 
 export default function Index() {
@@ -103,18 +97,15 @@ export default function Index() {
 
     /* OPEN EDIT */
     const handleOpenEdit = (room: Room) => {
-
-        const match = room.room_name?.match(/\d+$/)
         setForm({
-            room_number: match ? match[0].slice(-2) : '',
-            room_name: room.room_name,
-            resource_type: room.resource_type || room.room_type,
+            room_number: room.room_number || room.generated_name,
+            description_name: room.description_name || '',
+            type: room.type,
             capacity: room.capacity,
-            department_id: room.department?.id || '',
-            building: room.building || '',
-            floor: room.floor || '',
+            building: room.building,
+            floor: room.floor,
             equipment_text: (room.equipment || []).join(', '),
-            resource_status: room.resource_status || room.status
+            resource_status: (room as any).resource_status || 'available' // ✅ FIX
         })
 
         setIsEdit(true)
@@ -122,11 +113,6 @@ export default function Index() {
         setOpen(true)
     }
 
-    const generateRoomCode = (building: string, floor: string, number: string) => {
-        if (!building || !floor || !number) return ''
-        const padded = number.padStart(2, '0')
-        return `${building}${floor}${padded}`
-    }
 
     /* CLOSE */
     const handleClose = () => {
@@ -140,21 +126,16 @@ export default function Index() {
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     ) => {
-        const updatedForm = {
+        const { name, value } = e.target
+
+        setForm({
             ...form,
-            [e.target.name]: e.target.value
-        }
-
-        // 🔥 AUTO GENERATE ROOM CODE
-        updatedForm.room_name = generateRoomCode(
-            updatedForm.building,
-            updatedForm.floor,
-            updatedForm.room_number
-        )
-
-        setForm(updatedForm)
+            [name]:
+                name === 'capacity' || name === 'floor'
+                    ? value === '' ? '' : Number(value)
+                    : value
+        })
     }
-
     const handleFilters = (newFilters: any) => {
         const updated = {
             status: statusFilter,
@@ -170,18 +151,6 @@ export default function Index() {
         if (newFilters.floor !== undefined) setFloorFilter(newFilters.floor)
 
         router.get('/rooms', updated, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        })
-    }
-    const handleTabFilter = (value: string) => {
-        setTabFilter(value)
-
-        router.get('/rooms', {
-            tab: value,
-            type: typeFilter
-        }, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
@@ -236,10 +205,10 @@ export default function Index() {
         return days
     }
     const groupedRooms = {
-        classroom: rooms.data.filter(r => (r.resource_type || r.room_type) === 'classroom'),
-        laboratory: rooms.data.filter(r => (r.resource_type || r.room_type) === 'laboratory'),
+        classroom: rooms.data.filter(r => r.type === 'classroom'),
+        laboratory: rooms.data.filter(r => r.type === 'laboratory'),
         other: rooms.data.filter(r => {
-            const type = r.resource_type || r.room_type
+            const type = r.type || r.type
             return type !== 'classroom' && type !== 'laboratory'
         })
     }
@@ -375,12 +344,18 @@ export default function Index() {
         setLoading(true)
 
         const payload = {
-            ...form,
+            building: form.building,
+            floor: form.floor,
+            room_number: form.room_number,
+            description_name: form.description_name || null,
+            type: form.type,
+            capacity: Number(form.capacity),
+            resource_status: form.resource_status || 'available', // ✅ FIX
+
             equipment: form.equipment_text
                 ? form.equipment_text.split(',').map((e: string) => e.trim())
                 : []
         }
-
         if (isEdit && editId) {
             router.put(`/rooms/${editId}`, payload, {
                 onSuccess: () => {
@@ -547,9 +522,10 @@ export default function Index() {
                                         className="border rounded-lg px-3 py-2 text-sm"
                                     >
                                         <option value="">All Types</option>
-                                        <option value="classroom">Classroom</option>
-                                        <option value="laboratory">Computer Lab</option>
-                                        <option value="pe_room">PE room</option>
+                                        <option value="Lab">Laboratory</option>
+                                        <option value="PE">PE Room</option>
+                                        <option value="Classroom">Classroom</option>
+                                        <option value="Online">Online</option>
                                     </select>
 
                                 </div>
@@ -561,7 +537,7 @@ export default function Index() {
                                             <th className="p-3">Capacity</th>
                                             <th className="p-3">Location</th>
                                             <th className="p-3">Equipment</th>
-                                            <th className="p-3">Status</th>
+
                                             <th className="p-3 text-center">Actions</th>
                                         </tr>
                                     </thead>
@@ -581,11 +557,11 @@ export default function Index() {
                                                     }}
                                                     className="border-b hover:bg-gray-50 transition cursor-pointer"
                                                 >
-                                                    <td className="p-3 font-medium">{r.room_name}</td>
+                                                    <td className="p-3 font-medium">{r.generated_name}</td>
 
                                                     <td className="p-3">
                                                         <span className="px-2 py-1 rounded-md bg-gray-100 text-xs capitalize">
-                                                            {r.resource_type || r.room_type}
+                                                            {r.type}
                                                         </span>
                                                     </td>
 
@@ -605,17 +581,6 @@ export default function Index() {
                                                         ))}
                                                     </td>
 
-                                                    <td className="p-3">
-                                                        <span className={`px-2 py-1 rounded-md text-xs capitalize
-                                                     ${status === 'occupied'
-                                                                ? 'bg-yellow-100 text-yellow-700'
-                                                                : status === 'maintenance'
-                                                                    ? 'bg-red-100 text-red-700'
-                                                                    : 'bg-green-100 text-green-700'}
-                                                                                         `}>
-                                                            {status}
-                                                        </span>
-                                                    </td>
 
                                                     <td className="p-3 text-center">
                                                         <Button
@@ -650,7 +615,7 @@ export default function Index() {
                         {activeTab === 'idle' && (
                             <div className="grid md:grid-cols-3 gap-4">
                                 {rooms.data
-                                    .filter(r => r.resource_status === 'available') // ✅ use DB status
+                                    .filter(r => !isRoomOccupiedNow(r))
                                     .map((r: any) => {
 
                                         const days = groupSchedulesByDay(r)
@@ -659,7 +624,7 @@ export default function Index() {
                                         return (
                                             <div key={r.id} className="border rounded-xl p-4 bg-white shadow-sm">
 
-                                                <h3 className="font-semibold text-lg">{r.room_name}</h3>
+                                                <h3 className="font-semibold text-lg">{r.generated_name}</h3>
 
                                                 <p className="text-sm text-gray-500">
                                                     {r.building
@@ -759,9 +724,12 @@ export default function Index() {
 
                                     {rooms.data
                                         .filter((r: any) => {
-                                            const type = r.resource_type || r.room_type
+                                            const type = r.type || r.room_type
 
-                                            const matchType = typeFilter ? type === typeFilter : true
+                                            const matchType =
+                                                typeFilter
+                                                    ? (type?.toLowerCase() === typeFilter.toLowerCase())
+                                                    : true
                                             const matchBuilding = buildingFilter ? r.building === buildingFilter : true
                                             const matchFloor = floorFilter ? r.floor === floorFilter : true
 
@@ -780,7 +748,7 @@ export default function Index() {
                                             else if (util >= 60) color = 'bg-orange-400'
                                             else if (util >= 40) color = 'bg-yellow-400'
 
-                                            const typeLabel = formatRoomType(r.resource_type || r.room_type)
+                                            const typeLabel = formatRoomType(r.type || r.room_type)
 
                                             return (
                                                 <div
@@ -795,7 +763,7 @@ export default function Index() {
 
                                                             {/* ROOM NAME */}
                                                             <span className="font-medium">
-                                                                {r.room_name}
+                                                                {r.generated_name}
                                                             </span>
 
                                                             {/* TYPE BADGE */}
@@ -876,8 +844,8 @@ export default function Index() {
                                 <div>
                                     <Label>Type</Label>
                                     <select
-                                        name="resource_type"
-                                        value={form.resource_type || ''}
+                                        name="type"
+                                        value={form.type || ''}
                                         onChange={handleChange}
                                         className="w-full border rounded px-3 py-2"
                                         required
@@ -1016,7 +984,7 @@ export default function Index() {
                                 <div className="flex justify-between items-center">
                                     <div>
                                         <h2 className="text-2xl font-bold">
-                                            {selectedRoom.room_name}
+                                            {selectedRoom.generated_name}
                                         </h2>
                                         <p className="text-sm text-gray-500">
                                             {selectedRoom.building

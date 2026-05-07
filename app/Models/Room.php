@@ -11,6 +11,9 @@ class Room extends Model
     //
     protected $guarded = [];
 
+    protected $casts = [
+        'equipment' => 'array',
+    ];
     // Intercept the save process to generate the Room Name (e.g., C201 Computer Lab)
     protected static function booted()
     {
