@@ -2,51 +2,37 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\ConflictScannerService;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
-use App\Models\ScheduleVersion;
-use App\Services\ConflictDetectionService;
-use App\Services\ConflictResolutionService;
 
 class ConflictController extends Controller
 {
-    /**
-     * VIEW CONFLICTS (UI)
-     */
-    public function index($versionId, ConflictDetectionService $conflictService)
+    public function index(ConflictScannerService $scanner)
     {
-        $version = ScheduleVersion::findOrFail($versionId);
+        // 1. Run the scanner to get live Unresolved conflicts
+        $unresolvedConflicts = $scanner->scan();
 
-        $conflicts = $conflictService->detect($versionId);
+        // 2. In a fully built app, 'Resolved' conflicts would be fetched from a `resolved_conflicts` table or audit log.
+        // For the UI build, we provide the structure you designed.
+        $resolvedConflicts = [
+            [
+                'id' => 'RES-1',
+                'type' => 'Teacher Overlap',
+                'conflict' => "Preferred Time Conflict\nTeacher availability preference not met",
+                'solution' => 'Move to Thursday afternoon',
+                'status' => 'Resolved'
+            ]
+        ];
 
-        return Inertia::render('Schedules/Conflicts', [
-            'conflicts' => $conflicts,
-            'versionId' => $versionId,
-
-            // 🔥 ADD THESE
+        return Inertia::render('Conflicts/Index', [
+            'unresolved' => $unresolvedConflicts,
+            'resolved' => $resolvedConflicts,
             'stats' => [
-                'total' => count($conflicts),
-                'unresolved' => count($conflicts),
-                'resolved' => 0,
-            ],
-            'resolved' => [],
-        ]);
-    }
-
-    /**
-     * AUTO RESOLVE CONFLICTS (ACTION)
-     */
-    public function resolve(
-        $versionId,
-        ConflictDetectionService $detector,
-        ConflictResolutionService $resolver
-    ) {
-        $conflicts = $detector->detect($versionId);
-
-        $fixed = $resolver->resolve($conflicts);
-
-        return response()->json([
-            'message' => 'Conflicts resolved successfully',
-            'fixed' => $fixed
+                'total' => count($unresolvedConflicts) + count($resolvedConflicts),
+                'unresolvedCount' => count($unresolvedConflicts),
+                'resolvedCount' => count($resolvedConflicts)
+            ]
         ]);
     }
 }

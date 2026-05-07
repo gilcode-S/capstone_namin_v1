@@ -18,7 +18,7 @@ import AppLayout from '@/layouts/app-layout'
 
 interface Department {
   id: number
-  department_name: string
+  name: string
 }
 
 interface Availability {
@@ -638,7 +638,7 @@ export default function Index() {
               <option value="">All Departments</option>
               {departments.map((d: Department) => (
                 <option key={d.id} value={d.id}>
-                  {d.department_name}
+                  {d.name}
                 </option>
               ))}
             </select>

@@ -1,206 +1,132 @@
-import React, { useEffect, useState } from "react";
-import { router, Head } from "@inertiajs/react";
-import AppLayout from '@/layouts/app-layout'
+import React from 'react';
+import { router } from '@inertiajs/react';
 
-
-type Log = {
-    id: string;
-    created_at: string;
-    user_name: string;
-    role: string;
-    action: string;
-    module: string;
-    description: string;
-    is_restorable: boolean;
-};
-
-type Props = {
-    logs: {
-        data: Log[];
+export default function AuditLogIndex({ logs, filters }) {
+    
+    // Handle dynamic filtering
+    const handleFilterChange = (key, value) => {
+        router.get('/audit-logs', { ...filters, [key]: value }, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true
+        });
     };
-    filters: {
-        user?: string;
-        role?: string;
-        module?: string;
-    };
-    roles: string[];
-};
-
-export default function Index({ logs, filters, roles }: Props) {
-    const handleFilter = (key: string, value: string) => {
-        router.get(
-            "/audit-logs",
-            {
-                ...filters,
-                [key]: value,
-            },
-            {
-                preserveState: true,
-                replace: true,
-            }
-        );
-    };
-    const [search, setSearch] = useState(filters.user || "");
-
-    useEffect(() => {
-        const delay = setTimeout(() => {
-            router.get("/audit-logs", {
-                ...filters,
-                user: search,
-            }, { preserveState: true, replace: true });
-        }, 500);
-
-        return () => clearTimeout(delay);
-    }, [search]);
-
-    const isLatest = (id: string) => logs.data[0]?.id === id;
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: "System", href: "#" },
-                { title: "Audit Logs", href: "/audit-logs" },
-            ]}
-        >
-            <Head title="Audit Logs" />
+        <div className="max-w-7xl mx-auto p-6 font-sans">
+            
+            {/* Header */}
+            <div className="mb-6">
+                <h1 className="text-2xl font-bold text-gray-900">Schedule Audit Log</h1>
+                <p className="text-sm text-gray-500">Track and monitor all the system activities and user action</p>
+            </div>
 
-            <div className="p-6 space-y-6">
-                {/* HEADER */}
-                <div>
-                    <h1 className="text-xl font-semibold text-gray-800">
-                        Audit Logs
-                    </h1>
-                    <p className="text-sm text-gray-500">
-                        Track and monitor all system activities and user actions
-                    </p>
+            {/* Filters Bar */}
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 items-center">
+                <div className="flex-1 w-full">
+                    <span className="block text-xs font-semibold text-gray-500 mb-1">Filters</span>
+                    <input 
+                        type="text" 
+                        placeholder="Search User" 
+                        defaultValue={filters.search}
+                        onBlur={(e) => handleFilterChange('search', e.target.value)}
+                        className="w-full bg-gray-50 border-none rounded-lg p-2 text-sm focus:ring-2 focus:ring-gray-200"
+                    />
+                </div>
+                
+                <div className="w-full md:w-48 mt-5">
+                    <select 
+                        value={filters.role || 'All User'} 
+                        onChange={(e) => handleFilterChange('role', e.target.value)}
+                        className="w-full bg-gray-50 border-none rounded-lg p-2 text-sm focus:ring-2 focus:ring-gray-200 cursor-pointer"
+                    >
+                        <option value="All User">All User</option>
+                        <option value="Super Admin">Super Admin</option>
+                        <option value="HR">HR</option>
+                        <option value="Registrar">Registrar</option>
+                        <option value="Scheduler">Scheduler</option>
+                    </select>
                 </div>
 
-                {/* FILTERS */}
-                <div className="bg-white border rounded-xl p-4">
-                    <p className="text-sm font-medium text-gray-600 mb-3">Filters</p>
-
-                    <div className="flex flex-wrap gap-3">
-                        {/* Search User */}
-                        <input
-                            type="text"
-                            placeholder="Search User"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="flex-1 min-w-[200px] px-3 py-2 border rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-gray-300"
-                        />
-
-                        {/* Role */}
-                        <select
-                            value={filters.role || ""}
-                            onChange={(e) => handleFilter("role", e.target.value)}
-                            className="px-3 py-2 border rounded-lg bg-gray-50"
-                        >
-                            <option value="">All Roles</option>
-
-                            {roles.map((role) => (
-                                <option key={role} value={role}>
-                                    {role}
-                                </option>
-                            ))}
-                        </select>
-
-                        {/* Module */}
-                        <select
-                            defaultValue={filters.module || ""}
-                            onChange={(e) => handleFilter("module", e.target.value)}
-                            className="px-3 py-2 border rounded-lg bg-gray-50"
-                        >
-                            <option value="">All Modules</option>
-                            <option value="Scheduler">Scheduler</option>
-                            <option value="Users">Users</option>
-                        </select>
-
-                        {/* Time (placeholder) */}
-                        <select className="px-3 py-2 border rounded-lg bg-gray-50">
-                            <option>All Time</option>
-                        </select>
-                    </div>
+                <div className="w-full md:w-48 mt-5">
+                    <select 
+                        value={filters.module || 'All Module'} 
+                        onChange={(e) => handleFilterChange('module', e.target.value)}
+                        className="w-full bg-gray-50 border-none rounded-lg p-2 text-sm focus:ring-2 focus:ring-gray-200 cursor-pointer"
+                    >
+                        <option value="All Module">All Module</option>
+                        <option value="Scheduler">Scheduler</option>
+                        <option value="Faculty">Faculty</option>
+                        <option value="Curriculum">Curriculum</option>
+                        <option value="Facility">Facility</option>
+                    </select>
                 </div>
 
-                {/* TABLE */}
-                <div className="bg-white border rounded-xl p-4">
-                    <div className="mb-4">
-                        <h2 className="text-sm font-semibold text-gray-700">
-                            Audit Log Records
-                        </h2>
-                        <p className="text-xs text-gray-400">
-                            Overview of all recorded system actions
-                        </p>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="text-gray-500 border-b">
-                                <tr>
-                                    <th className="py-2">Timestamp</th>
-                                    <th>User</th>
-                                    <th>Role</th>
-                                    <th>Action</th>
-                                    <th>Module</th>
-                                    <th>Description</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {logs.data.length === 0 && (
-                                    <tr>
-                                        <td colSpan={7} className="text-center py-6 text-gray-400">
-                                            No logs found
-                                        </td>
-                                    </tr>
-                                )}
-
-                                {logs.data.map((log) => (
-                                    <tr
-                                        key={log.id}
-                                        className="border-b hover:bg-gray-50 transition"
-                                    >
-                                        <td className="py-2 text-gray-600">
-                                            {new Date(log.created_at).toLocaleString()}
-                                        </td>
-                                        <td>{log.user_name}</td>
-                                        <td>{log.role}</td>
-
-                                        <td>
-                                            <span className="px-2 py-1 text-xs rounded bg-gray-100 border">
-                                                {log.action}
-                                            </span>
-                                        </td>
-
-                                        <td>{log.module}</td>
-
-                                        <td className="text-gray-600">
-                                            {log.description}
-                                        </td>
-
-                                        <td>
-                                            <button
-                                                disabled={!log.is_restorable || isLatest(log.id)}
-                                                onClick={() =>
-                                                    router.post(`/audit-logs/${log.id}/restore`)
-                                                }
-                                                className={`px-2 py-1 text-xs rounded border transition
-                          ${!log.is_restorable || isLatest(log.id)
-                                                        ? "text-gray-300 border-gray-200 cursor-not-allowed"
-                                                        : "text-gray-700 border-gray-300 hover:bg-gray-100"
-                                                    }`}
-                                            >
-                                                Restore
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                <div className="w-full md:w-48 mt-5">
+                    <select className="w-full bg-gray-50 border-none rounded-lg p-2 text-sm focus:ring-2 focus:ring-gray-200 cursor-pointer">
+                        <option>All Time</option>
+                        <option>Today</option>
+                        <option>This Week</option>
+                        <option>This Month</option>
+                    </select>
                 </div>
             </div>
-        </AppLayout>
+
+            {/* Audit Logs Table Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-6 border-b border-gray-50">
+                    <h2 className="text-lg font-bold text-gray-900">Audit Logs</h2>
+                    <p className="text-sm text-gray-500">Overview of all user action logs</p>
+                </div>
+                
+                <div className="overflow-x-auto p-6">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                        <thead>
+                            <tr className="text-gray-500 border-b">
+                                <th className="pb-4 font-semibold">Timestamp</th>
+                                <th className="pb-4 font-semibold">User</th>
+                                <th className="pb-4 font-semibold">Role</th>
+                                <th className="pb-4 font-semibold">Action</th>
+                                <th className="pb-4 font-semibold">Module</th>
+                                <th className="pb-4 font-semibold">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {logs.data && logs.data.length > 0 ? (
+                                logs.data.map(log => (
+                                    <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="py-4 text-gray-700">{new Date(log.created_at).toISOString().split('T')[0]}</td>
+                                        <td className="py-4 text-gray-900 font-medium">{log.user_name}</td>
+                                        <td className="py-4 text-gray-600">{log.role}</td>
+                                        <td className="py-4 text-gray-600">{log.action}</td>
+                                        <td className="py-4 text-gray-600">{log.module}</td>
+                                        <td className="py-4 text-gray-600">{log.description}</td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="6" className="py-12 text-center text-gray-400">
+                                        No audit logs found matching the current filters.
+                                    </td>
+                                </tr>
+                            )}
+                            
+                            {/* Empty rows to mimic the mockup's structural lines if data is sparse */}
+                            {(!logs.data || logs.data.length < 4) && [...Array(4 - (logs.data?.length || 0))].map((_, i) => (
+                                <tr key={`empty-${i}`}>
+                                    <td className="py-6"></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
     );
 }

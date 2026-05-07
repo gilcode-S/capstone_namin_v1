@@ -1,635 +1,313 @@
-import AppLayout from '@/layouts/app-layout'
-import { useState } from 'react'
-import {
-    LineChart,
-    Line,
-    XAxis,
-    Tooltip,
-    ResponsiveContainer,
-    CartesianGrid,
-    BarChart,
-    Bar,
-    PieChart,
-    Pie,
-} from 'recharts'
+import React, { useState } from 'react';
+import { 
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+    LineChart, Line, PieChart, Pie, Cell
+} from 'recharts';
 
-export default function Analytics() {
-
-    // ================= STATE (NEW) =================
-    const [tab, setTab] = useState('performance')
-    const [department, setDepartment] = useState('All')
-
-    // ================= UI DATA =================
-    const stats = {
-        scheduleEfficiency: 89,
-        teacherUtilization: 76,
-        roomUtilization: 92,
-    }
-
-    const teachers = [
-        { name: "Dr. Sarah Johnson", department: "Computer Science", hours: 18, max: 20 },
-        { name: "Prof. Michael Chen", department: "Information Technology", hours: 15, max: 20 },
-        { name: "Dr. Emily Davis", department: "Computer Science", hours: 20, max: 20 },
-        { name: "Prof. James Wilson", department: "Mathematics", hours: 12, max: 20 },
-    ]
-
-    const chartData = [
-        { name: "Jan", detected: 8, resolved: 6 },
-        { name: "Feb", detected: 7, resolved: 6 },
-        { name: "Mar", detected: 5, resolved: 4 },
-        { name: "Apr", detected: 10, resolved: 7 },
-        { name: "May", detected: 9, resolved: 8 },
-        { name: "Jun", detected: 6, resolved: 5 },
-    ]
+export default function AnalyticsDashboard({ kpiStats, teacherData, conflictTrends, roomUtilization, departmentDist }) {
+    const [activeTab, setActiveTab] = useState('Performance');
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: "Analytics", href: "/pages/analytics" }
-            ]}
-        >
-            <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+        <div className="max-w-7xl mx-auto p-6 font-sans">
+            
+            <div className="mb-6">
+                <h1 className="text-2xl font-bold text-gray-900">Analytics Dashboard</h1>
+                <p className="text-sm text-gray-500">Comprehensive analytics and insights from prescriptive scheduling optimization</p>
+            </div>
 
-                {/* ================= HEADER ================= */}
-                <div>
-                    <h1 className="text-2xl font-semibold">
-                        Analytics Dashboard
-                    </h1>
-                    <p className="text-sm text-gray-500">
-                        Comprehensive scheduling insights and performance metrics
-                    </p>
+            {/* Top KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <div className="flex justify-between items-start mb-2">
+                        <span className="text-sm text-gray-500 font-semibold">Schedule Efficiency</span>
+                        <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                    </div>
+                    <div className="text-3xl font-bold text-gray-900 mb-1">{kpiStats.efficiency}%</div>
+                    <div className="text-xs text-gray-400">Overall optimization score</div>
                 </div>
-
-                {/* ================= TOP CARDS ================= */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-                    <StatCard
-                        title="Schedule Efficiency"
-                        value={stats.scheduleEfficiency}
-                        subtitle="Overall optimization score"
-                    />
-
-                    <StatCard
-                        title="Teacher Utilization"
-                        value={stats.teacherUtilization}
-                        subtitle="Average workload balance"
-                    />
-
-                    <StatCard
-                        title="Room Utilization"
-                        value={stats.roomUtilization}
-                        subtitle="Classroom usage efficiency"
-                    />
-
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <div className="flex justify-between items-start mb-2">
+                        <span className="text-sm text-gray-500 font-semibold">Teacher Utilization</span>
+                        <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                    </div>
+                    <div className="text-3xl font-bold text-gray-900 mb-1">{kpiStats.teacher_utilization}%</div>
+                    <div className="text-xs text-gray-400">Average workload balance</div>
                 </div>
-
-                {/* ================= TAB VIEW (NEW) ================= */}
-                <div className="flex bg-white border rounded-xl p-1">
-
-                    {[
-                        'performance',
-                        'utilization',
-                        'optimization',
-                        'insights'
-                    ].map(t => (
-                        <button
-                            key={t}
-                            onClick={() => setTab(t)}
-                            className={`flex-1 py-2 text-sm rounded-lg transition ${tab === t
-                                    ? 'bg-black text-white'
-                                    : 'text-gray-600'
-                                }`}
-                        >
-                            {t.toUpperCase()}
-                        </button>
-                    ))}
-
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <div className="flex justify-between items-start mb-2">
+                        <span className="text-sm text-gray-500 font-semibold">Room Utilization</span>
+                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
+                    </div>
+                    <div className="text-3xl font-bold text-gray-900 mb-1">{kpiStats.room_utilization}%</div>
+                    <div className="text-xs text-gray-400">Classroom usage efficiency</div>
                 </div>
+            </div>
 
-                {/* ================= PERFORMANCE TAB ================= */}
-                {tab === 'performance' && (
-                    <>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Navigation Tabs */}
+            <div className="flex bg-gray-200 rounded-full p-1 mb-6">
+                {['Performance', 'Utilization', 'Optimization', 'Insights'].map(tab => (
+                    <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`flex-1 py-2 text-sm font-semibold rounded-full transition-all ${
+                            activeTab === tab ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                        {tab}
+                    </button>
+                ))}
+            </div>
 
-                            {/* LEFT PANEL */}
-                            <div className="bg-white border rounded-xl p-5 space-y-4">
-
-                                <div className="flex items-center justify-between">
-
-                                    <h3 className="font-semibold">
-                                        Teacher Workload Distribution
-                                    </h3>
-
-                                    <select
-                                        value={department}
-                                        onChange={(e) => setDepartment(e.target.value)}
-                                        className="border rounded-lg px-2 py-1 text-sm"
-                                    >
-                                        <option value="All">All Departments</option>
-                                        <option value="Computer Science">Computer Science Department</option>
-                                        <option value="Information Technology">Tourism Management Department</option>
-                                        <option value="Mathematics">Criminology Department</option>
-                                        <option value="Mathematics">Business Management and Accountancy Department</option>
-                                    </select>
-
-                                </div>
-
-                                {teachers
-                                    .filter(t =>
-                                        department === 'All' ||
-                                        t.department === department
-                                    )
-                                    .map((t, i) => {
-
-                                        const percent = (t.hours / t.max) * 100
-
-                                        return (
-                                            <div key={i}>
-
-                                                <div className="flex justify-between text-sm mb-1">
-                                                    <div>
-                                                        <span className="font-medium">
-                                                            {t.name}
-                                                        </span>
-                                                        <p className="text-xs text-gray-400">
-                                                            {t.department}
-                                                        </p>
-                                                    </div>
-
-                                                    <span className="text-gray-500">
-                                                        {t.hours}/{t.max}h
-                                                    </span>
-                                                </div>
-
-                                                <div className="w-full bg-gray-100 h-2 rounded-full">
-                                                    <div
-                                                        className="bg-black h-2 rounded-full"
-                                                        style={{ width: `${percent}%` }}
-                                                    />
-                                                </div>
-
-                                            </div>
-                                        )
-                                    })}
-
+            {/* ========================================= */}
+            {/* TAB 1: PERFORMANCE (From Mockup 1)        */}
+            {/* ========================================= */}
+            {activeTab === 'Performance' && (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Workload Distribution Chart */}
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h2 className="text-sm font-bold text-gray-900 mb-1 flex items-center">
+                                <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                                Teacher Workload Distribution
+                            </h2>
+                            <p className="text-xs text-gray-500 mb-6">Current vs maximum teaching hours by faculty</p>
+                            <div className="h-64">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={teacherData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#6B7280'}} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#6B7280'}} />
+                                        <Tooltip cursor={{fill: '#F3F4F6'}} />
+                                        <Legend iconType="circle" wrapperStyle={{fontSize: '12px'}} />
+                                        <Bar dataKey="current" name="Current Hours" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="maximum" name="Maximum Hours" fill="#E5E7EB" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
                             </div>
+                        </div>
 
-                            {/* RIGHT PANEL */}
-                            <div className="bg-white border rounded-xl p-5">
-
-                                <h3 className="font-semibold mb-4">
-                                    Conflict Resolution Trends
-                                </h3>
-
-                                <ResponsiveContainer width="100%" height={260}>
-                                    <LineChart data={chartData}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="name" />
+                        {/* Conflict Resolution Trends */}
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h2 className="text-sm font-bold text-gray-900 mb-1 flex items-center">
+                                <svg className="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
+                                Conflict Resolution Trends
+                            </h2>
+                            <p className="text-xs text-gray-500 mb-6">Monthly conflict detection and resolution rates</p>
+                            <div className="h-64">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={conflictTrends} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                        <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#6B7280'}} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#6B7280'}} />
                                         <Tooltip />
-
-                                        <Line
-                                            type="monotone"
-                                            dataKey="detected"
-                                            stroke="#ef4444"
-                                            strokeWidth={2}
-                                        />
-
-                                        <Line
-                                            type="monotone"
-                                            dataKey="resolved"
-                                            stroke="#3b82f6"
-                                            strokeWidth={2}
-                                        />
+                                        <Legend iconType="circle" wrapperStyle={{fontSize: '12px'}} />
+                                        <Line type="monotone" dataKey="detected" name="Conflicts Detected" stroke="#FF4D4D" strokeWidth={2} dot={false} activeDot={{r: 6}} />
+                                        <Line type="monotone" dataKey="resolved" name="Conflict Resolve" stroke="#3B82F6" strokeWidth={2} dot={false} />
                                     </LineChart>
                                 </ResponsiveContainer>
-
                             </div>
-
                         </div>
+                    </div>
 
-                        {/* ================= BOTTOM PANEL ================= */}
-                        <div className="bg-white border rounded-xl p-5">
-
-                            <h3 className="font-semibold mb-4">
-                                Teacher Efficiency Metrics
-                            </h3>
-
-                            <div className="space-y-4">
-
-                                {teachers.map((t, i) => {
-
-                                    const percent = (t.hours / t.max) * 100
-
-                                    return (
-                                        <div key={i}>
-
-                                            <div className="flex justify-between text-sm mb-1">
-
-                                                {/* NAME + DEPARTMENT (NEW) */}
-                                                <div>
-                                                    <span className="font-medium">
-                                                        {t.name}
-                                                    </span>
-                                                    <p className="text-xs text-gray-400">
-                                                        {t.department}
-                                                    </p>
-                                                </div>
-
-                                                <span className="text-gray-500">
-                                                    {Math.round(percent)}% efficiency
-                                                </span>
-
-                                            </div>
-
-                                            <div className="w-full bg-gray-100 h-2 rounded-full">
-                                                <div
-                                                    className="bg-black h-2 rounded-full"
-                                                    style={{ width: `${percent}%` }}
-                                                />
-                                            </div>
-
-                                        </div>
-                                    )
-                                })}
-
-                            </div>
-
-                        </div>
-                    </>
-                )}
-
-                {/* ================= UTILIZATION ================= */}
-                {tab === 'utilization' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                        {/* ================= LEFT: WEEKLY ROOM UTILIZATION ================= */}
-                        <div className="bg-white border rounded-xl p-5 space-y-4">
-
-                            {/* HEADER */}
+                    {/* Teacher Efficiency Metrics */}
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <div className="flex justify-between items-start mb-6">
                             <div>
-                                <h3 className="font-semibold flex items-center gap-2">
-                                    🏫 Weekly Room Utilization
-                                </h3>
-                                <p className="text-sm text-gray-500">
-                                    Usage patterns across different facility types
-                                </p>
+                                <h2 className="text-sm font-bold text-gray-900">Teacher Efficiency Metrics</h2>
+                                <p className="text-xs text-gray-500 mt-1">Individual performance indicators and workload balance</p>
                             </div>
-
-                            {/* FILTER + LEGEND */}
-                            <div className="flex items-center justify-between">
-
-                                <select className="border rounded-lg px-3 py-1 text-sm">
-                                    <option>Set A</option>
-                                    <option>Set B</option>
-                                </select>
-
-                                <div className="flex gap-4 text-sm text-gray-600">
-
-                                    <span className="flex items-center gap-1">
-                                        <span className="w-2 h-2 bg-indigo-500 rounded-full"></span>
-                                        Classrooms
-                                    </span>
-
-                                    <span className="flex items-center gap-1">
-                                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                        Computer Lab
-                                    </span>
-
-                                    <span className="flex items-center gap-1">
-                                        <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
-                                        PE Room
-                                    </span>
-
+                        </div>
+                        
+                        <div className="space-y-6">
+                            {teacherData.map(teacher => (
+                                <div key={teacher.name}>
+                                    <div className="flex justify-between items-center text-sm font-bold text-gray-900 mb-1">
+                                        <span>{teacher.name}</span>
+                                        <span className="flex items-center space-x-3">
+                                            <span className="bg-black text-white text-xs px-2 py-0.5 rounded-full">{teacher.efficiency}% efficiency</span>
+                                            <span className="text-gray-500 font-normal">{teacher.current}/{teacher.maximum}h</span>
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-3">
+                                        <div className="bg-black h-3 rounded-full" style={{ width: `${teacher.efficiency}%` }}></div>
+                                    </div>
                                 </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
 
-                            </div>
-
-                            {/* BAR CHART */}
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={[
-                                    { day: 'Mon', classroom: 85, lab: 70, pe: 45 },
-                                    { day: 'Tue', classroom: 95, lab: 88, pe: 60 },
-                                    { day: 'Wed', classroom: 90, lab: 92, pe: 35 },
-                                    { day: 'Thu', classroom: 92, lab: 80, pe: 50 },
-                                    { day: 'Fri', classroom: 75, lab: 65, pe: 80 },
-                                ]}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="day" />
-                                    <Tooltip />
-
-                                    <Bar dataKey="classroom" fill="#6366f1" />
-                                    <Bar dataKey="lab" fill="#22c55e" />
-                                    <Bar dataKey="pe" fill="#fbbf24" />
-
+            {/* ========================================= */}
+            {/* TAB 2: UTILIZATION (From Mockup 2)        */}
+            {/* ========================================= */}
+            {activeTab === 'Utilization' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h2 className="text-sm font-bold text-gray-900 mb-1 flex items-center">
+                            <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                            Weekly Room Utilization
+                        </h2>
+                        <p className="text-xs text-gray-500 mb-6">Usage patterns across different facility types</p>
+                        
+                        <div className="h-80">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={roomUtilization} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6B7280'}} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6B7280'}} />
+                                    <Tooltip cursor={{fill: '#F3F4F6'}} />
+                                    <Legend iconType="circle" wrapperStyle={{fontSize: '12px'}} />
+                                    <Bar dataKey="Classrooms" fill="#8B5CF6" radius={[2, 2, 0, 0]} />
+                                    <Bar dataKey="Computer Lab" fill="#34D399" radius={[2, 2, 0, 0]} />
+                                    <Bar dataKey="PE Room" fill="#FBBF24" radius={[2, 2, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
-
                         </div>
-
-                        {/* ================= RIGHT: DEPARTMENT DISTRIBUTION ================= */}
-                        <div className="bg-white border rounded-xl p-5 space-y-4">
-
-                            <div>
-                                <h3 className="font-semibold flex items-center gap-2">
-                                    📊 Department Distribution
-                                </h3>
-                                <p className="text-sm text-gray-500">
-                                    Resource allocation by academic department
-                                </p>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-
-                                {/* DONUT */}
-                                <ResponsiveContainer width="60%" height={250}>
-                                    <PieChart>
-                                        <Pie
-                                            data={[
-                                                { name: 'Criminology', value: 35, fill: '#ef4444' },
-                                                { name: 'Tourism', value: 28, fill: '#22c55e' },
-                                                { name: 'Business', value: 19, fill: '#eab308' },
-                                                { name: 'CS', value: 18, fill: '#3b82f6' },
-                                            ]}
-                                            innerRadius={70}
-                                            outerRadius={100}
-                                            paddingAngle={5}
-                                            dataKey="value"
-                                        />
-                                        <Tooltip />
-                                    </PieChart>
-                                </ResponsiveContainer>
-
-                                {/* LABELS */}
-                                <div className="space-y-2 text-sm">
-
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                                        Criminology 35%
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                        Tourism 28%
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                                        Business 19%
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                                        Computer Science 18%
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
                     </div>
-                )}
-                {/* ================= OPTIMIZATION ================= */}
-                {tab === 'optimization' && (
-                    <div className="space-y-6">
 
-                        {/* ================= HEADER ================= */}
-                        <div className="bg-white border rounded-xl p-5">
-                            <h3 className="font-semibold text-lg">
-                                Algorithm Performance
-                            </h3>
-                            <p className="text-sm text-gray-500">
-                                Real time metrics from the optimization engines
-                            </p>
-
-                            {/* CARDS */}
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-
-                                <div className="bg-gray-100 p-4 rounded-xl">
-                                    <p className="text-sm text-gray-500">Rule-Based Algorithm</p>
-                                    <p className="text-2xl font-bold">1,247</p>
-                                    <p className="text-xs text-gray-400">Execution time: 2.3s</p>
-                                </div>
-
-                                <div className="bg-gray-100 p-4 rounded-xl">
-                                    <p className="text-sm text-gray-500">Constraint Programming</p>
-                                    <p className="text-2xl font-bold">156</p>
-                                    <p className="text-xs text-gray-400">Execution time: 4.1s</p>
-                                </div>
-
-                                <div className="bg-gray-100 p-4 rounded-xl">
-                                    <p className="text-sm text-gray-500">Constraint Satisfaction</p>
-                                    <p className="text-2xl font-bold">98.5%</p>
-                                    <p className="text-xs text-gray-400">Execution time: 0.8s</p>
-                                </div>
-
-                                <div className="bg-gray-100 p-4 rounded-xl">
-                                    <p className="text-sm text-gray-500">Resource Allocation Score</p>
-                                    <p className="text-2xl font-bold">94.2%</p>
-                                    <p className="text-xs text-gray-400">Execution time: 1.2s</p>
-                                </div>
-
-                            </div>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h2 className="text-sm font-bold text-gray-900 mb-1 flex items-center">
+                            <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            Department Distribution
+                        </h2>
+                        <p className="text-xs text-gray-500 mb-6">Resource allocation by academic department</p>
+                        
+                        <div className="flex justify-center items-center h-80">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={departmentDist}
+                                        innerRadius={80}
+                                        outerRadius={120}
+                                        paddingAngle={2}
+                                        dataKey="value"
+                                        stroke="none"
+                                    >
+                                        {departmentDist.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                    <Legend layout="vertical" verticalAlign="middle" align="right" iconType="circle" />
+                                </PieChart>
+                            </ResponsiveContainer>
                         </div>
-
-                        {/* ================= CONSTRAINT SECTION ================= */}
-                        <div className="bg-white border rounded-xl p-5 space-y-6">
-
-                            <h3 className="font-semibold text-lg">
-                                Constraint Satisfaction
-                            </h3>
-                            <p className="text-sm text-gray-500">
-                                How well the optimization meets scheduling constraint
-                            </p>
-
-                            {/* HARD */}
-                            <div>
-                                <div className="flex justify-between text-sm mb-1">
-                                    <span className="font-medium">Hard Constraints</span>
-                                    <span>100%</span>
-                                </div>
-                                <div className="w-full bg-gray-200 h-2 rounded-full">
-                                    <div className="bg-orange-400 h-2 rounded-full w-full"></div>
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    No teacher conflicts room overlaps, or capacity violations
-                                </p>
-                            </div>
-
-                            {/* SOFT */}
-                            <div>
-                                <div className="flex justify-between text-sm mb-1">
-                                    <span className="font-medium">Soft Constraints</span>
-                                    <span>89%</span>
-                                </div>
-                                <div className="w-full bg-gray-200 h-2 rounded-full">
-                                    <div className="bg-orange-400 h-2 rounded-full w-[89%]"></div>
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Teacher preferences and workload balance optimization
-                                </p>
-                            </div>
-
-                            {/* RESOURCE */}
-                            <div>
-                                <div className="flex justify-between text-sm mb-1">
-                                    <span className="font-medium">Resource Efficiency</span>
-                                    <span>94%</span>
-                                </div>
-                                <div className="w-full bg-gray-200 h-2 rounded-full">
-                                    <div className="bg-orange-400 h-2 rounded-full w-[94%]"></div>
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Optimal allocation of classrooms and laboratories
-                                </p>
-                            </div>
-
-                        </div>
-
                     </div>
-                )}
+                </div>
+            )}
 
-                {/* ================= INSIGHTS ================= */}
-                {tab === 'insights' && (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* ========================================= */}
+            {/* TAB 3: OPTIMIZATION (From Mockup 3)       */}
+            {/* ========================================= */}
+            {activeTab === 'Optimization' && (
+                <div className="space-y-6">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h2 className="text-sm font-bold text-gray-900 mb-1">Algorithm Performance</h2>
+                        <p className="text-xs text-gray-500 mb-6">Real time metrics from the optimization engines</p>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {[
+                                { label: 'Rule-Based Algorithm', value: '1,247', sub: 'Execution time: 2.3s' },
+                                { label: 'Constraint Programming', value: '156', sub: 'Execution time: 4.1s' },
+                                { label: 'Constraint Satisfaction', value: '98.5%', sub: 'Execution time: 0.8s' },
+                                { label: 'Resource Allocation Score', value: '94.2%', sub: 'Execution time: 1.2s' }
+                            ].map((stat, i) => (
+                                <div key={i} className="bg-gray-50 p-4 rounded-lg">
+                                    <div className="text-xs font-bold text-gray-700 mb-2">{stat.label}</div>
+                                    <div className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</div>
+                                    <div className="text-[10px] text-gray-500">{stat.sub}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
 
-        {/* ================= LEFT: KEY INSIGHTS ================= */}
-        <div className="bg-white border rounded-xl p-5 space-y-5">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h2 className="text-sm font-bold text-gray-900 mb-1">Constraint Satisfaction</h2>
+                        <p className="text-xs text-gray-500 mb-6">How well the optimization meets scheduling constraint</p>
+                        
+                        <div className="space-y-6">
+                            {[
+                                { label: 'Hard Constraints', pct: '100%', desc: 'No teacher conflicts room overlaps, or capacity violations', color: 'bg-orange-300' },
+                                { label: 'Soft Constraints', pct: '89%', desc: 'Teacher preferences and workload balance optimization', color: 'bg-orange-300' },
+                                { label: 'Resource Efficiency', pct: '94%', desc: 'Optimal allocation of classrooms and laboratories', color: 'bg-orange-300' },
+                            ].map((item, i) => (
+                                <div key={i}>
+                                    <div className="flex justify-between items-end mb-1">
+                                        <div>
+                                            <div className="text-sm font-bold text-gray-900">{item.label}</div>
+                                            <div className="text-xs text-gray-500 mt-1">{item.desc}</div>
+                                        </div>
+                                        <div className="text-sm font-bold text-gray-900">{item.pct}</div>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-3 mt-2">
+                                        <div className={`h-3 rounded-full ${item.color}`} style={{ width: item.pct }}></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
 
-            <div>
-                <h3 className="font-semibold">Key Insights</h3>
-                <p className="text-sm text-gray-500">
-                    Data-driven recommendations for schedule optimization
-                </p>
-            </div>
+            {/* ========================================= */}
+            {/* TAB 4: INSIGHTS (From Mockup 4)           */}
+            {/* ========================================= */}
+            {activeTab === 'Insights' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h2 className="text-sm font-bold text-gray-900 mb-1">Key Insights</h2>
+                        <p className="text-xs text-gray-500 mb-6">Data-driven recommendations for schedule optimization</p>
+                        
+                        <div className="space-y-4">
+                            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                                <h3 className="font-bold text-blue-800 text-sm">Peak Hour Optimization</h3>
+                                <p className="text-blue-600 text-xs mt-1">Consider splitting large classes during 10-11 AM peak hours to improve utilizations</p>
+                            </div>
+                            <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+                                <h3 className="font-bold text-green-800 text-sm">Workload Balance Success</h3>
+                                <p className="text-green-600 text-xs mt-1">Teacher workload distribution has improved by 15% since implementing automated scheduling</p>
+                            </div>
+                            <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
+                                <h3 className="font-bold text-orange-800 text-sm">Friday Underutilization</h3>
+                                <p className="text-orange-600 text-xs mt-1">Friday afternoon slots show 45% utilization. Consider scheduling makeup classes or optional seminar</p>
+                            </div>
+                            <div className="bg-purple-50 border-l-4 border-purple-400 p-4 rounded-r-lg">
+                                <h3 className="font-bold text-purple-800 text-sm">Laboratory Efficiency</h3>
+                                <p className="text-purple-600 text-xs mt-1">Labs scheduling can be optimized by 12% through better coordination of equipment</p>
+                            </div>
+                        </div>
+                    </div>
 
-            {/* CARD 1 */}
-            <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg">
-                <h4 className="text-blue-700 font-semibold">
-                    Peak Hour Optimization
-                </h4>
-                <p className="text-sm text-blue-600">
-                    Consider splitting large classes during 10–11 AM peak hours to improve utilization
-                </p>
-            </div>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h2 className="text-sm font-bold text-gray-900 mb-1">Predictive Analytics</h2>
+                        <p className="text-xs text-gray-500 mb-8">Forecast trends and optimization opportunities</p>
+                        
+                        <h3 className="font-bold text-gray-900 text-sm mb-4">Next Semester Predictions</h3>
+                        <div className="space-y-4 mb-8">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Expected Enrollment Growth</span>
+                                <span className="bg-gray-100 px-2 py-1 rounded font-bold text-gray-800">+8%</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Additional Room Requirements</span>
+                                <span className="bg-gray-100 px-2 py-1 rounded font-bold text-gray-800">2-3 rooms</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Optimal Schedule Efficiency</span>
+                                <span className="bg-black text-white px-2 py-1 rounded font-bold">92%</span>
+                            </div>
+                        </div>
 
-            {/* CARD 2 */}
-            <div className="bg-green-50 border-l-4 border-green-600 p-4 rounded-lg">
-                <h4 className="text-green-700 font-semibold">
-                    Workload Balance Success
-                </h4>
-                <p className="text-sm text-green-600">
-                    Teacher workload distribution has improved by 15% since implementing automated scheduling
-                </p>
-            </div>
-
-            {/* CARD 3 */}
-            <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-lg">
-                <h4 className="text-orange-600 font-semibold">
-                    Friday Underutilization
-                </h4>
-                <p className="text-sm text-orange-500">
-                    Friday afternoon slots show 45% utilization. Consider scheduling makeup classes or optional seminars
-                </p>
-            </div>
-
-            {/* CARD 4 */}
-            <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-lg">
-                <h4 className="text-purple-600 font-semibold">
-                    Laboratory Efficiency
-                </h4>
-                <p className="text-sm text-purple-500">
-                    Labs scheduling can be optimized by 12% through better coordination of equipment
-                </p>
-            </div>
-
+                        <h3 className="font-bold text-gray-900 text-sm mb-4">Recommended Actions</h3>
+                        <ul className="space-y-3 text-xs text-gray-700">
+                            <li className="flex items-center"><span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span> Schedule high-demand courses in larger auditoriums</li>
+                            <li className="flex items-center"><span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span> Implement block scheduling for laboratory courses</li>
+                            <li className="flex items-center"><span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span> Consider hiring 1-2 additional part-time faculty</li>
+                        </ul>
+                    </div>
+                </div>
+            )}
         </div>
-
-        {/* ================= RIGHT: PREDICTIVE ================= */}
-        <div className="bg-white border rounded-xl p-5 space-y-6">
-
-            <div>
-                <h3 className="font-semibold">Predictive Analytics</h3>
-                <p className="text-sm text-gray-500">
-                    Forecast trends and optimization opportunities
-                </p>
-            </div>
-
-            {/* NEXT SEMESTER */}
-            <div className="space-y-4">
-
-                <h4 className="font-medium">Next Semester Predictions</h4>
-
-                <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">
-                        Expected Enrollment Growth
-                    </span>
-                    <span className="bg-gray-100 px-3 py-1 rounded-full text-sm">
-                        +8%
-                    </span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">
-                        Additional Room Requirements
-                    </span>
-                    <span className="bg-gray-100 px-3 py-1 rounded-full text-sm">
-                        2–3 rooms
-                    </span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">
-                        Optimal Schedule Efficiency
-                    </span>
-                    <span className="bg-black text-white px-3 py-1 rounded-full text-sm">
-                        92%
-                    </span>
-                </div>
-
-            </div>
-
-            {/* ACTIONS */}
-            <div className="space-y-3">
-
-                <h4 className="font-medium">Recommended Actions</h4>
-
-                <div className="flex items-start gap-2 text-sm text-gray-600">
-                    <span className="w-2 h-2 mt-1 bg-green-500 rounded-full"></span>
-                    Schedule high-demand courses in larger auditoriums
-                </div>
-
-                <div className="flex items-start gap-2 text-sm text-gray-600">
-                    <span className="w-2 h-2 mt-1 bg-blue-500 rounded-full"></span>
-                    Implement block scheduling for laboratory courses
-                </div>
-
-                <div className="flex items-start gap-2 text-sm text-gray-600">
-                    <span className="w-2 h-2 mt-1 bg-red-500 rounded-full"></span>
-                    Consider hiring 1–2 additional part-time faculty
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-)}
-
-            </div>
-        </AppLayout>
-    )
-}
-
-/* ================= COMPONENT ================= */
-
-function StatCard({ title, value, subtitle }: any) {
-    return (
-        <div className="bg-white border rounded-xl p-5">
-            <p className="text-sm text-gray-500">{title}</p>
-            <p className="text-3xl font-bold">{value}%</p>
-            <p className="text-xs text-gray-400 mt-1">{subtitle}</p>
-        </div>
-    )
+    );
 }

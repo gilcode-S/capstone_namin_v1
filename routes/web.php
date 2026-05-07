@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AnalyticController;
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ConflictController;
 use App\Http\Controllers\CurriculumController;
@@ -33,8 +34,7 @@ Route::get('dashboard', [DashboardController::class, 'index'])
 Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('department', DepartmentController::class);
 
-Route::middleware(['auth', 'role:super admin,registrar'])
-    ->resource('analytics', AnalyticController::class);
+    Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('program', ProgramController::class);
 Route::middleware(['auth', 'role:super admin,registrar'])
@@ -78,31 +78,31 @@ Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
     // ✅ FIXED: VIEW CONFLICTS (needs versionId)
 
 
-
     // PAGE 5: TEACHER MANAGEMENT
     // This single line creates all standard routes (index, store, update, destroy)
-    Route::resource('teachers', TeacherController::class);
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
 
     // PAGE 9 & 10: SCHEDULE GENERATION
     Route::get('/schedules', [ScheduleController::class, 'index'])->name('schedules.index');
+    Route::get('/schedules/generate', [ScheduleController::class, 'create'])->name('schedules.create');
+
     // The endpoint your React app will hit when the admin clicks "Generate Schedule"
     Route::post('/schedules/generate', [ScheduleController::class, 'generate'])->name('schedules.generate');
 
+
+    Route::get('/conflicts', [App\Http\Controllers\ConflictController::class, 'index'])->name('conflicts.index');
+
     // RESOLVE CONFLICTS
-    Route::post('/conflicts/{versionId}/resolve', [ConflictController::class, 'resolve'])
-        ->name('conflicts.resolve');
-
-
-    Route::get('/audit-logs', [AuditLogController::class, 'index'])
-        ->name('audit.logs');
+    // Route::post('/conflicts/{versionId}/resolve', [ConflictController::class, 'resolve'])
+    //     ->name('conflicts.resolve');
 });
-Route::get('/conflicts', function () {
-    $version = \App\Models\ScheduleVersion::where('is_active', 1)->first();
+// Route::get('/conflicts', function () {
+//     $version = \App\Models\ScheduleVersion::where('is_active', 1)->first();
 
-    return redirect("/conflicts/{$version->id}");
-});
+//     return redirect("/conflicts/{$version->id}");
+// });
 
-Route::get('/conflicts/{versionId}', [ConflictController::class, 'index']);
+// Route::get('/conflicts/{versionId}', [ConflictController::class, 'index']);
 
 Route::post('/generate-schedule', [GenerateController::class, 'generateSchedule']);
 Route::post('/generate-final-schedule', [GenerateController::class, 'generateFinal']);
@@ -119,15 +119,15 @@ Route::post('/setup/lock-rooms', [SetupController::class, 'lockRooms']);
 
 
 
-Route::post('/generate-units/{sectionId}', function (
-    $sectionId,
-    \App\Services\CurriculumToSchedulingService $service
-) {
+// Route::post('/generate-units/{sectionId}', function (
+//     $sectionId,
+//     \App\Services\CurriculumToSchedulingService $service
+// ) {
 
-    $service->generateSchedulingUnits($sectionId);
+//     $service->generateSchedulingUnits($sectionId);
 
-    return back()->with('success', 'Scheduling units generated');
-});
+//     return back()->with('success', 'Scheduling units generated');
+// });
 
 
 Route::middleware(['auth', 'role:staff,super admin'])
