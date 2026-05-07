@@ -16,19 +16,15 @@ import AppLayout from '@/layouts/app-layout'
 
 interface TimeSlot {
   id: number
+  day: string
   start_time: string
   end_time: string
   shift: string
-  status: string
-  day_of_week: string
 }
-
 const emptyForm = {
-  day_of_week: '',
+  day: '',
   start_time: '',
   end_time: '',
-  shift: '',
-  status: 'active'
 }
 
 const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -84,11 +80,10 @@ export default function Index() {
 
   const handleOpenEdit = (slot: TimeSlot) => {
     setForm({
-      day_of_week: slot.day_of_week,
+      day: slot.day,
       start_time: slot.start_time.slice(0, 5),
       end_time: slot.end_time.slice(0, 5),
       shift: slot.shift,
-      status: slot.status
     })
     setIsEdit(true)
     setEditId(slot.id)
@@ -176,7 +171,7 @@ export default function Index() {
                 {timeSlots.data.map((slot: TimeSlot) => (
                   <tr key={slot.id} className="border-b">
                     <td className="p-4">
-                      {slot.day_of_week || '—'}
+                      {slot.day || '—'}
                     </td>
 
                     <td className="p-4 capitalize">{slot.shift}</td>
@@ -263,8 +258,8 @@ export default function Index() {
             <form onSubmit={handleSubmit} className="space-y-4">
 
               <select
-                value={form.day_of_week || ''}
-                onChange={(e) => setForm({ ...form, day_of_week: e.target.value })}
+                value={form.day || ''}
+                onChange={(e) => setForm({ ...form, day: e.target.value })}
                 className="w-full border rounded px-3 py-2"
                 required
               >
