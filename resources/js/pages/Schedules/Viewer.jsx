@@ -1,5 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import { usePage } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
+
+const breadcrumbs = [
+    {
+        title: 'Dashboard',
+        href: '/dashboard',
+    },
+    {
+        title: 'Schedule Viewer',
+        href: '/schedules',
+    },
+];
 
 export default function ScheduleViewer({ schedules }) {
     // UI State
@@ -43,7 +56,9 @@ export default function ScheduleViewer({ schedules }) {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     return (
-        <div className="max-w-7xl mx-auto p-6">
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Schedule Viewer Dashboard" />
+        <div className="max-w-7x p-4">
             
             {/* Header & Controls */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-4 rounded-lg shadow">
@@ -154,5 +169,6 @@ export default function ScheduleViewer({ schedules }) {
                 </div>
             </div>
         </div>
+        </AppLayout>
     );
 }

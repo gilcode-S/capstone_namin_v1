@@ -1,5 +1,18 @@
 import React, { useState } from 'react';
 
+import { Head } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
+
+const breadcrumbs = [
+    {
+        title: 'Dashboard',
+        href: '/dashboard',
+    },
+    {
+        title: 'Conflicts',
+        href: '/conflicts',
+    },
+];
 export default function ConflictDetection({ unresolved = [], resolved = [], stats }) {
     const [activeTab, setActiveTab] = useState('Unresolved');
     const [showResolveModal, setShowResolveModal] = useState(false);
@@ -11,7 +24,9 @@ export default function ConflictDetection({ unresolved = [], resolved = [], stat
     };
 
     return (
-        <div className="max-w-7xl mx-auto p-6 font-sans">
+        <AppLayout breadcrumbs={breadcrumbs}>
+        <Head title="Conflicts Dashboard" />
+        <div className="max-w-7xl p-2 font-sans">
             
             {/* Header & Scan Button */}
             <div className="flex justify-between items-center mb-6">
@@ -242,5 +257,6 @@ export default function ConflictDetection({ unresolved = [], resolved = [], stat
             )}
 
         </div>
+            </AppLayout>
     );
 }

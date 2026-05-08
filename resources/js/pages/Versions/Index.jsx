@@ -1,5 +1,18 @@
 import React from 'react';
 import { router } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
+
+const breadcrumbs = [
+    {
+        title: 'Dashboard',
+        href: '/dashboard',
+    },
+    {
+        title: 'Schedule Version',
+        href: '/version-history',
+    },
+];
 
 export default function VersionHistory({ versions, filters }) {
     
@@ -9,7 +22,7 @@ export default function VersionHistory({ versions, filters }) {
             preserveState: true,
             preserveScroll: true,
             replace: true
-        });
+        }); 
     };
 
     // Helper to format dates cleanly
@@ -20,7 +33,10 @@ export default function VersionHistory({ versions, filters }) {
     };
 
     return (
-        <div className="max-w-7xl mx-auto p-6 font-sans">
+
+        <AppLayout breadcrumbs={breadcrumbs}>
+        <Head title="Version History Dashboard" />
+        <div className="max-w-7xl p-3 font-sans">
             
             {/* Header */}
             <div className="mb-6">
@@ -125,5 +141,7 @@ export default function VersionHistory({ versions, filters }) {
             </div>
 
         </div>
+    
+        </AppLayout>
     );
 }
