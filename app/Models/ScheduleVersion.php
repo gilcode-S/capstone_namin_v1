@@ -9,16 +9,7 @@ use App\Models\User;
 class ScheduleVersion extends Model
 {
     //
-    protected $fillable = [
-        'name',
-        'version_number',
-        'semester_id',
-        'effective_date',
-        'set_a_count',
-        'set_b_count',
-        'status',
-        'created_by', // 🔥 MUST BE HERE
-    ];
+    protected $guarded = [];
 
 
     public function semester()

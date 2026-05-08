@@ -11,6 +11,7 @@ import {
   SquareBottomDashedScissors,
   ChartNoAxesColumnIncreasingIcon,
   ScanHeart,
+  HeartCrack,
 } from "lucide-react"
 
 export const sidebarConfig = {
@@ -50,7 +51,7 @@ export const sidebarConfig = {
       label: "Scheduling",
       items: [
  
-        { title: "Schedule Versions", href: "/schedule-versions", icon: Calendar },
+        { title: "Schedule Versions", href: "/version-history", icon: Calendar },
         { title: "View Schedule", href: "/schedules", icon: ScanHeart },
         { title: "Generate Schedule", href: "/generate-schedule", icon: PlusCircle },
         { title: "Conflict Detection", href: "/conflicts", icon: AlertCircle } // ✅ FIXED
@@ -62,6 +63,7 @@ export const sidebarConfig = {
       label: "System",
       items: [
         { title: "Semester Module", href: "/semesters", icon: SquareBottomDashedScissors },
+        { title: "Account Management", href: "/users", icon: HeartCrack },
         { title: "Audit Logs", href: "/audit-logs", icon: ScanHeart }
       ]
     }

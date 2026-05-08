@@ -21,6 +21,8 @@ use App\Http\Controllers\SectionSubjectAssignmentController;
 use App\Http\Controllers\SemesterController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\TimeSlotController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\VersionHistoryController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -34,7 +36,7 @@ Route::get('dashboard', [DashboardController::class, 'index'])
 Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('department', DepartmentController::class);
 
-    Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('program', ProgramController::class);
 Route::middleware(['auth', 'role:super admin,registrar'])
@@ -66,6 +68,14 @@ Route::middleware(['auth', 'role:staff,super admin'])
     ->resource('schedules', controller: ScheduleController::class);
 
 
+// PAGE 14: User Management (Strictly locked to Super Admins)
+Route::middleware(['auth', 'role:super admin'])->group(function () {
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+});
+
+
 Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
 
     // GENERATE UI
@@ -91,6 +101,9 @@ Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
 
 
     Route::get('/conflicts', [App\Http\Controllers\ConflictController::class, 'index'])->name('conflicts.index');
+
+
+    Route::get('/version-history', [VersionHistoryController::class, 'index'])->name('versions.index');
 
     // RESOLVE CONFLICTS
     // Route::post('/conflicts/{versionId}/resolve', [ConflictController::class, 'resolve'])
