@@ -4,7 +4,7 @@ import { usePage } from '@inertiajs/react';
 export default function ScheduleViewer({ schedules }) {
     // UI State
     const [activeTab, setActiveTab] = useState('Section'); // 'Section' or 'Teacher'
-    const [setMode, setMode] = useState('Set A'); // 'Set A' or 'Set B'
+    const [mode, setMode] = useState('Set A'); // 'Set A' or 'Set B'
     const [selectedFilterId, setSelectedFilterId] = useState('');
 
     // Extract unique Sections and Teachers for the Dropdowns

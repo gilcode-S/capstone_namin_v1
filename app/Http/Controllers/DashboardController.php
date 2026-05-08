@@ -3,121 +3,110 @@
 namespace App\Http\Controllers;
 
 use App\Models\Teacher;
-use App\Models\Room;
-use App\Models\Schedule;
-use App\Models\Section;
 use App\Models\Subject;
+use App\Models\Room;
+use App\Models\Section;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
-
-
-    public function index()
+    public function index(Request $request)
     {
+        $user = $request->user();
+        $role = $user->role;
 
-        $fakeSchedules = collect([
-            (object)[
-                'room_id' => 1,
-                'teacher_id' => 1,
-                'timeslot_id' => 1,
-            ],
-            (object)[
-                'room_id' => 2,
-                'teacher_id' => 1,
-                'timeslot_id' => 2,
-            ],
-            (object)[
-                'room_id' => 1,
-                'teacher_id' => 2,
-                'timeslot_id' => 2,
-            ],
-        ]);
-        // ================= BASIC COUNTS =================
-        $totalSchedules = $fakeSchedules->count();
-        $totalFaculty   = Teacher::count();
-        $totalRooms     = Room::count();
-        $totalSubjects  = Subject::count();
-        $totalSections  = Section::count();
+        $stats = [];
+        $quickActions = [];
 
-        // ================= ROOM UTILIZATION =================
-        $usedRooms = $fakeSchedules
-            ->pluck('room_id')
-            ->unique()
-            ->count();
+        // 1. Gather Role-Specific Stats & Quick Actions
+        if ($role === 'hr') {
+            $stats = [
+                ['label' => 'Total Teachers', 'value' => Teacher::count(), 'desc' => 'Active faculty members', 'icon' => 'user-group'],
+                ['label' => 'Missing Domains', 'value' => Teacher::doesntHave('domain')->count(), 'desc' => 'Requires domain tagging', 'icon' => 'exclamation-circle', 'alert' => true],
+                ['label' => 'Avg Workload', 'value' => '18 hrs', 'desc' => 'Across all faculty', 'icon' => 'clock'],
+            ];
+            $quickActions = [
+                ['title' => 'Manage Teachers', 'desc' => 'Update faculty availability', 'url' => '/teachers']
+            ];
+        } elseif ($role === 'registrar') {
+            $stats = [
+                ['label' => 'Total Subjects', 'value' => Subject::count(), 'desc' => 'Courses in registry', 'icon' => 'book-open'],
+                ['label' => 'Total Sections', 'value' => Section::count(), 'desc' => 'Active student cohorts', 'icon' => 'users'],
+                ['label' => 'Missing Prereqs', 'value' => Subject::where('type', 'Major')->whereNull('prerequisite_subject_id')->count(), 'desc' => 'Majors without prereqs', 'icon' => 'exclamation-circle'],
+            ];
+            $quickActions = [
+                ['title' => 'Manage Subjects', 'desc' => 'Update academic registry', 'url' => '/subjects'],
+                ['title' => 'Map Curriculum', 'desc' => 'Assign subjects to semesters', 'url' => '/curriculum']
+            ];
+        } elseif ($role === 'staff') {
+            $stats = [
+                ['label' => 'Total Classrooms', 'value' => Room::count(), 'desc' => 'Available physical spaces', 'icon' => 'building-office'],
+                ['label' => 'Unresolved Conflicts', 'value' => 3 /* Simulated from ConflictScanner */, 'desc' => 'Requires immediate action', 'icon' => 'exclamation-triangle', 'alert' => true],
+                ['label' => 'Active Schedule', 'value' => 'V.2', 'desc' => '2026-2027 1st Sem', 'icon' => 'calendar'],
+            ];
+            $quickActions = [
+                ['title' => 'Generate New Schedule', 'desc' => 'Run optimization algorithm', 'url' => '/schedules/generate'],
+                ['title' => 'Resolve Conflicts', 'desc' => 'Review scheduling overlaps', 'url' => '/conflicts']
+            ];
+        } else { // Super Admin / Director
+            $stats = [
+                ['label' => 'Total Teachers', 'value' => Teacher::count(), 'desc' => 'Active faculty members', 'icon' => 'user-group'],
+                ['label' => 'Classrooms', 'value' => Room::count(), 'desc' => 'Available rooms & labs', 'icon' => 'building-office'],
+                ['label' => 'Subjects', 'value' => Subject::count(), 'desc' => 'Courses to schedule', 'icon' => 'book-open'],
+                ['label' => 'Sections', 'value' => Section::count(), 'desc' => 'Sections from all departments', 'icon' => 'clock'],
+            ];
+            $quickActions = [
+                ['title' => 'Analytics Dashboard', 'desc' => 'View system performance', 'url' => '/analytics'],
+                ['title' => 'System Access', 'desc' => 'Manage staff accounts', 'url' => '/users']
+            ];
+        }
 
-        $roomUtilization = $totalRooms > 0
-            ? ($usedRooms / $totalRooms) * 100
-            : 0;
-
-        // ================= TEACHER WORKLOAD BALANCE =================
-        $teachers = Teacher::all()->map(function ($t) use ($fakeSchedules) {
-            $t->schedules_count = $fakeSchedules
-                ->where('teacher_id', $t->id)
-                ->count();
-
-            return $t;
+        // 2. Fetch Global Recent Activities (Using Laravel's diffForHumans for nice formatting)
+        $activities = AuditLog::latest()->take(5)->get()->map(function ($log) {
+            return [
+                'id' => $log->id,
+                'action' => $log->action,
+                'description' => $log->description,
+                'user' => $log->user_name,
+                'module' => $log->module,
+                'time' => $log->created_at->diffForHumans() // e.g., "2 hours ago"
+            ];
         });
 
-        $loads = $teachers->pluck('schedules_count');
+        // 3. Optimization Metrics (Simulated for the Director/Scheduler view)
+        $metrics = [
+            ['label' => 'Teacher Workload Balance', 'score' => 94, 'status' => 'Excellent'],
+            ['label' => 'Classroom Utilization', 'score' => 85, 'status' => 'Good'],
+            ['label' => 'Conflict Resolution', 'score' => 78, 'status' => 'Satisfactory'],
+            ['label' => 'Resource Efficiency', 'score' => 89, 'status' => 'Good'],
+        ];
 
-        $avg = $loads->avg() ?? 0;
-
-        $variance = $loads->map(function ($l) use ($avg) {
-            return pow($l - $avg, 2);
-        })->avg() ?? 0;
-
-        $stdDev = sqrt($variance);
-
-        // Lower std dev = better balance
-        $workloadScore = $avg > 0
-            ? max(0, 100 - (($stdDev / $avg) * 100))
-            : 100;
-
-        // ================= CONFLICT DETECTION =================
-        // (needed for resolution score)
-        $conflicts = $fakeSchedules
-            ->groupBy(function ($item) {
-                return $item->room_id . '-' . $item->timeslot_id;
-            })
-            ->filter(function ($group) {
-                return $group->count() > 1;
-            })
-            ->count();
-        // ================= CONFLICT RESOLUTION =================
-        $totalPossibleConflicts = max(1, $totalSchedules);
-
-        $conflictResolutionScore = max(
-            0,
-            100 - (($conflicts / $totalPossibleConflicts) * 100)
-        );
-
-        // ================= RESOURCE EFFICIENCY =================
-        // simplified (since compactness removed)
-        $resourceEfficiency = $roomUtilization;
-
-        // ================= RESPONSE =================
         return Inertia::render('dashboard', [
-            'metrics' => [
-                'faculty'  => $totalFaculty,
-                'rooms'    => $totalRooms,
-                'subjects' => $totalSubjects,
-                'sections' => $totalSections,
-            ],
-
-            'optimization' => [
-                'workload'            => round($workloadScore),
-                'rooms'               => round($roomUtilization),
-
-                // ✅ NEW FINAL METRICS
-                'conflict_resolution' => round($conflictResolutionScore),
-                'resource_efficiency' => round($resourceEfficiency),
-            ],
-
-            'summary' => [
-                'conflicts' => $conflicts,
-            ],
+            'roleStats' => $stats,
+            'quickActions' => $quickActions,
+            'activities' => $activities,
+            'metrics' => $metrics,
+            'userRole' => $role
         ]);
+    }
+
+
+    public function backupDatabase()
+    {
+        // Define the file name
+        $filename = "school_backup_" . date('Y-m-d_H-i-s') . ".sql";
+        $storagePath = storage_path("app/public/" . $filename);
+
+        // XAMPP MySQL Dump command (Adjust the path if you use Laragon/WAMP)
+        // Format: mysqldump -u [username] [database_name] > [output_file]
+        $command = "C:\\xampp\\mysql\\bin\\mysqldump.exe -u root your_database_name > " . $storagePath;
+
+        // Execute the command on the computer
+        exec($command);
+
+        // Force the browser to download the file
+        return response()->download($storagePath)->deleteFileAfterSend(true);
     }
 }

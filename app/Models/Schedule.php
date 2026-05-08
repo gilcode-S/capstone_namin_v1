@@ -12,56 +12,36 @@ use App\Models\TimeSlot;
 
 class Schedule extends Model
 {
-    protected $fillable = [
-        'version_id',
-        'subject_id',
-        'teacher_id',
-        'section_id',
-        'room_id',
-        'day',
-        'timeslot',
-        'set_type',
-        'is_online',
-        'meeting_group',
-        'domain_score',
-        'teacher_score',
-        'cp_sat_weight',
-        'conflict_type'
-    ];
+    protected $guarded = [];
 
     // ✅ Version
     public function version()
     {
-        return $this->belongsTo(ScheduleVersion::class, 'version_id', 'id');
+        return $this->belongsTo(ScheduleVersion::class, 'schedule_version_id');
     }
 
-    // ✅ Faculty (teacher)
-    public function teacher()
-    {
-        return $this->belongsTo(Faculty::class, 'teacher_id', 'id');
-    }
-
-    // ✅ Subject
     public function subject()
     {
-        return $this->belongsTo(Subject::class, 'subject_id', 'id');
+        return $this->belongsTo(Subject::class);
     }
 
-    // ✅ Section
-    public function section()
+    public function teacher()
     {
-        return $this->belongsTo(Section::class, 'section_id', 'id');
+        return $this->belongsTo(Teacher::class);
     }
 
-    // ✅ Room
     public function room()
     {
-        return $this->belongsTo(Room::class, 'room_id', 'id');
+        return $this->belongsTo(Room::class);
     }
 
-    // ✅ Time slot
     public function timeslot()
     {
-        return $this->belongsTo(TimeSlot::class, 'time_slot_id', 'id');
+        return $this->belongsTo(Timeslot::class);
+    }
+
+    public function section()
+    {
+        return $this->belongsTo(Section::class);
     }
 }
