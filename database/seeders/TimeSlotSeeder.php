@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Timeslot;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class TimeslotSeeder extends Seeder
 {
@@ -13,7 +14,7 @@ class TimeslotSeeder extends Seeder
      */
     public function run(): void
     {
-        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', ];
 
         // Strict 1-hour blocks with your exact 5-hour shift limits
         $shifts = [
@@ -41,7 +42,9 @@ class TimeslotSeeder extends Seeder
         ];
 
         // Clear out any old timeslots just in case you run this twice
-        DB::table('timeslots')->truncate();
+        Schema::disableForeignKeyConstraints();
+        Timeslot::truncate();
+        Schema::enableForeignKeyConstraints();
 
         // Loop through and build the perfect grid
         foreach ($days as $day) {

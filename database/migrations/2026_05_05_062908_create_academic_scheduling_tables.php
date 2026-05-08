@@ -54,12 +54,12 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('specializations', function (Blueprint $table) {
-            $table->id();
+        // Schema::create('specializations', function (Blueprint $table) {
+        //     $table->id();
 
-            $table->string('name'); // e.g. "Software Engineering", "Mathematics"
-            $table->timestamps();
-        });
+        //     $table->string('name'); // e.g. "Software Engineering", "Mathematics"
+        //     $table->timestamps();
+        // });
 
         // 4. TEACHERS / FACULTY (Page 5)
         Schema::create('teachers', function (Blueprint $table) {
@@ -72,8 +72,10 @@ return new class extends Migration
             $table->foreignId('specialization_id')->nullable()->constrained('domains');
             $table->string('custom_specialization')->nullable();
             $table->integer('experience_years');
-            $table->integer('min_hours');
-            $table->integer('max_hours');
+            $table->string('rank')->default('Junior'); // Junior, Mid, Senior
+            $table->boolean('available')->default(true);
+            $table->integer('max_hours')->default(30);
+            $table->integer('current_hours')->default(0);
             $table->json('availability_days'); // e.g., ["Monday", "Tuesday"]
             $table->json('shift_preferences'); // e.g., ["Morning", "Afternoon"]
             $table->timestamps();
@@ -85,6 +87,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('code')->unique();
             $table->enum('type', ['Major', 'Minor']);
+            $table->integer('year_level'); // 1, 2, 3, 4, 5
             $table->integer('units');
 
             // Major Subject Logic

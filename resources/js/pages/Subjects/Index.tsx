@@ -31,7 +31,7 @@ interface Subject {
     code: string
     type: string
     units: number
-
+    year_level?: number
     program_id?: number
     domain_id?: number
 
@@ -60,7 +60,7 @@ const emptyForm = {
     code: '',
     type: '',
     units: '',
-
+    year_level: '',
     program_id: '',
     prerequisite_subject_id: '',
     domain_id: '',
@@ -174,7 +174,7 @@ export default function Index() {
             code: subject.code || '',
             type: subject.type || '',
             units: subject.units || '',
-
+            year_level: subject.year_level || '',
             program_id: subject.program_id || '',
             prerequisite_subject_id: subject.prerequisite_subject_id || '',
             domain_id: subject.domain_id || '',
@@ -221,7 +221,9 @@ export default function Index() {
             ...form,
 
             units: Number(form.units),
-
+            year_level: form.year_level
+                ? Number(form.year_level)
+                : null,
             // Major only
             program_id:
                 form.type === 'Major'
@@ -571,6 +573,22 @@ export default function Index() {
                                         className="h-11 rounded-md"
                                     />
                                 </div>
+                                <div>
+                                    <Label>Year Level</Label>
+
+                                    <select
+                                        name="year_level"
+                                        value={form.year_level}
+                                        onChange={handleChange}
+                                        className="w-full h-11 rounded-md border px-3"
+                                    >
+                                        <option value="">Select Year Level</option>
+                                        <option value="1">1st Year</option>
+                                        <option value="2">2nd Year</option>
+                                        <option value="3">3rd Year</option>
+                                        <option value="4">4th Year</option>
+                                    </select>
+                                </div>
                             </div>
 
                             {/* PROGRAM */}
@@ -603,7 +621,7 @@ export default function Index() {
                                         onChange={handleChange}
                                         className="w-full h-11 rounded-md border px-3"
                                     >
-                                        <option value="">Select Domain Group</option>
+                                        <option value="">Select Domain</option>
 
                                         {domains.map((g: any) => (
                                             <option key={g.id} value={g.id}>
@@ -628,11 +646,13 @@ export default function Index() {
                                     >
                                         <option value="">None</option>
 
-                                        {allSubjects.map((s: any) => (
-                                            <option key={s.id} value={s.id}>
-                                                {s.code} - {s.name}
-                                            </option>
-                                        ))}
+                                        {allSubjects
+                                            .filter((s: any) => s.type === 'Major')
+                                            .map((s: any) => (
+                                                <option key={s.id} value={s.id}>
+                                                    {s.code} - {s.name}
+                                                </option>
+                                            ))}
                                     </select>
                                 </div>
                             )}

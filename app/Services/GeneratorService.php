@@ -8,7 +8,7 @@ use App\Models\Schedule;
 
 class GeneratorService
 {
-    public function generate()
+    public function generate($versionId)
     {
         // 1. SORT BY YEAR LEVEL (Seniority First)
         // 4th-year subjects get processed first, picking the best teachers.
@@ -30,7 +30,7 @@ class GeneratorService
 
                 // Domain Match (Hard Requirement for Phase 1)
                 if (!$teacher->hasDomain($subject->domain_id)) {
-                    continue; 
+                    continue;
                 }
                 $score += 50;
 
@@ -50,14 +50,14 @@ class GeneratorService
             // Phase 2: GRACEFUL DEGRADATION (The Orange Fallback)
             if (!$assignedTeacher) {
                 $isFallback = true;
-                
+
                 if ($subject->type === 'Minor') {
                     // Desperation 1: Grab literally any available teacher
                     $assignedTeacher = Teacher::where('available', true)->first();
                 } else {
                     // Desperation 2: Grab a competent teacher even if they hit Overtime
                     $assignedTeacher = Teacher::where('available', true)
-                        ->whereHas('domains', function($q) use ($subject) {
+                        ->whereHas('domains', function ($q) use ($subject) {
                             $q->where('id', $subject->domain_id);
                         })->first();
                 }
@@ -66,11 +66,14 @@ class GeneratorService
             // Phase 3: COMMIT TO DATABASE
             if ($assignedTeacher) {
                 Schedule::create([
+                    'schedule_version_id' => $versionId,
+
+
                     'subject_id' => $subject->id,
                     'teacher_id' => $assignedTeacher->id,
                     'is_fallback' => $isFallback // Triggers the Orange Warning in the UI
                 ]);
-                
+
                 // Update teacher's workload
                 $assignedTeacher->increment('current_hours', $subject->units);
             }

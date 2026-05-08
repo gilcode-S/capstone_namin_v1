@@ -9,6 +9,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FacultyController;
 use App\Http\Controllers\GenerateController;
+use App\Http\Controllers\GeneratorController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\SectionController;
@@ -64,8 +65,8 @@ Route::middleware(['auth', 'role:staff,super admin'])
     ->resource('time-slots', TimeSlotController::class);
 Route::middleware(['auth', 'role:staff,super admin'])
     ->resource('semesters', controller: SemesterController::class);
-Route::middleware(['auth', 'role:staff,super admin'])
-    ->resource('schedules', controller: ScheduleController::class);
+// Route::middleware(['auth', 'role:staff,super admin'])
+//     ->resource('schedules', controller: ScheduleController::class);
 
 
 // PAGE 14: User Management (Strictly locked to Super Admins)
@@ -93,11 +94,11 @@ Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
 
     // PAGE 9 & 10: SCHEDULE GENERATION
-    Route::get('/schedules', [ScheduleController::class, 'index'])->name('schedules.index');
-    Route::get('/schedules/generate', [ScheduleController::class, 'create'])->name('schedules.create');
+    // Route::get('/schedules', [ScheduleController::class, 'index'])->name('schedules.index');
+    // Route::get('/schedules/generate', [ScheduleController::class, 'create'])->name('schedules.create');
 
-    // The endpoint your React app will hit when the admin clicks "Generate Schedule"
-    Route::post('/schedules/generate', [ScheduleController::class, 'generate'])->name('schedules.generate');
+    // // The endpoint your React app will hit when the admin clicks "Generate Schedule"
+    // Route::post('/schedules/generate', [ScheduleController::class, 'generate'])->name('schedules.generate');
 
 
     Route::get('/conflicts', [App\Http\Controllers\ConflictController::class, 'index'])->name('conflicts.index');
@@ -109,6 +110,19 @@ Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
     // Route::post('/conflicts/{versionId}/resolve', [ConflictController::class, 'resolve'])
     //     ->name('conflicts.resolve');
 });
+
+
+Route::middleware(['auth', 'role:super admin'])->group(function () {
+    // Page 9: The Pre-Flight Dashboard
+    Route::get('/schedules/generator', [GeneratorController::class, 'index'])->name('generator.index');
+
+    // The Execution API (Runs the math, then redirects)
+    Route::post('/schedules/generate', [GeneratorController::class, 'generate'])->name('generator.execute');
+
+    // Page 8: The Schedule Viewer
+    Route::get('/schedules/viewer', [ScheduleController::class, 'index'])->name('schedules.viewer');
+});
+
 // Route::get('/conflicts', function () {
 //     $version = \App\Models\ScheduleVersion::where('is_active', 1)->first();
 

@@ -83,7 +83,7 @@ class SubjectController extends Controller
             'code' => 'required|string|max:50|unique:subjects,code',
             'type' => 'required|in:Major,Minor',
             'units' => 'required|integer|min:1',
-
+            'year_level' => 'nullable|integer|min:1|max:4',
             'program_id' => 'nullable|exists:programs,id',
             'domain_id' => 'nullable|exists:domains,id',
 
@@ -114,7 +114,7 @@ class SubjectController extends Controller
             'code' => 'required|string|max:50|unique:subjects,code,' . $subject->id,
             'type' => 'required|in:Major,Minor',
             'units' => 'required|integer|min:1',
-
+            'year_level' => 'required|integer|min:1|max:4',
             'program_id' => 'nullable|exists:programs,id',
             'domain_id' => 'nullable|exists:domains,id',
 

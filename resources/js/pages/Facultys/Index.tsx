@@ -73,7 +73,7 @@ interface Teacher {
     name: string
   }
 
-  min_hours: number
+  current_hours: number
   max_hours: number
 
   assigned_load: number
@@ -94,7 +94,7 @@ const emptyForm = {
 
   experience_years: '',
 
-  min_hours: '',
+  current_hours: '',
   max_hours: '',
 
   availability_days: [],
@@ -177,7 +177,7 @@ export default function Index() {
 
       experience_years: faculty.experience_years || '',
 
-      min_hours: faculty.min_hours || '',
+      current_hours: faculty.current_hours || '',
       max_hours: faculty.max_hours || '',
 
       // ✅ FIXED HERE
@@ -340,7 +340,7 @@ export default function Index() {
     const payload = {
       ...form,
       experience_years: Number(form.experience_years),
-      min_hours: Number(form.min_hours),
+      current_hours: Number(form.current_hours),
       max_hours: Number(form.max_hours),
     }
 
@@ -718,7 +718,7 @@ export default function Index() {
                     {/* HOURS + PROGRESS */}
                     <td className="p-3 w-[180px]">
                       <div className="text-xs mb-1">
-                        {f.min_hours} / {f.max_hours}
+                        {f.current_hours} / {f.max_hours}
                       </div>
 
                       <div className="w-full bg-gray-200 h-2 rounded-full">
@@ -953,11 +953,11 @@ export default function Index() {
               {/* HOURS */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Min Hours</Label>
+                  <Label>Current Hours</Label>
                   <Input
                     type="number"
-                    name="min_hours"
-                    value={form.min_hours}
+                    name="current_hours"
+                    value={form.current_hours}
                     onChange={handleChange}
                     required
                   />

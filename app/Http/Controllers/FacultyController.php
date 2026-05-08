@@ -18,7 +18,7 @@ class FacultyController extends Controller
         if ($request->search) {
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('code', 'like', "%{$request->search}%");
+                    ->orWhere('code', 'like', "%{$request->search}%");
             });
         }
 
@@ -30,7 +30,7 @@ class FacultyController extends Controller
 
         $avgLoad = $teachers->getCollection()->avg(function ($t) {
             return $t->max_hours > 0
-                ? min(100, (0 / $t->max_hours) * 100)
+                ? min(100, ($t->current_hours / $t->max_hours) * 100)
                 : 0;
         });
 
@@ -39,9 +39,9 @@ class FacultyController extends Controller
                 return [
                     ...$t->toArray(),
 
-                    'assigned_load' => 0,
+                    'assigned_load' => $t->current_hours,
                     'workload_percent' => $t->max_hours
-                        ? 0
+                        ? round(($t->current_hours / $t->max_hours) * 100)
                         : 0,
 
                     'availability_full' => $t->availability_days ?? [],
@@ -81,8 +81,8 @@ class FacultyController extends Controller
 
             'experience_years' => 'required|integer|min:0',
 
-            'min_hours' => 'required|integer|min:0',
-            'max_hours' => 'required|integer|gte:min_hours',
+            'current_hours' => 'required|integer|min:0',
+            'max_hours' => 'required|integer|min:0|gte:current_hours',
 
             'availability_days' => 'required|array',
             'shift_preferences' => 'required|array',
@@ -93,10 +93,10 @@ class FacultyController extends Controller
         return redirect()->back()->with('success', 'Teacher created');
     }
 
-    public function update(Request $request, Teacher $teacher)
+    public function update(Request $request, Teacher $faculty)
     {
         $validated = $request->validate([
-            'code' => 'required|unique:teachers,code,' . $teacher->id,
+            'code' => 'required|unique:teachers,code,' . $faculty->id,
             'name' => 'required|string',
 
             'department_id' => 'required|exists:departments,id',
@@ -107,22 +107,21 @@ class FacultyController extends Controller
             'custom_specialization' => 'nullable|string',
 
             'experience_years' => 'required|integer|min:0',
-
-            'min_hours' => 'required|integer|min:0',
-            'max_hours' => 'required|integer|gte:min_hours',
+            'current_hours' => 'required|integer|min:0',
+            'max_hours' => 'required|integer|min:0|gte:current_hours',
 
             'availability_days' => 'required|array',
             'shift_preferences' => 'required|array',
         ]);
 
-        $teacher->update($validated);
+        $faculty->update($validated);
 
         return redirect()->back()->with('success', 'Teacher updated');
     }
 
-    public function destroy(Teacher $teacher)
+    public function destroy(Teacher $faculty)
     {
-        $teacher->delete();
+        $faculty->delete();
 
         return redirect()->back()->with('success', 'Teacher deleted');
     }

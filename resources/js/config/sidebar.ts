@@ -42,7 +42,7 @@ export const sidebarConfig = {
       items: [
         { title: "Rooms", href: "/rooms", icon: Folder },
         { title: "Faculty", href: "/faculty", icon: Users },
-        { title: "Teacher", href: "/teachers", icon: Users },
+  
         { title: "Time Slots", href: "/time-slots", icon: Clock10Icon }
       ]
     },
@@ -53,7 +53,7 @@ export const sidebarConfig = {
  
         { title: "Schedule Versions", href: "/version-history", icon: Calendar },
         { title: "View Schedule", href: "/schedules", icon: ScanHeart },
-        { title: "Generate Schedule", href: "/generate-schedule", icon: PlusCircle },
+        { title: "Generate Schedule", href: '/schedules/generator', icon: PlusCircle },
         { title: "Conflict Detection", href: "/conflicts", icon: AlertCircle } // ✅ FIXED
       ]
     },
