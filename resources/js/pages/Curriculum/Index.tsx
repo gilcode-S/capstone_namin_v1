@@ -312,7 +312,7 @@ export default function Curriculum({
                                                                         .filter((s: any) => s.type === 'Major')
                                                                         .map((s: any) => (
                                                                             <option key={s.id} value={s.id}>
-                                                                                {s.subject_code} - {s.subject_name}
+                                                                                {s.code} - {s.name}
                                                                             </option>
                                                                         ))}
                                                                 </select>
