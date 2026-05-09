@@ -32,6 +32,17 @@ export default function ScheduleViewer({
     const [selectedTeacher, setSelectedTeacher] = useState(null);
     const [sectionSet, setSectionSet] = useState('Set A');
 
+    const [sectionSearch, setSectionSearch] = useState('');
+    const [teacherSearch, setTeacherSearch] = useState('');
+
+    const filteredSections = sections.filter((s) =>
+        s.name?.toLowerCase().includes(sectionSearch.toLowerCase()),
+    );
+
+    const filteredTeachers = teachers.filter((t) =>
+        t.name?.toLowerCase().includes(teacherSearch.toLowerCase()),
+    );
+
     // Filters for Grid View
     const [filters, setFilters] = useState({
         set: 'Set A',
@@ -902,11 +913,13 @@ export default function ScheduleViewer({
                         <input
                             type="text"
                             placeholder="Search Section..."
+                            value={sectionSearch}
+                            onChange={(e) => setSectionSearch(e.target.value)}
                             className="mb-6 w-full rounded-lg border-2 border-gray-200 bg-white p-3 font-bold shadow-sm md:w-1/3"
                         />
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
                             {sections &&
-                                sections.map((s) => (
+                                filteredSections.map((s) => (
                                     <div
                                         key={s.id}
                                         onClick={() => setSelectedSection(s)}
@@ -938,11 +951,13 @@ export default function ScheduleViewer({
                         <input
                             type="text"
                             placeholder="Search Teacher..."
+                            value={teacherSearch}
+                            onChange={(e) => setTeacherSearch(e.target.value)}
                             className="mb-6 w-full rounded-lg border-2 border-gray-200 bg-white p-3 font-bold shadow-sm md:w-1/3"
                         />
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
                             {teachers &&
-                                teachers.map((t) => (
+                                filteredTeachers.map((t) => (
                                     <div
                                         key={t.id}
                                         onClick={() => setSelectedTeacher(t)}
@@ -952,8 +967,8 @@ export default function ScheduleViewer({
                                             {t.name}
                                         </h2>
                                         <p className="text-sm font-bold text-gray-500">
-                                            🕒 {t.current_hours || 0} Hrs
-                                            Workload
+                                            🕒 {t.current_hours || 0} Hrs (
+                                            {t.workload_percent || 0}%)
                                         </p>
                                     </div>
                                 ))}

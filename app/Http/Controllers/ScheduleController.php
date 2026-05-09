@@ -19,7 +19,6 @@ class ScheduleController extends Controller
 
         $versionId = $activeVersion ? $activeVersion->id : null;
         $versionName = $activeVersion ? "{$activeVersion->academic_year} - {$activeVersion->semester}" : "Draft Schedule";
-
         $teachers = Teacher::all()->map(function ($teacher) use ($versionId) {
 
             $hours = Schedule::where('schedule_version_id', $versionId)
@@ -29,13 +28,18 @@ class ScheduleController extends Controller
                 ->sum(function ($s) {
                     if (!$s->timeslot) return 0;
 
-                    $start = strtotime($s->timeslot->start_time);
-                    $end = strtotime($s->timeslot->end_time);
-
-                    return ($end - $start) / 3600; // convert seconds → hours
+                    return (
+                        strtotime($s->timeslot->end_time) -
+                        strtotime($s->timeslot->start_time)
+                    ) / 3600;
                 });
 
             $teacher->current_hours = $hours;
+
+            // 🔥 ADD THIS (IMPORTANT)
+            $teacher->workload_percent = $teacher->max_hours
+                ? min(99, round(($hours / $teacher->max_hours) * 100))
+                : 0;
 
             return $teacher;
         });
