@@ -21,7 +21,9 @@ class SubjectController extends Controller
         $rooms = Room::orderBy('generated_name')->get();
 
         // Fetch existing subjects to display in the table (and to use as prerequisites)
-        $subjects = Subject::with(['program', 'domain', 'prerequisite', 'prefTeacher', 'reqRoom'])->get();
+        $subjects = Subject::with(['program', 'domain', 'prerequisite', 'prefTeacher', 'reqRoom'])->latest()
+            ->paginate(20)
+            ->withQueryString();;
 
         return Inertia::render('Subjects/Index', [
             'programs' => $programs,
