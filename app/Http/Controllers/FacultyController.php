@@ -6,11 +6,28 @@ use App\Models\Teacher;
 use App\Models\Department;
 use App\Models\DomainGroup;
 use App\Models\Domain;
+use App\Models\Schedule;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class FacultyController extends Controller
 {
+
+
+    private function calculateTeacherHours($teacherId)
+    {
+        return Schedule::where('teacher_id', $teacherId)
+            ->with('timeslot')
+            ->get()
+            ->sum(function ($s) {
+                if (!$s->timeslot) return 0;
+
+                return (
+                    strtotime($s->timeslot->end_time) -
+                    strtotime($s->timeslot->start_time)
+                ) / 3600;
+            });
+    }
     public function index(Request $request)
     {
         $query = Teacher::with(['department', 'domainGroup', 'specialization']);
@@ -28,10 +45,21 @@ class FacultyController extends Controller
 
         $teachers = $query->paginate(10)->withQueryString();
 
-        $avgLoad = $teachers->getCollection()->avg(function ($t) {
-            return $t->max_hours > 0
-                ? min(100, ($t->current_hours / $t->max_hours) * 100)
+        // 🔥 FIX: compute inside collection
+        $teachers->getCollection()->transform(function ($t) {
+
+            $currentHours = $this->calculateTeacherHours($t->id);
+
+            $t->assigned_load = $currentHours;
+            $t->workload_percent = $t->max_hours
+                ? round(($currentHours / $t->max_hours) * 100)
                 : 0;
+
+            return $t;
+        });
+
+        $avgLoad = $teachers->getCollection()->avg(function ($t) {
+            return $t->workload_percent ?? 0;
         });
 
         return Inertia::render('Facultys/Index', [
@@ -39,10 +67,9 @@ class FacultyController extends Controller
                 return [
                     ...$t->toArray(),
 
-                    'assigned_load' => $t->current_hours,
-                    'workload_percent' => $t->max_hours
-                        ? round(($t->current_hours / $t->max_hours) * 100)
-                        : 0,
+                    // 🔥 now consistent
+                    'assigned_load' => $t->assigned_load,
+                    'workload_percent' => $t->workload_percent,
 
                     'availability_full' => $t->availability_days ?? [],
                     'schedule_full' => [],
@@ -65,7 +92,6 @@ class FacultyController extends Controller
             ],
         ]);
     }
-
     public function store(Request $request)
     {
         $validated = $request->validate([

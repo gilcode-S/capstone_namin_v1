@@ -718,7 +718,7 @@ export default function Index() {
                     {/* HOURS + PROGRESS */}
                     <td className="p-3 w-[180px]">
                       <div className="text-xs mb-1">
-                        {f.current_hours} / {f.max_hours}
+                      {f.assigned_load ?? 0} / {f.max_hours ?? 0}
                       </div>
 
                       <div className="w-full bg-gray-200 h-2 rounded-full">
@@ -1023,113 +1023,8 @@ export default function Index() {
 
         {/* pop up modal */}
         {/* FACULTY VIEW MODAL */}
-        <Dialog
-          open={viewOpen}
-          onOpenChange={(open) => {
-            setViewOpen(open)
-            if (!open) setSelectedFaculty(null)
-          }}
-        >
-          <DialogContent className="max-w-4xl w-full h-[90vh] flex flex-col p-0 rounded-2xl">
-
-            {selectedFaculty && (
-              <div className="flex flex-col h-full bg-white">
-
-                {/* HEADER (FIXED) */}
-                <div className="p-6 border-b shrink-0 bg-white">
-                  <h2 className="text-2xl font-bold">
-                    {selectedFaculty.first_name} {selectedFaculty.last_name}
-                  </h2>
-
-                  <p className="text-sm text-gray-500 mt-1">
-                    Department: {selectedFaculty.department?.department_name || "N/A"}
-                  </p>
-
-                  <p className="text-sm text-gray-500">
-                    Subjects: {selectedFaculty.subjects?.join(", ") || "None"}
-                  </p>
-
-                  <p className="text-sm text-gray-500">
-                    Availability: {
-                      selectedFaculty.availability_full?.map(a => a.day_of_week).join(", ")
-                      || "None"
-                    }
-                  </p>
-
-                  <p className="text-sm text-gray-500">
-                    Workload: {selectedFaculty.workload_percent ?? 0}%
-                  </p>
-                </div>
-
-                {/* SCROLLABLE BODY */}
-                <div className="flex-1 overflow-y-auto p-6 bg-gray-50 space-y-6">
-
-                  {/* WEEKLY SCHEDULE */}
-                  <div className="bg-white rounded-xl border overflow-hidden">
-
-                    {/* SCHEDULE HEADER (STICKY) */}
-                    <div className="p-4 border-b sticky top-0 bg-white z-10">
-                      <h3 className="font-semibold text-lg">Weekly Schedule</h3>
-                      <p className="text-sm text-gray-500">
-                        Showing assigned teaching schedule
-                      </p>
-                    </div>
-
-                    {/* EMPTY STATE */}
-                    {Object.keys(groupedSchedule).length === 0 && (
-                      <div className="p-6 text-center text-gray-500">
-                        No schedule assigned
-                      </div>
-                    )}
-
-                    {/* SCHEDULE LIST */}
-                    <div className="divide-y">
-
-                      {Object.entries(groupedSchedule).map(([day, schedules]) => (
-                        <div key={day}>
-
-                          {/* DAY HEADER (OPTIONAL STICKY 🔥) */}
-                          <div className="bg-gray-100 px-4 py-2 font-semibold sticky top-[60px] z-10">
-                            {day}
-                          </div>
-
-                          {schedules.map((sched, i) => (
-                            <div
-                              key={i}
-                              className="p-4 flex justify-between hover:bg-gray-50"
-                            >
-
-                              <span className="text-sm">
-                                {formatTime(sched.start_time)} - {formatTime(sched.end_time)}
-                              </span>
-
-                              <span className="font-medium">
-                                {sched.subject}
-                              </span>
-
-                              <span className="text-gray-500 text-sm">
-                                {sched.room}
-                              </span>
-
-                            </div>
-                          ))}
-
-                        </div>
-                      ))}
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-              </div>
-            )}
-
-          </DialogContent>
-        </Dialog>
-
+        
       </div>
     </AppLayout >
   )
-}
+} 
