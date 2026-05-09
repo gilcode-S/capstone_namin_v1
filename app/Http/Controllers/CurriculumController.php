@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CurriculumSubject;
-use App\Models\Department;
 use App\Models\Programs;
 use App\Models\Subject;
+use App\Models\CurriculumSubject;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -13,98 +12,38 @@ class CurriculumController extends Controller
 {
     public function index(Request $request)
     {
-        $departmentId = $request->department_id;
-        $programId = $request->program_id;
+        $programs = Programs::all();
+        $selectedProgram = null;
+        $curriculum = [];
+        $availableSubjects = [];
 
-        /*
-        |--------------------------------------------------------------------------
-        | FILTERS
-        |--------------------------------------------------------------------------
-        */
+        // If the admin has selected a program from the dropdown, load its specific data
+        if ($request->has('program_id')) {
+            $programId = $request->program_id;
+            $selectedProgram = Programs::find($programId);
 
-        $departments = Department::all();
-
-        $programs = $departmentId
-            ? Programs::where('department_id', $departmentId)->get()
-            : collect();
-
-        /*
-        |--------------------------------------------------------------------------
-        | SUBJECTS
-        |--------------------------------------------------------------------------
-        */
-
-        $subjects = $programId
-            ? Subject::where(function ($q) use ($programId) {
-                $q->where('program_id', $programId)
-                    ->orWhere('type', 'Minor');
-            })->get()
-            : collect();
-
-        /*
-        |--------------------------------------------------------------------------
-        | CURRICULUM
-        |--------------------------------------------------------------------------
-        */
-
-        $curriculum = collect();
-
-        if ($programId) {
-
-            $curriculum = CurriculumSubject::with('subject')
+            // Load the current curriculum map for this program
+            $curriculum = CurriculumSubject::with(['subject.prerequisite'])
                 ->where('program_id', $programId)
-                ->get()
-                ->groupBy('year_level')
-                ->map(function ($yearGroup) {
+                ->get();
 
-                    $semesters = $yearGroup->groupBy('semester');
-
-                    return collect([1, 2])->mapWithKeys(function ($sem) use ($semesters) {
-
-                        $semGroup = $semesters->get($sem, collect());
-
-                        return [
-                            $sem => [
-
-                                'major' => $semGroup
-                                    ->filter(
-                                        fn($c) =>
-                                        optional($c->subject)->type === 'Major'
-                                    )
-                                    ->values(),
-
-                                'minor' => $semGroup
-                                    ->filter(
-                                        fn($c) =>
-                                        optional($c->subject)->type === 'Minor'
-                                    )
-                                    ->values(),
-                            ]
-                        ];
-                    });
-                });
+            // Load available subjects: 
+            // 1. Major subjects assigned to this specific program
+            // 2. ALL Minor subjects (since they are shared across all programs)
+            $availableSubjects = Subject::with('prerequisite')
+                ->where(function($query) use ($programId) {
+                    $query->where('program_id', $programId)
+                          ->orWhere('type', 'Minor');
+                })->get();
         }
 
         return Inertia::render('Curriculum/Index', [
-            'curriculum' => $curriculum,
-
-            'departments' => $departments,
-
             'programs' => $programs,
-
-            'subjects' => $subjects,
-
-            'selectedDepartment' => $departmentId,
-
-            'selectedProgram' => $programId,
+            'selectedProgram' => $selectedProgram,
+            'curriculum' => $curriculum,
+            'availableSubjects' => $availableSubjects
         ]);
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | STORE
-    |--------------------------------------------------------------------------
-    */
 
     public function store(Request $request)
     {
@@ -112,128 +51,28 @@ class CurriculumController extends Controller
             'program_id' => 'required|exists:programs,id',
             'subject_id' => 'required|exists:subjects,id',
             'year_level' => 'required|integer|min:1|max:4',
-            'semester' => 'required|integer|in:1,2',
+            'semester' => 'required|integer|in:1,2'
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | PREVENT DUPLICATE
-        |--------------------------------------------------------------------------
-        */
-
-        $exists = CurriculumSubject::where([
-            'program_id' => $validated['program_id'],
-            'subject_id' => $validated['subject_id'],
-            'year_level' => $validated['year_level'],
-            'semester' => $validated['semester'],
-        ])->exists();
-
-        if ($exists) {
-            return back()->with(
-                'error',
-                'Subject already exists in curriculum.'
-            );
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | CREATE
-        |--------------------------------------------------------------------------
-        */
-
-        CurriculumSubject::create([
-            'program_id' => $validated['program_id'],
-            'subject_id' => $validated['subject_id'],
-            'year_level' => $validated['year_level'],
-            'semester' => $validated['semester'],
-        ]);
-
-        return back()->with(
-            'success',
-            'Subject added to curriculum.'
-        );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | UPDATE
-    |--------------------------------------------------------------------------
-    */
-
-    public function update(Request $request, $id)
-    {
-        $curriculum = CurriculumSubject::findOrFail($id);
-
-        $validated = $request->validate([
-            'program_id' => 'required|exists:programs,id',
-            'subject_id' => 'required|exists:subjects,id',
-            'year_level' => 'required|integer|min:1|max:4',
-            'semester' => 'required|integer|in:1,2',
-        ]);
-
-        $exists = CurriculumSubject::where([
-            'program_id' => $validated['program_id'],
-            'subject_id' => $validated['subject_id'],
-            'year_level' => $validated['year_level'],
-            'semester' => $validated['semester'],
-        ])
-            ->where('id', '!=', $id)
+        // Prevent duplicate subjects in the same curriculum
+        $exists = CurriculumSubject::where('program_id', $validated['program_id'])
+            ->where('subject_id', $validated['subject_id'])
             ->exists();
 
         if ($exists) {
-            return back()->with(
-                'error',
-                'Duplicate curriculum entry.'
-            );
+            return redirect()->back()->withErrors(['subject_id' => 'This subject is already in the curriculum.']);
         }
 
-        $curriculum->update($validated);
+        CurriculumSubject::create($validated);
 
-        return back()->with(
-            'success',
-            'Curriculum updated.'
-        );
+        return redirect()->back()->with('success', 'Subject added to curriculum.');
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | DELETE SINGLE SUBJECT
-    |--------------------------------------------------------------------------
-    */
 
     public function destroy($id)
     {
-        CurriculumSubject::findOrFail($id)->delete();
-
-        return back()->with(
-            'success',
-            'Curriculum deleted.'
-        );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | DELETE ENTIRE SEMESTER
-    |--------------------------------------------------------------------------
-    */
-
-    public function destroySemester(Request $request)
-    {
-        $request->validate([
-            'program_id' => 'required|exists:programs,id',
-            'year_level' => 'required|integer',
-            'semester' => 'required|integer',
-        ]);
-
-        CurriculumSubject::where([
-            'program_id' => $request->program_id,
-            'year_level' => $request->year_level,
-            'semester' => $request->semester,
-        ])->delete();
-
-        return back()->with(
-            'success',
-            'Semester deleted successfully.'
-        );
+        $item = CurriculumSubject::findOrFail($id);
+        $item->delete();
+        
+        return redirect()->back()->with('success', 'Subject removed from curriculum.');
     }
 }

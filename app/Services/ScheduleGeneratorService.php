@@ -33,7 +33,7 @@ class ScheduleGeneratorService
                     $score += 50; // Huge point boost for matching department
                     $isQualified = true;
                 }
-            } 
+            }
             // COMPETENCY CHECK: Minor Subject (Domain Check)
             else {
                 if ($teacher->domainGroup && $teacher->domainGroup->domains->contains('id', $subject->domain_id)) {
@@ -51,7 +51,7 @@ class ScheduleGeneratorService
 
             // HARD CONSTRAINT FILTER: Skip unqualified teachers entirely
             if (!$isQualified) {
-                continue; 
+                continue;
             }
 
             // Add to our ranked array
@@ -62,7 +62,7 @@ class ScheduleGeneratorService
         }
 
         // Sort the array by score, highest first
-        usort($rankedTeachers, function($a, $b) {
+        usort($rankedTeachers, function ($a, $b) {
             return $b['score'] <=> $a['score'];
         });
 
@@ -74,7 +74,7 @@ class ScheduleGeneratorService
      * PAGE 11: THE GREEDY CONSTRUCTOR ALGORITHM
      * Takes a specific section, finds its curriculum, and builds the schedule.
      */
-    public function generateScheduleForSection(Section $section)
+    public function generateScheduleForSection(Section $section, $versionId)
     {
         // 1. Get the subjects this section needs from the Curriculum Guide
         $curriculumSubjects = CurriculumSubject::where('program_id', $section->program_id)
@@ -85,7 +85,7 @@ class ScheduleGeneratorService
 
         // 2. Get available Timeslots for this section's shift (e.g., Only Morning slots)
         $availableTimeslots = Timeslot::where('shift', $section->shift)->get();
-        
+
         // 3. Get all face-to-face rooms
         $rooms = Room::where('type', '!=', 'Online')->get();
 
@@ -98,7 +98,7 @@ class ScheduleGeneratorService
 
             // Get our pre-processed, ranked list of competent teachers
             $rankedTeachers = $this->rankTeachersForSubject($subject, $section);
-            
+
             // If no competent teacher exists, we must flag an error for the admin
             if ($rankedTeachers->isEmpty()) {
                 throw new \Exception("No competent teacher found for Subject: " . $subject->name);
@@ -128,12 +128,13 @@ class ScheduleGeneratorService
                 if ($availableRoom) {
                     // Lock it in!
                     $newScheduleBlock = [
+                        'schedule_version_id' => $versionId,
                         'section_id' => $section->id,
                         'subject_id' => $subject->id,
                         'teacher_id' => $assignedTeacher->id,
                         'room_id' => $availableRoom->id,
                         'timeslot_id' => $timeslot->id,
-                        'delivery_mode' => 'Face-to-Face',
+                      
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
@@ -160,9 +161,9 @@ class ScheduleGeneratorService
     {
         return DB::table('schedules')
             ->where('timeslot_id', $timeslotId)
-            ->where(function($query) use ($teacherId, $sectionId) {
+            ->where(function ($query) use ($teacherId, $sectionId) {
                 $query->where('teacher_id', $teacherId)
-                      ->orWhere('section_id', $sectionId);
+                    ->orWhere('section_id', $sectionId);
             })->exists();
     }
 
@@ -176,7 +177,7 @@ class ScheduleGeneratorService
         // In reality, you query the schedule to see if the teacher has 4 consecutive 
         // timeslots on the exact same `day` immediately prior to $timeslot->start_time.
         // If true, return true to force a skip.
-        
+
         return false; // Set to true when fully implemented
     }
 
@@ -189,7 +190,7 @@ class ScheduleGeneratorService
 
         foreach ($rooms as $room) {
             if (!in_array($room->id, $bookedRoomIds)) {
-                
+
                 // If it's a PE subject, it needs a PE room.
                 if (str_contains(strtolower($subject->name), 'pe') && $room->type !== 'PE') {
                     continue;

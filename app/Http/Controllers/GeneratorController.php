@@ -6,7 +6,9 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\Room;
 use App\Models\ScheduleVersion;
-use App\Services\GeneratorService;
+use App\Models\Section;
+// use App\Services\GeneratorService;
+use App\Services\ScheduleGeneratorService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -28,16 +30,17 @@ class GeneratorController extends Controller
 
         // 3. Curriculum Integrity (Find Majors missing prerequisites)
         $problemSubjects = Subject::where('type', 'Major')
-            ->whereNull('prerequisite_subject_id')
+            ->whereNull('program_id')
             ->get();
 
         $warnings = [];
         foreach ($problemSubjects as $subject) {
             $warnings[] = [
                 'subject' => $subject->code,
-                'message' => 'Missing prerequisite. This major subject lacks a foundational requirement.'
+                'message' => 'Missing Program. Major subjects must be assigned to a specific Degree Program.'
             ];
         }
+
 
         // Return the React view with all calculated data
         return Inertia::render('Schedules/Generator', [
@@ -52,7 +55,7 @@ class GeneratorController extends Controller
     /**
      * THE TRIGGER: Run the algorithm and save the schedule.
      */
-    public function generate(Request $request, GeneratorService $generator)
+    public function generate(Request $request, ScheduleGeneratorService $generator)
     {
         // 1. Validate the incoming request (Year & Semester)
         $validated = $request->validate([
@@ -71,7 +74,15 @@ class GeneratorController extends Controller
 
         // 3. EXECUTE THE ALGORITHM!
         // We pass the new Version ID to the service so it knows where to save the blocks
-        $generator->generate($version->id);
+        // $generator->generate($version->id);
+
+        // 🔥 THIS is the missing part
+        // 🚀 ONLY USE THE REAL SCHEDULER
+        $sections = Section::all();
+
+        foreach ($sections as $section) {
+            $generator->generateScheduleForSection($section, $version->id);
+        }
 
         // 4. Redirect to the Schedule Viewer (Page 8)
         return redirect()->route('schedules.viewer')->with('success', 'Optimization Algorithm completed successfully!');

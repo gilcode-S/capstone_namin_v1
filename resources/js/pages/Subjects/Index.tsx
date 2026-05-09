@@ -1,824 +1,257 @@
+import React, { useState } from 'react';
+import { useForm, router } from '@inertiajs/react';
 
+import { Head } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
+const breadcrumbs = [
+    {
+        title: 'Dashboard',
+        href: '/dashboard',
+    },
+    {
+        title: 'Generator',
+        href: '/schedules/generator',
+    },
+];
+export default function SubjectIndex({ subjects, programs, domains, teachers, rooms, flash }) {
 
-import { Head, router, usePage } from '@inertiajs/react'
-import { BarChart3, BookOpen, Clock, Pencil, Plus, Trash2, Users } from 'lucide-react'
-import { useEffect, useState } from 'react'
+    const [showAdvanced, setShowAdvanced] = useState(false);
+    const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-import { Button } from '@/components/ui/button'
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
-} from '@/components/ui/dialog'
-import { PROGRAMS_BY_DOMAIN } from '@/constant/programs'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import AppLayout from '@/layouts/app-layout'
-import Pagination from '@/components/Pagination'
-import StatCard from '@/components/StatCard'
-interface Program {
-    id: number
-    name: string
-}
+    const { data, setData, post, processing, reset, errors } = useForm({
+        name: '', code: '', type: 'Major', units: 3, year_level: '',
+        program_id: '', prerequisite_subject_id: '', domain_id: '',
+        pref_day: '', pref_shift: '', pref_teacher_id: '', pref_room_id: '',
+        req_day: '', req_shift: '', req_teacher_id: '', req_room_id: ''
+    });
 
+    // Dynamically filter prerequisites: Only show Major subjects that belong to the selected Program
+    const validPrerequisites = subjects.filter(sub => {
 
-
-interface Subject {
-    id: number
-    name: string
-    code: string
-    type: string
-    units: number
-    year_level?: number
-    program_id?: number
-    domain_id?: number
-
-    prerequisite_subject_id?: number
-
-    program?: Program
-
-    prerequisite?: {
-        id: number
-        code: string
-        name: string
-    }
-    domain?: {
-        id: number
-        name: string
-    }
-}
-interface Filters {
-    program_id?: string
-    semester?: string
-    year_level?: string
-}
-
-const emptyForm = {
-    name: '',
-    code: '',
-    type: '',
-    units: '',
-    year_level: '',
-    program_id: '',
-    prerequisite_subject_id: '',
-    domain_id: '',
-
-    pref_day: '',
-    pref_shift: '',
-    pref_teacher_id: '',
-    pref_room_id: '',
-
-    req_day: '',
-    req_shift: '',
-    req_teacher_id: '',
-    req_room_id: '',
-}
-export default function Index() {
-
-    const {
-        subjects,
-        programs,
-        filters,
-        stats,
-        allSubjects,
-        teachers,
-        domains,
-        rooms
-    } = usePage().props as unknown as {
-        subjects: {
-            data: Subject[]
-            links: any[]
+        // MAJOR SUBJECTS
+        if (data.type === 'Major') {
+            return (
+                sub.type === 'Major' &&
+                sub.program_id === parseInt(data.program_id)
+            );
         }
 
-        programs: Program[]
-
-        filters: Filters
-
-        stats: {
-            total_subject: number
-            total_minor: number
-            total_major: number
+        // MINOR SUBJECTS
+        if (data.type === 'Minor') {
+            return sub.type === 'Minor';
         }
 
-        allSubjects: Subject[]
+        return false;
+    });
 
-        domains: {
-            id: number
-            name: string
-        }[]
-
-        rooms: {
-            id: number
-            generated_name: string
-        }[]
-
-        teachers: {
-            id: number
-            code: string
-            name: string
-        }[]
-    }
-    console.log('teachers:', teachers);
-
-    const [open, setOpen] = useState(false)
-    const [form, setForm] = useState<any>(emptyForm)
-    const [isEdit, setIsEdit] = useState(false)
-    const [editId, setEditId] = useState<number | null>(null)
-    const [loading, setLoading] = useState(false)
-    const [isAdvance, setIsAdvance] = useState(false)
-    const [search, setSearch] = useState(filters.search || '')
-
-    useEffect(() => {
-        const delay = setTimeout(() => {
-            router.get('/subject', {
-                ...filters,
-                search
-            }, {
-                preserveState: true,
-                replace: true
-            })
-        }, 400)
-
-        return () => clearTimeout(delay)
-    }, [search])
-
-    /* -----------------------------
-       FILTER HANDLER
-    ------------------------------*/
-    const handleFilterChange = (key: string, value: string) => {
-        router.get('/subject', {
-            ...filters,
-            [key]: value
-        }, {
-            preserveState: true,
-            replace: true
-        })
-    }
-
-    /* -----------------------------
-       CRUD FUNCTIONS
-    ------------------------------*/
-    const handleOpen = () => {
-        setForm(emptyForm)
-        setIsEdit(false)
-        setEditId(null)
-        setOpen(true)
-        setIsAdvance(false)
-    }
-
-    const handleOpenEdit = (subject: any) => {
-        setForm({
-            name: subject.name || '',
-            code: subject.code || '',
-            type: subject.type || '',
-            units: subject.units || '',
-            year_level: subject.year_level || '',
-            program_id: subject.program_id || '',
-            prerequisite_subject_id: subject.prerequisite_subject_id || '',
-            domain_id: subject.domain_id || '',
-
-            pref_day: subject.pref_day || '',
-            pref_shift: subject.pref_shift || '',
-            pref_teacher_id: subject.pref_teacher_id || '',
-            pref_room_id: subject.pref_room_id || '',
-
-            req_day: subject.req_day || '',
-            req_shift: subject.req_shift || '',
-            req_teacher_id: subject.req_teacher_id || '',
-            req_room_id: subject.req_room_id || '',
-        })
-
-        setIsEdit(true)
-        setEditId(subject.id)
-        setOpen(true)
-        setIsAdvance(false)
-    }
-
-    const handleClose = () => {
-        setOpen(false)
-        setForm(emptyForm)
-        setIsEdit(false)
-        setEditId(null)
-        setIsAdvance(false)
-    }
-
-    const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-    ) => {
-        setForm({
-            ...form,
-            [e.target.name]: e.target.value
-        })
-    }
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
-        setLoading(true)
-
-        const payload = {
-            ...form,
-
-            units: Number(form.units),
-            year_level: form.year_level
-                ? Number(form.year_level)
-                : null,
-            // Major only
-            program_id:
-                form.type === 'Major'
-                    ? form.program_id || null
-                    : null,
-
-            // Minor only
-            domain_id:
-                form.type === 'Minor'
-                    ? form.domain_id || null
-                    : null,
-
-            prerequisite_subject_id:
-                form.prerequisite_subject_id || null,
-
-            // Preferred
-            pref_teacher_id: form.pref_teacher_id || null,
-            pref_room_id: form.pref_room_id || null,
-
-            // Required
-            req_teacher_id: form.req_teacher_id || null,
-            req_room_id: form.req_room_id || null,
-        }
-
-        if (isEdit && editId) {
-            router.put(`/subject/${editId}`, payload, {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setLoading(false)
-                    handleClose()
-                },
-                onError: () => setLoading(false)
-            })
-        } else {
-            router.post('/subject', payload, {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setLoading(false)
-                    handleClose()
-                },
-                onError: () => setLoading(false)
-            })
-        }
-    }
-
-    const handleDelete = (id: number) => {
-        if (!confirm("Are you sure you want to delete this subject?")) return
-        router.delete(`/subject/${id}`, { preserveScroll: true })
-    }
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        post('/subjects', { onSuccess: () => reset() });
+    };
 
     return (
-        <AppLayout breadcrumbs={[{ title: "Subjects", href: '/subject' }]}>
-            <Head title="Subjects" />
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Subject" />
+        <div className="max-w-7xl p-2">
+            <h1 className="text-2xl font-bold mb-6 text-gray-800">Subject Management</h1>
+            {flash?.success && <div className="bg-green-100 text-green-700 p-4 rounded mb-6 font-bold">{flash.success}</div>}
 
-            <div className="p-6">
+            <div className="bg-white p-6 rounded-lg shadow-md mb-8 border-t-4 border-purple-600">
+                <h2 className="text-lg font-bold mb-4">Add New Subject</h2>
+                <form onSubmit={handleSubmit}>
 
-                {/* HEADER */}
-                <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center">
-                        <BookOpen className="mr-2 text-blue-600" size={28} />
-                        <h1 className="text-2xl font-bold">Manage Subjects</h1>
-                    </div>
-
-                    <Button onClick={handleOpen} className="gap-2">
-                        <Plus size={18} />
-                        Add Subject
-                    </Button>
-                </div>
-
-
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                    <StatCard title="Total Subject" value={stats?.total_subject ?? 0} icon={BookOpen} />
-                    <StatCard title="Total Minor" value={stats?.total_minor ?? 0} icon={Clock} />
-                    <StatCard title="Total Major" value={stats?.total_major ?? 0} icon={Users} />
-                </div>
-
-                {/* ============================
-                    FILTER SECTION
-                ============================= */}
-                <div className="mb-6 border rounded-xl bg-white p-4 shadow-sm">
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-
-                        {/* SEARCH */}
-                        <div className="flex-1 w-full">
-                            <Input
-                                placeholder="Search subjects or course codes..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="h-11 rounded-lg"
-                            />
+                    {/* Basic Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-bold text-gray-700">Subject Name</label>
+                            <input type="text" value={data.name} onChange={e => setData('name', e.target.value)} required className="mt-1 w-full border rounded p-2" />
                         </div>
-
-                        {/* PROGRAM / DEPARTMENT */}
-                        <div className="relative w-full md:w-[220px]">
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700">Subject Code</label>
+                            <input type="text" value={data.code} onChange={e => setData('code', e.target.value)} required className="mt-1 w-full border rounded p-2" />
+                            {errors.code && <span className="text-red-500 text-xs">{errors.code}</span>}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700">Units</label>
+                            <input type="number" value={data.units} onChange={e => setData('units', e.target.value)} required min="1" className="mt-1 w-full border rounded p-2" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700">
+                                Year Level
+                            </label>
 
                             <select
-                                value={filters.program_id || ''}
-                                onChange={(e) =>
-                                    handleFilterChange('program_id', e.target.value)
-                                }
-                                className="w-full h-11 rounded-lg border bg-white px-3 pr-10 text-sm 
-                   focus:outline-none focus:ring-2 focus:ring-blue-500 
-                   appearance-none cursor-pointer"
+                                value={data.year_level}
+                                onChange={e => setData('year_level', e.target.value)}
+                                required
+                                className="mt-1 w-full border rounded p-2"
                             >
-                                <option value="">All Departments</option>
-                                {programs.map(program => (
-                                    <option key={program.id} value={program.id}>
-                                        {program.name}
-                                    </option>
-                                ))}
+                                <option value="">Select Year</option>
+                                <option value="1">1st Year</option>
+                                <option value="2">2nd Year</option>
+                                <option value="3">3rd Year</option>
+                                <option value="4">4th Year</option>
                             </select>
-
-
-
-                            {/* custom arrow */}
-                            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                                <svg
-                                    className="w-4 h-4 text-gray-400"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
-
-
-
                         </div>
-                        <select
-                            value={filters.subject_type || ''}
-                            onChange={(e) =>
-                                handleFilterChange('subject_type', e.target.value)
-                            }
-                            className="h-11 rounded-lg border px-3 w-full md:w-[180px]"
-                        >
-                            <option value="">All Types</option>
-                            <option value="Major">Major</option>
-                            <option value="Minor">Minor</option>
-                        </select>
-
-                        {/* ROOM TYPE */}
-                        {/* <select
-                            value={filters.room_type || ''}
-                            onChange={(e) =>
-                                handleFilterChange('room_type', e.target.value)
-                            }
-                            className="h-11 rounded-lg border px-3 w-full md:w-[200px]"
-                        >
-                            <option value="">All Room Types</option>
-                            <option value="lecture">Classroom</option>
-                            <option value="lab">Laboratory</option>
-                            <option value="pe_room">PE Room</option>
-                        </select> */}
-
-                    </div>
-                </div>
-
-                {/* ============================
-                    TABLE
-                ============================= */}
-                <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
-
-                    {/* HEADER */}
-                    <div className="p-5 border-b">
-                        <h2 className="font-semibold text-lg">Course Catalog</h2>
-                        <p className="text-sm text-muted-foreground">
-                            All subjects with their scheduling requirement and constraints
-                        </p>
                     </div>
 
-                    {/* TABLE */}
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                    {/* Classification (The Dynamic Section) */}
+                    <div className="bg-gray-50 p-4 rounded border mb-4">
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Subject Classification</label>
+                        <div className="flex space-x-4 mb-4">
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                                <input type="radio" checked={data.type === 'Major'} onChange={() => setData('type', 'Major')} className="form-radio" />
+                                <span className="font-semibold text-purple-700">Major Subject (Program Specific)</span>
+                            </label>
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                                <input type="radio" checked={data.type === 'Minor'} onChange={() => setData('type', 'Minor')} className="form-radio" />
+                                <span className="font-semibold text-blue-700">Minor Subject (Domain Shared)</span>
+                            </label>
+                        </div>
 
-                            {/* HEAD */}
-                            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-                                <tr>
-                                    <th className="px-6 py-3 text-left">Subject</th>
-                                    <th className="px-6 py-3 text-left">Code</th>
-                                    <th className="px-6 py-3 text-left">Type</th>
-                                    <th className="px-6 py-3 text-left">Unit</th>
-
-                                    <th className="px-6 py-3 text-left">Prerequisites</th>
-                                    <th className="px-6 py-3 text-left">
-                                        {filters.subject_type === 'Minor' ? 'Domain' : 'Program'}
-                                    </th>
-                                    <th className="px-6 py-3 text-left">Actions</th>
-                                </tr>
-                            </thead>
-
-                            {/* BODY */}
-                            <tbody>
-                                {subjects.data.length > 0 ? subjects.data.map((subject) => (
-                                    <tr
-                                        key={subject.id}
-                                        className="border-t hover:bg-gray-50 transition"
-                                    >
-
-                                        {/* SUBJECT */}
-                                        <td className="px-6 py-4 font-medium text-gray-900">
-                                            {subject.name}
-                                        </td>
-
-                                        {/* CODE */}
-                                        <td className="px-6 py-4 text-gray-500">
-                                            {subject.code}
-                                        </td>
-
-                                        {/* TYPE */}
-                                        <td className="px-6 py-4">
-                                            <span className="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-700">
-                                                {subject.type === 'Major' ? 'Major' : 'Minor'}
-                                            </span>
-                                        </td>
-
-                                        {/* UNIT */}
-                                        <td className="px-6 py-4 text-gray-700">
-                                            {subject.units ?? 0}
-                                        </td>
-
-
-
-                                        {/* PREREQUISITES */}
-                                        <td className="px-6 py-4">
-                                            {subject.prerequisite ? (
-                                                <span className="px-2 py-1 text-xs bg-gray-200 rounded-full">
-                                                    {subject.prerequisite.code}
-                                                </span>
-                                            ) : (
-                                                <span className="text-gray-400 text-xs">None</span>
-                                            )}
-                                        </td>
-
-                                        {/* PROGRAM */}
-                                        <td className="px-6 py-4 text-gray-700">
-                                            {subject.type === 'Minor'
-                                                ? subject.domain?.name ?? 'None'
-                                                : subject.program?.name ?? 'None'}
-                                        </td>
-
-                                        {/* ACTIONS */}
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-
-
-                                                <button
-                                                    onClick={() => handleOpenEdit(subject)}
-                                                    className="text-blue-600 hover:text-blue-800"
-                                                    title="Edit"
-                                                >
-                                                    <Pencil size={18} />
-                                                </button>
-
-
-                                                <button
-                                                    onClick={() => handleDelete(subject.id)}
-                                                    className="text-red-600 hover:text-red-800"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-
-                                            </div>
-                                        </td>
-
-                                    </tr>
-                                )) : (
-                                    <tr>
-                                        <td colSpan={7} className="text-center py-6 text-gray-400">
-                                            No subjects found.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-
-                        </table>
-                    </div>
-                </div>
-
-                <Pagination links={subjects.links} />
-
-                <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogContent className="max-w-6xl w-full rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
-
-                        {/* HEADER */}
-                        <DialogHeader className="space-y-1">
-                            <DialogTitle className="text-xl font-semibold">
-                                {isEdit ? "Edit Subject" : "Add New Subject"}
-                            </DialogTitle>
-                            <p className="text-sm text-muted-foreground">
-                                Create a new subject with scheduling requirements
-                            </p>
-                        </DialogHeader>
-                        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-
-                            {/* TOP ROW */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* IF MAJOR: Show Program & Prereq */}
+                            {data.type === 'Major' && (
                                 <div>
-                                    <Label>Subject Name</Label>
-                                    <Input
-                                        name="name"
-                                        value={form.name}
-                                        onChange={handleChange}
-                                        placeholder="Calculus 1"
-                                        className="h-11 rounded-md"
-                                    />
-                                </div>
-
-                                <div>
-                                    <Label>Course Code</Label>
-                                    <Input
-                                        name="code"
-                                        value={form.code}
-                                        onChange={handleChange}
-                                        placeholder="MATH101"
-                                        className="h-11 rounded-md"
-                                    />
-                                </div>
-
-                                <div>
-                                    <Label>Subject Type</Label>
-                                    <select
-                                        name="type"
-                                        value={form.type}
-                                        onChange={handleChange}
-                                        className="w-full h-11 rounded-md border px-3"
-                                    >
-                                        <option value="">Minor or Major</option>
-                                        <option value="Major">Major</option>
-                                        <option value="Minor">Minor</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <Label>Hours/Week</Label>
-                                    <Input
-                                        type="number"
-                                        name="units"
-                                        value={form.units}
-                                        onChange={handleChange}
-                                        placeholder="3"
-                                        className="h-11 rounded-md"
-                                    />
-                                </div>
-                                <div>
-                                    <Label>Year Level</Label>
+                                    <label className="block text-sm font-bold text-gray-700">
+                                        Target Program
+                                    </label>
 
                                     <select
-                                        name="year_level"
-                                        value={form.year_level}
-                                        onChange={handleChange}
-                                        className="w-full h-11 rounded-md border px-3"
+                                        value={data.program_id}
+                                        onChange={e => setData('program_id', e.target.value)}
+                                        required
+                                        className="mt-1 w-full border rounded p-2"
                                     >
-                                        <option value="">Select Year Level</option>
-                                        <option value="1">1st Year</option>
-                                        <option value="2">2nd Year</option>
-                                        <option value="3">3rd Year</option>
-                                        <option value="4">4th Year</option>
-                                    </select>
-                                </div>
-                            </div>
+                                        <option value="">Select Program...</option>
 
-                            {/* PROGRAM */}
-                            {form.type === 'Major' && (
-                                <div>
-                                    <Label>Program</Label>
-                                    <select
-                                        name="program_id"
-                                        value={form.program_id}
-                                        onChange={handleChange}
-                                        className="w-full h-11 rounded-md border px-3"
-                                    >
-                                        <option value="">*If Major* Select program</option>
-                                        {programs.map((p: any) => (
+                                        {programs.map(p => (
                                             <option key={p.id} value={p.id}>
-                                                {p.name}
+                                                {p.code} - {p.name}
                                             </option>
                                         ))}
                                     </select>
                                 </div>
                             )}
 
-                            {form.type === 'Minor' && (
+                            {/* IF MINOR: Show Domain */}
+                            {data.type === 'Minor' && (
                                 <div>
-                                    <Label>Domain</Label>
-
-                                    <select
-                                        name="domain_id"
-                                        value={form.domain_id}
-                                        onChange={handleChange}
-                                        className="w-full h-11 rounded-md border px-3"
-                                    >
-                                        <option value="">Select Domain</option>
-
-                                        {domains.map((g: any) => (
-                                            <option key={g.id} value={g.id}>
-                                                {g.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
-
-                            {/* PREREQUISITES */}
-                            {/* PREREQUISITE */}
-                            {form.type === 'Major' && (
-                                <div>
-                                    <Label>Prerequisite Subject</Label>
-
-                                    <select
-                                        name="prerequisite_subject_id"
-                                        value={form.prerequisite_subject_id}
-                                        onChange={handleChange}
-                                        className="w-full h-11 rounded-md border px-3"
-                                    >
-                                        <option value="">None</option>
-
-                                        {allSubjects
-                                            .filter((s: any) => s.type === 'Major')
-                                            .map((s: any) => (
-                                                <option key={s.id} value={s.id}>
-                                                    {s.code} - {s.name}
-                                                </option>
-                                            ))}
+                                    <label className="block text-sm font-bold text-gray-700">Target Competency Domain</label>
+                                    <select value={data.domain_id} onChange={e => setData('domain_id', e.target.value)} required className="mt-1 w-full border rounded p-2">
+                                        <option value="">Select Domain...</option>
+                                        {domains.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                     </select>
                                 </div>
                             )}
 
 
+                            {/* PREREQUISITE (ALWAYS AVAILABLE) */}
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700">
+                                    Prerequisite (Optional)
+                                </label>
 
-                            {/* ROOM TYPE */}
-                            {/* <div>
-                                <Label>Required Room Type</Label>
                                 <select
-                                    name="room_type"
-                                    value={form.room_type}
-                                    onChange={handleChange}
-                                    className="w-full h-11 rounded-md border px-3"
+                                    value={data.prerequisite_subject_id}
+                                    onChange={e => setData('prerequisite_subject_id', e.target.value)}
+                                    className="mt-1 w-full border rounded p-2"
                                 >
-                                    <option value="">Select room type</option>
-                                    <option value="classroom">Classroom</option>
-                                    <option value="laboratory">Computer Lab</option>
-                                    <option value="pe_room">PE Room</option>
+                                    <option value="">None</option>
+
+                                    {validPrerequisites.map(s => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.code} - {s.name}
+                                        </option>
+                                    ))}
                                 </select>
-                            </div> */}
+                            </div>
+                        </div>
+                    </div>
 
-                            {/* ADVANCED */}
-                            <div className="border-t pt-4 mt-2">
+                    {/* Advanced Options Toggle */}
+                    <div className="mb-4">
+                        <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="text-purple-600 font-bold hover:underline">
+                            {showAdvanced ? '- Hide Advanced Constraints' : '+ Show Advanced Options (Constraints)'}
+                        </button>
+                    </div>
 
-                                <div className="flex items-center gap-2 mb-4">
-                                    <input
-                                        type="checkbox"
-                                        checked={isAdvance}
-                                        onChange={(e) => setIsAdvance(e.target.checked)}
-                                        className="w-4 h-4 rounded border-gray-300"
-                                    />
-                                    <Label className="text-sm">Advance</Label>
+                    {/* Advanced Constraints UI */}
+                    {showAdvanced && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded mb-4 bg-gray-50">
+                            {/* SOFT CONSTRAINTS */}
+                            <div>
+                                <h3 className="font-bold text-blue-600 mb-2">Soft Constraints (Preferred)</h3>
+                                <p className="text-xs text-gray-500 mb-3">Algorithm will try to fulfill these, but will ignore them to prevent conflicts.</p>
+                                <div className="space-y-2">
+                                    <select value={data.pref_day} onChange={e => setData('pref_day', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Preferred Day...</option>{daysOfWeek.map(d => <option key={d} value={d}>{d}</option>)}</select>
+                                    <select value={data.pref_shift} onChange={e => setData('pref_shift', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Preferred Shift...</option><option value="Morning">Morning</option><option value="Afternoon">Afternoon</option><option value="Evening">Evening</option></select>
+                                    <select value={data.pref_teacher_id} onChange={e => setData('pref_teacher_id', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Preferred Teacher...</option>{teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+                                    <select value={data.pref_room_id} onChange={e => setData('pref_room_id', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Preferred Room...</option>{rooms.map(r => <option key={r.id} value={r.id}>{r.generated_name}</option>)}</select>
                                 </div>
-
-                                {isAdvance && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                                        {/* PREFERRED DAY */}
-                                        <div>
-                                            <Label>Preferred Day to Schedule</Label>
-                                            <select
-                                                name="pref_day"
-                                                value={form.pref_day}
-                                                onChange={handleChange}
-                                                className="w-full h-11 rounded-md border px-3"
-                                            >
-                                                <option value="">Select Day</option>
-                                                <option value="Monday">Monday</option>
-                                                <option value="Tuesday">Tuesday</option>
-                                                <option value="Wednesday">Wednesday</option>
-                                                <option value="Thursday">Thursday</option>
-                                                <option value="Friday">Friday</option>
-                                                <option value="Saturday">Saturday</option>
-                                                <option value="Sunday">Sunday</option>
-                                            </select>
-                                        </div>
-
-                                        {/* PREFERRED TEACHER */}
-                                        <div>
-                                            <Label>Preferred Teacher</Label>
-                                            <select
-                                                name="pref_teacher_id"
-                                                value={form.pref_teacher_id}
-                                                onChange={handleChange}
-                                                className="w-full h-11 rounded-md border px-3"
-                                            >
-                                                <option value="">Select Teacher</option>
-
-                                                {teachers.map((t) => (
-                                                    <option key={t.id} value={t.id}>
-                                                        {t.name} ({t.code})
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-
-                                        {/* PREFERRED SHIFT */}
-                                        <div>
-                                            <Label>Preferred Shift</Label>
-                                            <select
-                                                name="pref_shift"
-                                                value={form.pref_shift}
-                                                onChange={handleChange}
-                                                className="w-full h-11 rounded-md border px-3"
-                                            >
-                                                <option value="">Select Shift</option>
-                                                <option value="Morning">Morning</option>
-                                                <option value="Afternoon">Afternoon</option>
-                                                <option value="Evening">Evening</option>
-                                            </select>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-
-                                            <div>
-                                                <Label>Required Day</Label>
-
-                                                <select
-                                                    name="req_day"
-                                                    value={form.req_day}
-                                                    onChange={handleChange}
-                                                    className="w-full h-11 rounded-md border px-3"
-                                                >
-                                                    <option value="">None</option>
-                                                    <option value="Monday">Monday</option>
-                                                    <option value="Tuesday">Tuesday</option>
-                                                    <option value="Wednesday">Wednesday</option>
-                                                    <option value="Thursday">Thursday</option>
-                                                    <option value="Friday">Friday</option>
-                                                    <option value="Saturday">Saturday</option>
-                                                </select>
-                                            </div>
-
-                                            <div>
-                                                <Label>Required Shift</Label>
-
-                                                <select
-                                                    name="req_shift"
-                                                    value={form.req_shift}
-                                                    onChange={handleChange}
-                                                    className="w-full h-11 rounded-md border px-3"
-                                                >
-                                                    <option value="">None</option>
-                                                    <option value="Morning">Morning</option>
-                                                    <option value="Afternoon">Afternoon</option>
-                                                    <option value="Evening">Evening</option>
-                                                </select>
-                                            </div>
-
-                                        </div>
-
-                                        {/* PREFERRED ROOM */}
-                                        <div>
-                                            <Label>Preferred Room</Label>
-                                            <select
-                                                name="pref_room_id"
-                                                value={form.pref_room_id}
-                                                onChange={handleChange}
-                                                className="w-full h-11 rounded-md border px-3"
-                                            >
-                                                <option value="">Select Room</option>
-
-                                                {rooms.map((r: any) => (
-                                                    <option key={r.id} value={r.id}>
-                                                        {r.generated_name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-
-                                    </div>
-
-                                )}
-
                             </div>
 
-                            {/* BUTTON */}
-                            <Button className="w-full h-12 rounded-lg text-base">
-                                {loading ? "Saving..." : "Add Subject"}
-                            </Button>
+                            {/* HARD CONSTRAINTS */}
+                            <div>
+                                <h3 className="font-bold text-red-600 mb-2">Hard Constraints (Required)</h3>
+                                <p className="text-xs text-gray-500 mb-3">Algorithm MUST fulfill these. May cause generation failure if impossible.</p>
+                                <div className="space-y-2">
+                                    <select value={data.req_day} onChange={e => setData('req_day', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Required Day...</option>{daysOfWeek.map(d => <option key={d} value={d}>{d}</option>)}</select>
+                                    <select value={data.req_shift} onChange={e => setData('req_shift', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Required Shift...</option><option value="Morning">Morning</option><option value="Afternoon">Afternoon</option><option value="Evening">Evening</option></select>
+                                    <select value={data.req_teacher_id} onChange={e => setData('req_teacher_id', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Required Teacher...</option>{teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+                                    <select value={data.req_room_id} onChange={e => setData('req_room_id', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Required Room...</option>{rooms.map(r => <option key={r.id} value={r.id}>{r.generated_name}</option>)}</select>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                    <button type="submit" disabled={processing} className="bg-purple-600 text-white px-6 py-2 rounded font-bold hover:bg-purple-700 w-full md:w-auto">
+                        Save Subject
+                    </button>
+                </form>
             </div>
+
+            {/* Existing Subjects Table */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+                <h2 className="text-lg font-bold mb-4">Subject Library</h2>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-100">
+                            <tr>
+                                <th className="p-2">Code</th>
+                                <th className="p-2">Name</th>
+                                <th className="p-2">Type</th>
+                                <th className="p-2">Classification</th>
+                                <th className="p-2 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {subjects.map(s => (
+                                <tr key={s.id} className="border-b hover:bg-gray-50">
+                                    <td className="p-2 font-bold">{s.code}</td>
+                                    <td className="p-2">
+                                        {s.name} <br />
+                                        <span className="text-xs text-gray-500">{s.units} Units</span>
+                                    </td>
+                                    <td className="p-2">
+                                        <span className={`px-2 py-1 rounded text-xs font-bold ${s.type === 'Major' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                            {s.type}
+                                        </span>
+                                    </td>
+                                    <td className="p-2">
+                                        {s.type === 'Major' ? `Program: ${s.program?.code}` : `Domain: ${s.domain?.name}`}
+                                        {s.prerequisite && <div className="text-xs text-red-500 mt-1">Req: {s.prerequisite.code}</div>}
+                                    </td>
+                                    <td className="p-2 text-right">
+                                        <button onClick={() => { if (confirm('Delete subject?')) router.delete(`/subjects/${s.id}`) }} className="text-red-500 hover:underline">Delete</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
         </AppLayout>
-    )
+    );
 }

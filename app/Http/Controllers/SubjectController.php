@@ -2,77 +2,33 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Domain;
-use App\Models\DomainGroup;
-use App\Models\Faculty;
-use App\Models\Programs;
 use App\Models\Subject;
-use App\Models\Room;
+use App\Models\Programs;
+use App\Models\Domain;
 use App\Models\Teacher;
+use App\Models\Room;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class SubjectController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $query = Subject::with([
-            'program',
-            'domain',
-            'prefTeacher',
-            'prefRoom',
-            'reqTeacher',
-            'reqRoom',
-            'prerequisite'
-        ]);
+        // Fetch all data needed for the dropdowns
+        $programs = Programs::all();
+        $domains = Domain::all();
+        $teachers = Teacher::all();
+        $rooms = Room::orderBy('generated_name')->get();
 
-        if ($request->search) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('code', 'like', '%' . $request->search . '%');
-            });
-        }
-
-        if ($request->program_id) {
-            $query->where('program_id', $request->program_id);
-        }
-
-        if ($request->subject_type) {
-            $query->where('type', $request->subject_type);
-        }
+        // Fetch existing subjects to display in the table (and to use as prerequisites)
+        $subjects = Subject::with(['program', 'domain', 'prerequisite', 'prefTeacher', 'reqRoom'])->get();
 
         return Inertia::render('Subjects/Index', [
-            'subjects' => $query
-                ->latest()
-                ->paginate(15)
-                ->withQueryString(),
-
-            'programs' => Programs::all(),
-
-            'teachers' => Teacher::all(),
-
-            'domains' => Domain::all(),
-
-            'rooms' => Room::select('id', 'generated_name')->get(),
-
-            'allSubjects' => Subject::select(
-                'id',
-                'name',
-                'code',
-                'type'
-            )->get(),
-
-            'filters' => $request->only([
-                'program_id',
-                'search',
-                'subject_type'
-            ]),
-
-            'stats' => [
-                'total_subject' => Subject::count(),
-                'total_minor' => Subject::where('type', 'Minor')->count(),
-                'total_major' => Subject::where('type', 'Major')->count(),
-            ]
+            'programs' => $programs,
+            'domains' => $domains,
+            'teachers' => $teachers,
+            'rooms' => $rooms,
+            'subjects' => $subjects
         ]);
     }
 
@@ -80,67 +36,43 @@ class SubjectController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:subjects,code',
-            'type' => 'required|in:Major,Minor',
-            'units' => 'required|integer|min:1',
-            'year_level' => 'nullable|integer|min:1|max:4',
-            'program_id' => 'nullable|exists:programs,id',
-            'domain_id' => 'nullable|exists:domains,id',
-
-            'prerequisite_subject_id' => 'nullable|exists:subjects,id',
-
-            // Preferred
-            'pref_day' => 'nullable|string',
-            'pref_shift' => 'nullable|in:Morning,Afternoon,Evening',
-            'pref_teacher_id' => 'nullable|exists:teachers,id',
-            'pref_room_id' => 'nullable|exists:rooms,id',
-
-            // Required
-            'req_day' => 'nullable|string',
-            'req_shift' => 'nullable|in:Morning,Afternoon,Evening',
-            'req_teacher_id' => 'nullable|exists:teachers,id',
-            'req_room_id' => 'nullable|exists:rooms,id',
-        ]);
-
-        Subject::create($validated);
-
-        return back()->with('success', 'Subject created successfully.');
-    }
-
-    public function update(Request $request, Subject $subject)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:subjects,code,' . $subject->id,
+            'code' => 'required|string|unique:subjects,code',
             'type' => 'required|in:Major,Minor',
             'units' => 'required|integer|min:1',
             'year_level' => 'required|integer|min:1|max:4',
-            'program_id' => 'nullable|exists:programs,id',
-            'domain_id' => 'nullable|exists:domains,id',
-
+            // Conditional Validation based on Subject Type
+            'program_id' => 'required_if:type,Major|nullable|exists:programs,id',
             'prerequisite_subject_id' => 'nullable|exists:subjects,id',
+            'domain_id' => 'required_if:type,Minor|nullable|exists:domains,id',
 
-            // Preferred
+            // Soft Constraints (Preferences)
             'pref_day' => 'nullable|string',
             'pref_shift' => 'nullable|in:Morning,Afternoon,Evening',
             'pref_teacher_id' => 'nullable|exists:teachers,id',
             'pref_room_id' => 'nullable|exists:rooms,id',
 
-            // Required
+            // Hard Constraints (Required)
             'req_day' => 'nullable|string',
             'req_shift' => 'nullable|in:Morning,Afternoon,Evening',
             'req_teacher_id' => 'nullable|exists:teachers,id',
             'req_room_id' => 'nullable|exists:rooms,id',
         ]);
 
-        $subject->update($validated);
+        // Clean up data based on type (e.g. if Minor, ensure program is null)
+        if ($validated['type'] === 'Minor') {
+            $validated['program_id'] = null;
+        } else {
+            $validated['domain_id'] = null;
+        }
 
-        return back()->with('success', 'Subject updated successfully.');
+        Subject::create($validated);
+
+        return redirect()->back()->with('success', 'Subject created successfully.');
     }
 
     public function destroy(Subject $subject)
     {
         $subject->delete();
-        return back()->with('success', 'Subject deleted');
+        return redirect()->back()->with('success', 'Subject deleted.');
     }
 }

@@ -42,8 +42,9 @@ Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('program', ProgramController::class);
 Route::middleware(['auth', 'role:super admin,registrar'])
     ->resource('section', SectionController::class);
-Route::middleware(['auth', 'role:super admin,registrar'])
-    ->resource('subject', SubjectController::class);
+Route::get('/subjects', [SubjectController::class, 'index'])->name('subjects.index');
+Route::post('/subjects', [SubjectController::class, 'store'])->name('subjects.store');
+Route::delete('/subjects/{subject}', [SubjectController::class, 'destroy'])->name('subjects.destroy');
 
 Route::post('/assignments/auto-assign', [SectionSubjectAssignmentController::class, 'autoAssign']);
 

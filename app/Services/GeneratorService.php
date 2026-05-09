@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\Schedule;
-
+use App\Models\Room;       // Add this
+use App\Models\Timeslot;   // Add this
+use App\Models\Section;    // Add this
 class GeneratorService
 {
     public function generate($versionId)
@@ -57,7 +59,7 @@ class GeneratorService
                 } else {
                     // Desperation 2: Grab a competent teacher even if they hit Overtime
                     $assignedTeacher = Teacher::where('available', true)
-                        ->whereHas('domains', function ($q) use ($subject) {
+                        ->whereHas('domain', function ($q) use ($subject) {
                             $q->where('id', $subject->domain_id);
                         })->first();
                 }
@@ -65,17 +67,24 @@ class GeneratorService
 
             // Phase 3: COMMIT TO DATABASE
             if ($assignedTeacher) {
-                Schedule::create([
-                    'schedule_version_id' => $versionId,
 
+                $room = Room::inRandomOrder()->first();
+                $timeslot = Timeslot::inRandomOrder()->first();
+                $section = Section::inRandomOrder()->first();
+                if ($room && $timeslot && $section) {
+                    Schedule::create([
+                        'schedule_version_id' => $versionId,
+                        'subject_id' => $subject->id,
+                        'teacher_id' => $assignedTeacher->id,
+                        'room_id' => $room->id,            // FIXED: Now we provide the Room
+                        'timeslot_id' => $timeslot->id,    // FIXED: Now we provide the Time
+                        'section_id' => $section->id,      // FIXED: Now we provide the Section
+                        'is_fallback' => $isFallback
+                    ]);
 
-                    'subject_id' => $subject->id,
-                    'teacher_id' => $assignedTeacher->id,
-                    'is_fallback' => $isFallback // Triggers the Orange Warning in the UI
-                ]);
-
-                // Update teacher's workload
-                $assignedTeacher->increment('current_hours', $subject->units);
+                    // Update teacher's workload
+                    $assignedTeacher->increment('current_hours', $subject->units);
+                }
             }
         }
     }
