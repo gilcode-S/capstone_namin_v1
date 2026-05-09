@@ -178,77 +178,242 @@ export default function ScheduleViewer({
             }));
     };
 
-    const downloadExcel = (data, title, type) => {
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.aoa_to_sheet([]);
+    const downloadExcelJS = async (data, type) => {
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Class Schedule');
 
-        const schoolName = 'AISAT COLLEGE - DASMARIÑAS';
-        const address = 'Dasmariñas City, Cavite';
+        const sectionName = data.name || 'Schedule';
 
-        const sectionName = data.name || title;
-        const semesterInfo = activeVersion;
+        // =========================================
+        // COLUMN SETUP
+        // =========================================
 
-        const programName = 'BACHELOR OF SCIENCE IN COMPUTER SCIENCE';
+        const columns = [{ width: 22 }];
 
-        const effectivityDate = new Date().toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'short',
-            year: '2-digit',
+        for (let i = 0; i < 14; i++) {
+            columns.push({ width: 14 });
+        }
+
+        sheet.columns = columns;
+
+        // =========================================
+        // STYLES
+        // =========================================
+
+        const borderStyle = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' },
+        };
+
+        const headerFill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF002060' },
+        };
+
+        const roomFill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF00B050' },
+        };
+
+        const centerAlign = {
+            vertical: 'middle',
+            horizontal: 'center',
+            wrapText: true,
+        };
+
+        // =========================================
+        // SCHOOL HEADER
+        // =========================================
+
+        sheet.mergeCells('A1:O1');
+        sheet.getCell('A1').value = 'AISAT COLLEGE - DASMARIÑAS';
+        sheet.getCell('A1').font = {
+            bold: true,
+            size: 16,
+        };
+        sheet.getCell('A1').alignment = centerAlign;
+
+        sheet.mergeCells('A2:O2');
+        sheet.getCell('A2').value = activeVersion;
+        sheet.getCell('A2').alignment = centerAlign;
+
+        sheet.mergeCells('A3:O3');
+        sheet.getCell('A3').value = sectionName;
+        sheet.getCell('A3').font = {
+            bold: true,
+            size: 14,
+        };
+        sheet.getCell('A3').alignment = centerAlign;
+
+        // =========================================
+        // HEADER ROW
+        // =========================================
+
+        const headerRowIndex = 7;
+
+        sheet.getRow(headerRowIndex).height = 25;
+
+        const timeCell = sheet.getCell(headerRowIndex, 1);
+
+        timeCell.value = 'TIME';
+        timeCell.fill = headerFill;
+        timeCell.font = {
+            color: { argb: 'FFFFFFFF' },
+            bold: true,
+        };
+        timeCell.alignment = centerAlign;
+        timeCell.border = borderStyle;
+
+        let currentCol = 2;
+
+        DAYS.forEach((day) => {
+            sheet.mergeCells(
+                headerRowIndex,
+                currentCol,
+                headerRowIndex,
+                currentCol + 1,
+            );
+
+            const dayCell = sheet.getCell(headerRowIndex, currentCol);
+
+            dayCell.value = day.toUpperCase();
+            dayCell.fill = headerFill;
+            dayCell.font = {
+                color: { argb: 'FFFFFFFF' },
+                bold: true,
+            };
+
+            dayCell.alignment = centerAlign;
+            dayCell.border = borderStyle;
+
+            currentCol += 2;
         });
 
-        // HEADER
-        const headerRows = [
-            [schoolName, '', '', '', '', '', ''],
-            [address, '', '', '', '', '', ''],
-            [sectionName, '', '', '', '', '', ''],
-            [semesterInfo, '', '', '', 'Effectivity:', effectivityDate],
-            [programName, '', '', '', 'Updated:', effectivityDate],
-            ['Time', ...DAYS],
-        ];
+        // =========================================
+        // TIME BLOCKS
+        // =========================================
 
-        XLSX.utils.sheet_add_aoa(ws, headerRows, { origin: 'A1' });
+        let currentRow = 8;
 
-        // BUILD GRID DATA (same logic as UI)
         const allTimes = [
             ...SHIFTS.Morning,
             ...SHIFTS.Afternoon,
             ...SHIFTS.Evening,
         ];
 
-        const gridRows = allTimes.map((time) => {
-            const row = [time];
+        allTimes.forEach((timeSlot) => {
+            // TIME CELL
+            sheet.mergeCells(currentRow, 1, currentRow + 1, 1);
+
+            const timeBlock = sheet.getCell(currentRow, 1);
+
+            timeBlock.value = timeSlot;
+            timeBlock.alignment = centerAlign;
+            timeBlock.border = borderStyle;
+            timeBlock.font = { bold: true };
+
+            // DAYS
+            let dayColIndex = 2;
 
             DAYS.forEach((day) => {
                 const sched =
                     type === 'section'
-                        ? getSchedule(time, null, day, null, data.id)
-                        : getSchedule(time, null, day, data.id, null);
+                        ? getSchedule(timeSlot, null, day, null, data.id)
+                        : getSchedule(timeSlot, null, day, data.id, null);
+
+                // Apply borders
+                for (let r = currentRow; r <= currentRow + 1; r++) {
+                    for (let c = dayColIndex; c <= dayColIndex + 1; c++) {
+                        sheet.getCell(r, c).border = borderStyle;
+                    }
+                }
 
                 if (sched) {
-                    row.push(
-                        `${sched.subject?.code || ''}\n${sched.room?.generated_name || sched.room?.name || ''} | ${sched.teacher?.code || sched.teacher?.name || ''}`,
+                    // SUBJECT
+                    sheet.mergeCells(
+                        currentRow,
+                        dayColIndex,
+                        currentRow,
+                        dayColIndex + 1,
                     );
+
+                    const subjectCell = sheet.getCell(currentRow, dayColIndex);
+
+                    subjectCell.value = sched.subject?.code || 'NO SUBJECT';
+
+                    subjectCell.alignment = centerAlign;
+
+                    subjectCell.font = {
+                        bold: true,
+                        size: 11,
+                    };
+
+                    // ROOM
+                    const roomCell = sheet.getCell(currentRow + 1, dayColIndex);
+
+                    roomCell.value =
+                        sched.room?.generated_name ||
+                        sched.room?.name ||
+                        'ROOM';
+
+                    roomCell.alignment = centerAlign;
+
+                    roomCell.fill = roomFill;
+
+                    roomCell.font = {
+                        bold: true,
+                        color: { argb: 'FFFFFFFF' },
+                    };
+
+                    // TEACHER / SECTION
+                    const teacherCell = sheet.getCell(
+                        currentRow + 1,
+                        dayColIndex + 1,
+                    );
+
+                    teacherCell.value =
+                        type === 'section'
+                            ? sched.teacher?.code ||
+                              sched.teacher?.name ||
+                              'TBA'
+                            : sched.section?.name || 'TBA';
+
+                    teacherCell.alignment = centerAlign;
                 } else {
-                    row.push('');
+                    // EMPTY BLOCK
+                    sheet.mergeCells(
+                        currentRow,
+                        dayColIndex,
+                        currentRow + 1,
+                        dayColIndex + 1,
+                    );
+
+                    const emptyCell = sheet.getCell(currentRow, dayColIndex);
+
+                    emptyCell.border = borderStyle;
                 }
+
+                dayColIndex += 2;
             });
 
-            return row;
+            currentRow += 2;
         });
 
-        XLSX.utils.sheet_add_aoa(ws, gridRows, { origin: 'A7' });
+        // =========================================
+        // DOWNLOAD
+        // =========================================
 
-        // COLUMN WIDTHS
-        ws['!cols'] = [{ wch: 20 }, ...DAYS.map(() => ({ wch: 22 }))];
+        const buffer = await workbook.xlsx.writeBuffer();
 
-        // MERGES (optional layout polish)
-        ws['!merges'] = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
-            { s: { r: 2, c: 0 }, e: { r: 2, c: 5 } },
-        ];
+        const blob = new Blob([buffer], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        });
 
-        XLSX.utils.book_append_sheet(wb, ws, 'Schedule');
-        XLSX.writeFile(wb, `${sectionName}_Schedule.xlsx`);
+        saveAs(blob, `${sectionName}_Schedule.xlsx`);
     };
 
     const downloadPDF = (data, title, type) => {
@@ -426,11 +591,7 @@ export default function ScheduleViewer({
                     <div className="flex gap-2">
                         <button
                             onClick={() =>
-                                downloadExcel(
-                                    selectedSection,
-                                    selectedSection.name,
-                                    'section',
-                                )
+                                downloadExcelJS(selectedSection, 'section')
                             }
                             className="rounded bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700"
                         >
@@ -553,11 +714,7 @@ export default function ScheduleViewer({
                 <div className="flex gap-2">
                     <button
                         onClick={() =>
-                            downloadExcel(
-                                selectedTeacher,
-                                selectedTeacher.name,
-                                'teacher',
-                            )
+                            downloadExcelJS(selectedTeacher, 'teacher')
                         }
                         className="rounded bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700"
                     >
@@ -759,7 +916,7 @@ export default function ScheduleViewer({
                                             {s.name}
                                         </h2>
                                         <p className="text-sm font-bold text-gray-500">
-                                            👥 {s.student_count || 0} Students
+                                            👥 {s.capacity || 0} Students
                                         </p>
                                     </div>
                                 ))}
