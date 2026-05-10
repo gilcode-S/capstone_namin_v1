@@ -1,7 +1,6 @@
-import { Head, useForm, Link } from '@inertiajs/react'
-import {  Loader2 } from 'lucide-react'
+import { Head, useForm } from '@inertiajs/react'
+import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
-
 
 export default function Login() {
     const { data, setData, post, processing, errors } = useForm({
@@ -21,110 +20,214 @@ export default function Login() {
         <>
             <Head title="Login" />
 
-            <div className="min-h-screen grid md:grid-cols-2">
+            <div className="min-h-screen bg-[#e9e9e9] flex items-center justify-center p-6">
 
-                {/* LEFT PANEL */}
-                <div className="hidden md:flex flex-col justify-center items-center  text-white dark:text-gray-200 p-10">
+                {/* MAIN CONTAINER */}
+                <div className="w-full max-w-6xl h-[700px] bg-white rounded-3xl overflow-hidden shadow-2xl grid md:grid-cols-2">
 
-                    <h1 className="text-5xl font-extrabold mb-4 text-black dark:text-gray-200"> Expertise-Aware </h1>
 
-                    <p className="text-lg text-center max-w-md text-gray-600 dark:text-gray-200">
-                        Class Scheduling System
-                    </p>
-                    <Link
-                        href="/register"
-                        className="mt-3 px-6 py-3 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition"
-                    >
-                        Register
-                    </Link>
+                    {/* LEFT SIDE */}
+                    {/* LEFT SIDE */}
+                    <div className="hidden md:flex relative flex-col justify-between p-10 text-white overflow-hidden">
 
-                </div>
+                        {/* BACKGROUND IMAGE */}
+                        <div
+                            className="absolute inset-0 bg-cover bg-center opacity-100"
+                            style={{
+                                backgroundImage: "url('/image/dasmas1.png')",
+                            }}
+                        ></div>
 
-                {/* RIGHT PANEL */}
-                <div className="flex items-center justify-center bg-gray-100 dark:bg-gray-600 p-6">
+                        {/* BLUE + YELLOW GRADIENT OVERLAY */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-sky-400/80 via-blue-500/75 to-yellow-300/60"></div>
 
-                    <div className="w-full max-w-md backdrop-blur-xl bg-white/80 shadow-2xl rounded-2xl p-8">
+                        {/* EXTRA SOFT GLOW */}
+                        <div className="absolute -top-20 -left-20 w-96 h-96 bg-yellow-200/30 rounded-full blur-3xl"></div>
 
-                        <h2 className="text-2xl font-bold text-center mb-2 dark:text-gray-800">
-                            Welcome Back 👋
-                        </h2>
+                        <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl"></div>
 
-                        <p className="text-center text-gray-500 mb-6">
-                            Login to continue
-                        </p>
+                        {/* CONTENT */}
+                        <div className="relative z-10">
 
-                        <form onSubmit={submit} className="space-y-4 dark:text-gray-800">
+                            {/* LOGO */}
+                            <div className="flex items-center gap-3">
 
-                            {/* EMAIL */}
-                            <div>
-                                <input
-                                    type="email"
-                                    placeholder="AISAT-Email"
-                                    value={data.email}
-                                    onChange={e => setData('email', e.target.value)}
-                                    className="w-full border p-3 rounded-xl"
-                                />
-                                {errors.email && (
-                                    <p className="text-red-500 text-sm">{errors.email}</p>
-                                )}
+                                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-2xl shadow-lg">
+                                    🎓
+                                </div>
+
+                                <div>
+                                    <h2 className="font-bold text-xl">
+                                        AISAT Scheduler
+                                    </h2>
+
+                                    <p className="text-sm text-white/80">
+                                        Academic Management System
+                                    </p>
+                                </div>
                             </div>
+                        </div>
 
-                            {/* PASSWORD */}
-                            <div>
-                                <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    placeholder="Password"
-                                    value={data.password}
-                                    onChange={e => setData('password', e.target.value)}
-                                    className="w-full border p-3 rounded-xl"
-                                />
+                        {/* BOTTOM TEXT */}
+                        <div className="relative z-10">
 
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="text-xs text-indigo-600 mt-1"
-                                >
-                                    {showPassword ? 'Hide Password' : 'Show Password'}
-                                </button>
+                            <p className="uppercase tracking-[0.3em] text-sm text-yellow-100 mb-3">
+                                Smart Scheduling Platform
+                            </p>
 
-                                {errors.password && (
-                                    <p className="text-red-500 text-sm">{errors.password}</p>
-                                )}
-                            </div>
+                            <h1 className="text-5xl font-extrabold leading-tight mb-6 drop-shadow-lg">
+                                Competency-Aware
+                                <br />
+                                Scheduling System
+                            </h1>
 
-                            {/* REMEMBER ME */}
-                            <div className="flex items-center justify-between text-sm">
-                                <label className="flex items-center gap-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={data.remember}
-                                        onChange={e => setData('remember', e.target.checked)}
-                                    />
-                                    Remember me
-                                </label>
+                            <p className="text-white/90 max-w-md text-lg leading-relaxed">
+                                Streamline faculty scheduling, room assignments,
+                                and class management with intelligent automation.
+                            </p>
 
-                                <a href="/forgot-password" className="text-indigo-600">
-                                    Forgot password?
-                                </a>
-                            </div>
-
-                            {/* BUTTON */}
-                            <button
-                                disabled={processing}
-                                className="w-full bg-indigo-600 text-white p-3 rounded-xl flex items-center justify-center gap-2 hover:bg-indigo-700 transition"
-                            >
-                                {processing && <Loader2 className="animate-spin w-4 h-4" />}
-                                Login
-                            </button>
-
-                        </form>
-
-                        <p className="text-center text-xs text-gray-400 mt-6">
-                            © 2026 AISAT College Dasma
-                        </p>
-
+                        </div>
                     </div>
 
+                    {/* RIGHT SIDE */}
+                    <div className="flex items-center justify-center p-8 md:p-14 bg-white">
+
+                        <div className="w-full max-w-md">
+
+                            {/* HEADER */}
+                            <div className="mb-10">
+                                <h2 className="text-4xl font-bold text-gray-900 mb-2">
+                                    Welcome Back!
+                                </h2>
+
+                                <p className="text-gray-500">
+                                    Login to continue to your dashboard
+                                </p>
+                            </div>
+
+                            {/* FORM */}
+                            <form
+                                onSubmit={submit}
+                                className="space-y-5"
+                            >
+
+                                {/* EMAIL */}
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700">
+                                        Email
+                                    </label>
+
+                                    <input
+                                        type="email"
+                                        placeholder="Enter your email"
+                                        value={data.email}
+                                        onChange={(e) =>
+                                            setData('email', e.target.value)
+                                        }
+                                        className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-black"
+                                    />
+
+                                    {errors.email && (
+                                        <p className="text-red-500 text-sm mt-1">
+                                            {errors.email}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* PASSWORD */}
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700">
+                                        Password
+                                    </label>
+
+                                    <div className="relative mt-2">
+                                        <input
+                                            type={
+                                                showPassword
+                                                    ? 'text'
+                                                    : 'password'
+                                            }
+                                            placeholder="Enter your password"
+                                            value={data.password}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'password',
+                                                    e.target.value
+                                                )
+                                            }
+                                            className="w-full rounded-xl border border-gray-300 px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-black"
+                                        />
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setShowPassword(!showPassword)
+                                            }
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+                                        >
+                                            {showPassword ? (
+                                                <EyeOff size={20} />
+                                            ) : (
+                                                <Eye size={20} />
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {errors.password && (
+                                        <p className="text-red-500 text-sm mt-1">
+                                            {errors.password}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* REMEMBER + FORGOT */}
+                                <div className="flex items-center justify-between text-sm">
+
+                                    <label className="flex items-center gap-2 text-gray-600">
+                                        <input
+                                            type="checkbox"
+                                            checked={data.remember}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'remember',
+                                                    e.target.checked
+                                                )
+                                            }
+                                            className="rounded border-gray-300"
+                                        />
+
+                                        Remember me
+                                    </label>
+
+                                    <a
+                                        href="/forgot-password"
+                                        className="text-gray-900 font-medium hover:underline"
+                                    >
+                                        Forgot Password?
+                                    </a>
+                                </div>
+
+                                {/* BUTTON */}
+                                <button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="w-full bg-black hover:bg-gray-900 text-white rounded-xl py-3 font-medium transition flex items-center justify-center gap-2"
+                                >
+                                    {processing && (
+                                        <Loader2 className="animate-spin w-4 h-4" />
+                                    )}
+
+                                    Login
+                                </button>
+
+                            </form>
+
+                            {/* FOOTER */}
+                            <p className="text-center text-sm text-gray-400 mt-10">
+                                © 2026 AISAT College Dasma
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </>

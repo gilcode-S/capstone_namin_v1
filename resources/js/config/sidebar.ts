@@ -73,7 +73,7 @@ export const sidebarConfig = {
     {
       label: "Academics",
       items: [
-        { title: "Subject", href: "/subject", icon: BookOpen },
+        { title: "Subject", href: "/subjects", icon: BookOpen },
         { title: "Section", href: "/section", icon: PanelsRightBottom },
         { title: "Academics", href: "/academics", icon: Layers },
       ]
@@ -86,10 +86,10 @@ export const sidebarConfig = {
       items: [
         { title: "Rooms", href: "/rooms", icon: Folder },
         { title: "Time Slots", href: "/time-slots", icon: Clock10Icon },
-        { title: "Schedule Versions", href: "/schedule-versions", icon: Calendar },
-        { title: "Generate Schedule", href: "/generate-schedule", icon: PlusCircle },
+        { title: "Schedule Versions", href: "/version-history", icon: Calendar },
+        { title: "Generate Schedule", href: '/schedules/generator', icon: PlusCircle },
         { title: "Conflict Detection", href: "/conflicts", icon: AlertCircle }, // ✅ FIXED
-        { title: "View Schedule", href: "/schedules", icon: ScanHeart }, // ✅ FIXED
+        { title: "View Schedule", href: '/schedules/viewer', icon: ScanHeart }, // ✅ FIXED
       ]
     }
   ],
@@ -99,7 +99,7 @@ export const sidebarConfig = {
       label: "HR",
       items: [
         { title: "Faculty", href: "/faculty", icon: Users },
-        { title: "View Schedule", href: "/schedules", icon: Calendar } // ✅ FIXED
+        { title: "View Schedule", href: '/schedules/viewer', icon: ScanHeart }, // ✅ FIXED
       ]
     }
   ]

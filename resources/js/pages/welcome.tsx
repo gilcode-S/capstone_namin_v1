@@ -42,7 +42,7 @@ export default function Welcome() {
                         <div className="max-w-4xl text-center backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-12 shadow-2xl">
 
                             <h2 className="text-4xl md:text-6xl font-extrabold leading-tight">
-                                Expertise-Aware Class Scheduling System
+                                Competency-Aware Class Scheduling System
                             </h2>
 
                             <p className="mt-6 text-lg md:text-xl text-gray-700  dark:text-gray-200">
