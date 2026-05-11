@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Schedule;
 use App\Models\ScheduleVersion;
 use App\Models\Room;
 use App\Models\Teacher;
 use App\Models\Section;
 use Inertia\Inertia;
+use Illuminate\Http\Request;
 
 class ScheduleController extends Controller
 {
@@ -49,7 +51,7 @@ class ScheduleController extends Controller
         $schedules = Schedule::with([
             'subject:id,code',
             'teacher:id,name,code',
-            'room:id,generated_name',
+            'room:id,generated_name,capacity',
             'section:id,name',
             'timeslot:id,start_time,end_time,day'
         ])->where('schedule_version_id', $versionId)->get();
@@ -62,5 +64,37 @@ class ScheduleController extends Controller
             'teachers' => $teachers,
             'sections' => Section::orderBy('name')->get()
         ]);
+    }
+
+
+    public function update(Request $request, Schedule $schedule)
+    {
+        $newRoomId = $request->room_id ?? $schedule->room_id;
+        $newTimeslotId = $request->timeslot_id ?? $schedule->timeslot_id;
+        $newTeacherId = $request->teacher_id ?? $schedule->teacher_id;
+
+        $conflict = Schedule::where('schedule_version_id', $schedule->schedule_version_id)
+            ->where('timeslot_id', $newTimeslotId)
+            ->where(function ($q) use ($newRoomId, $newTeacherId, $schedule) {
+                $q->where('room_id', $newRoomId)
+                    ->orWhere('teacher_id', $newTeacherId)
+                    ->orWhere('section_id', $schedule->section_id);
+            })
+            ->where('id', '!=', $schedule->id)
+            ->exists();
+
+        if ($conflict) {
+            return back()->withErrors([
+                'conflict' => 'Schedule conflict detected.',
+            ]);
+        }
+
+        $schedule->update([
+            'room_id' => $newRoomId,
+            'timeslot_id' => $newTimeslotId,
+            'teacher_id' => $newTeacherId,
+        ]);
+
+        return back()->with('success', 'Schedule updated.');
     }
 }

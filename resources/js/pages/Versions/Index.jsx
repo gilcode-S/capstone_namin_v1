@@ -123,7 +123,7 @@ export default function VersionHistory({ versions, filters }) {
                             
                             {/* Uses router.get to navigate to the Audit Logs (Page 12), filtering by this specific version/timeframe */}
                             <button 
-                                onClick={() => router.get('/audit-logs', { search: `Version ${version.version_number}` })}
+                                onClick={() => router.get('/audit-logs')}
                                 className="bg-black text-white text-sm font-bold py-2.5 px-6 rounded-lg hover:bg-gray-800 transition whitespace-nowrap"
                             >
                                 View Logs

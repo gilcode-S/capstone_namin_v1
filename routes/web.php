@@ -124,6 +124,8 @@ Route::middleware(['auth', 'role:super admin,hr,staff'])->group(function () {
     Route::get('/schedules/viewer', [ScheduleController::class, 'index'])->name('schedules.viewer');
     Route::delete('/schedules/reset', [GeneratorController::class, 'reset'])
         ->name('schedules.reset');
+    Route::put('/schedules/{schedule}', [ScheduleController::class, 'update'])
+        ->name('schedules.update');
 });
 
 // Route::get('/conflicts', function () {

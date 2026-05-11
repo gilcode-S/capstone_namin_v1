@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 const breadcrumbs = [
     {
@@ -26,7 +26,9 @@ export default function ScheduleViewer({
 }) {
     console.log(schedules);
     const [activeTab, setActiveTab] = useState('grid');
-
+    const [editingSchedule, setEditingSchedule] = useState(null);
+    const [draggedItem, setDraggedItem] = useState(null);
+    const [viewSet, setViewSet] = useState('Set A');
     // View States for clicking cards
     const [selectedSection, setSelectedSection] = useState(null);
     const [selectedTeacher, setSelectedTeacher] = useState(null);
@@ -169,6 +171,54 @@ export default function ScheduleViewer({
         return scheduleMap[key] || null;
     };
 
+    const handleDragStart = (e, scheduleId) => {
+        setDraggedItem(scheduleId);
+
+        e.dataTransfer.setData('scheduleId', scheduleId);
+    };
+
+    const handleDrop = (e, targetRoomId, targetTime, targetDay) => {
+        e.preventDefault();
+
+        const scheduleId = e.dataTransfer.getData('scheduleId');
+
+        // Find matching timeslot
+        const matchingSchedule = schedules.find((s) => {
+            if (!s.timeslot) return false;
+
+            const formatted =
+                `${formatTime(s.timeslot.start_time)} - ${formatTime(s.timeslot.end_time)}`
+                    .replace(/\s/g, '')
+                    .toLowerCase();
+
+            return (
+                formatted === targetTime.replace(/\s/g, '').toLowerCase() &&
+                s.timeslot.day.toLowerCase() === targetDay.toLowerCase()
+            );
+        });
+
+        if (!matchingSchedule?.timeslot_id) {
+            alert('No matching timeslot found.');
+            return;
+        }
+
+        router.put(
+            `/schedules/${scheduleId}`,
+            {
+                room_id: targetRoomId,
+                timeslot_id: matchingSchedule.timeslot_id,
+            },
+            {
+                preserveScroll: true,
+            },
+        );
+    };
+    const updateTeacher = (scheduleId, teacherId) => {
+        router.put(`/schedules/${scheduleId}`, {
+            teacher_id: teacherId,
+        });
+    };
+
     const buildRows = (data, type) => {
         return schedules
             .filter((s) =>
@@ -187,6 +237,12 @@ export default function ScheduleViewer({
                     type === 'section' ? s.teacher?.name : s.section?.name,
                 Room: s.room?.generated_name || s.room?.name,
             }));
+    };
+
+    const buildTimeKey = (start, end) => {
+        return `${formatTime(start)}-${formatTime(end)}`
+            .replace(/\s/g, '')
+            .toLowerCase();
     };
 
     const downloadExcelJS = async (data, type) => {
@@ -427,38 +483,6 @@ export default function ScheduleViewer({
         saveAs(blob, `${sectionName}_Schedule.xlsx`);
     };
 
-    const downloadPDF = (data, title, type) => {
-        const doc = new jsPDF();
-
-        doc.text(`${title} Schedule`, 14, 15);
-        doc.setFontSize(10);
-        doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 22);
-
-        const tableColumn = [
-            'Time',
-            'Subject',
-            type === 'section' ? 'Teacher' : 'Section',
-            'Room',
-        ];
-
-        const tableRows = buildRows(data, type).map((row) => [
-            row.Time,
-            row.Subject,
-            row[type === 'section' ? 'Teacher' : 'Section'],
-            row.Room,
-        ]);
-
-        doc.autoTable({
-            head: [tableColumn],
-            body: tableRows,
-            startY: 30,
-            theme: 'grid',
-            headStyles: { fillColor: [0, 0, 0] },
-        });
-
-        doc.save(`${title}_Schedule.pdf`);
-    };
-
     // --- RENDER: MASTER GRID TAB ---
     const renderMasterGrid = () => {
         return (
@@ -514,38 +538,88 @@ export default function ScheduleViewer({
                                                     return (
                                                         <td
                                                             key={`${time}-${room.id}`}
-                                                            className={`h-16 border-2 border-black p-2 align-middle ${sched?.is_fallback ? 'bg-orange-50' : 'bg-white'}`}
+                                                            onDragOver={(e) =>
+                                                                e.preventDefault()
+                                                            }
+                                                            onDrop={(e) =>
+                                                                handleDrop(
+                                                                    e,
+                                                                    room.id,
+                                                                    time,
+                                                                    filters.day,
+                                                                )
+                                                            }
+                                                            className={`h-16 border-2 border-black p-2 align-middle transition-all ${!sched ? 'hover:bg-blue-50/30' : ''} ${sched?.is_fallback ? 'bg-orange-50' : 'bg-white'} `}
                                                         >
                                                             {sched ? (
-                                                                <div className="flex flex-col items-center justify-center text-xs">
-                                                                    <span className="mb-0.5 text-sm font-black text-gray-900">
-                                                                        {sched
-                                                                            .teacher
-                                                                            ?.code ||
+                                                                <div
+                                                                    draggable
+                                                                    onDragStart={(
+                                                                        e,
+                                                                    ) =>
+                                                                        handleDragStart(
+                                                                            e,
+                                                                            sched.id,
+                                                                        )
+                                                                    }
+                                                                    onClick={() =>
+                                                                        setEditingSchedule(
+                                                                            sched,
+                                                                        )
+                                                                    }
+                                                                    className={`flex h-full w-full cursor-move cursor-pointer flex-col justify-between rounded-xl p-3 transition-all ${
+                                                                        sched.is_fallback
+                                                                            ? 'border-2 border-orange-400 bg-orange-50'
+                                                                            : 'border-2 border-gray-900 bg-white hover:-translate-y-1 hover:shadow-lg'
+                                                                    }`}
+                                                                >
+                                                                    <div>
+                                                                        <div className="text-[10px] font-black text-gray-400 uppercase">
+                                                                            {
+                                                                                sched
+                                                                                    .subject
+                                                                                    ?.code
+                                                                            }
+                                                                        </div>
+
+                                                                        <div className="mt-1 text-sm leading-tight font-black">
+                                                                            {
+                                                                                sched
+                                                                                    .teacher
+                                                                                    ?.name
+                                                                            }
+                                                                        </div>
+
+                                                                        <div className="text-[11px] font-bold text-gray-600 uppercase">
+                                                                            {
+                                                                                sched
+                                                                                    .section
+                                                                                    ?.name
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div
+                                                                        className={`self-end rounded-full px-2 py-0.5 text-[10px] font-black ${
                                                                             sched
-                                                                                .teacher
-                                                                                ?.name ||
-                                                                            'TBA'}
-                                                                    </span>
-                                                                    <span className="font-semibold text-gray-700">
-                                                                        {sched
+                                                                                .section
+                                                                                ?.capacity >
+                                                                            room.capacity
+                                                                                ? 'bg-red-100 text-red-600'
+                                                                                : 'bg-gray-100 text-gray-500'
+                                                                        }`}
+                                                                    >
+                                                                        {(sched
                                                                             .section
-                                                                            ?.name ||
-                                                                            'TBA'}
-                                                                    </span>
-                                                                    {sched.is_fallback && (
-                                                                        <span
-                                                                            title="Fallback Assignment"
-                                                                            className="mt-1 text-orange-500"
-                                                                        >
-                                                                            ⚠️
-                                                                        </span>
-                                                                    )}
+                                                                            ?.capacity ||
+                                                                            60) +
+                                                                            '/' +
+                                                                            (room.capacity ||
+                                                                                0)}
+                                                                    </div>
                                                                 </div>
                                                             ) : (
-                                                                <span className="text-transparent select-none">
-                                                                    -
-                                                                </span>
+                                                                <div className="h-full w-full rounded-xl border-2 border-dashed border-gray-100"></div>
                                                             )}
                                                         </td>
                                                     );
@@ -984,6 +1058,47 @@ export default function ScheduleViewer({
                     selectedTeacher &&
                     renderTeacherDetail()}
             </div>
+            {editingSchedule && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+                        <h3 className="mb-2 text-2xl font-black">
+                            Edit Schedule
+                        </h3>
+
+                        <p className="mb-6 text-sm font-bold tracking-widest text-gray-500 uppercase">
+                            {editingSchedule.subject?.code}
+                        </p>
+
+                        <label className="mb-2 block text-xs font-black tracking-widest text-gray-400 uppercase">
+                            Assign Teacher
+                        </label>
+
+                        <select
+                            className="mb-8 w-full rounded-xl border border-gray-200 p-3 font-bold"
+                            value={editingSchedule.teacher_id}
+                            onChange={(e) =>
+                                updateTeacher(
+                                    editingSchedule.id,
+                                    e.target.value,
+                                )
+                            }
+                        >
+                            {teachers.map((t) => (
+                                <option key={t.id} value={t.id}>
+                                    {t.name}
+                                </option>
+                            ))}
+                        </select>
+
+                        <button
+                            onClick={() => setEditingSchedule(null)}
+                            className="w-full rounded-xl bg-gray-900 py-3 text-xs font-black tracking-widest text-white uppercase"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
         </AppLayout>
     );
 }
