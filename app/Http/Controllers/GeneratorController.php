@@ -64,14 +64,31 @@ class GeneratorController extends Controller
         ]);
 
         // 2. Create the "Version Container" in the database
+        $latestVersion = ScheduleVersion::where(
+            'academic_year',
+            $validated['academic_year']
+        )
+            ->where('semester', $validated['semester'])
+            ->max('version_number');
+
+        $nextVersion = ($latestVersion ?? 0) + 1;
+
         $version = ScheduleVersion::create([
-            'name' => $validated['academic_year'] . ' - ' . $validated['semester'],
+            'name' => strtoupper(
+                $validated['academic_year'] . ' ' .
+                    $validated['semester'] . ' SEMESTER'
+            ),
 
             'academic_year' => $validated['academic_year'],
-            'semester' => $validated['semester'],
-            'status' => 'Draft' // Always start as Draft
-        ]);
 
+            'semester' => $validated['semester'],
+
+            'version_number' => $nextVersion,
+
+            'status' => 'Draft',
+
+            'effective_date' => now()->addWeeks(2),
+        ]);
         // 3. EXECUTE THE ALGORITHM!
         // We pass the new Version ID to the service so it knows where to save the blocks
         // $generator->generate($version->id);

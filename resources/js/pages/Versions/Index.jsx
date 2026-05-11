@@ -115,7 +115,7 @@ export default function VersionHistory({ versions, filters }) {
                         <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
                             {/* Uses router.get to navigate to the Schedule Viewer (Page 8), passing the version ID */}
                             <button 
-                                onClick={() => router.get('/schedules', { version_id: version.id })}
+                                onClick={() => router.get('/schedules/viewer', { version_id: version.id })}
                                 className="bg-black text-white text-sm font-bold py-2.5 px-6 rounded-lg hover:bg-gray-800 transition whitespace-nowrap"
                             >
                                 View Schedule
