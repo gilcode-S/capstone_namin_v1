@@ -46,7 +46,7 @@ Route::get('/subjects', [SubjectController::class, 'index'])->name('subjects.ind
 Route::post('/subjects', [SubjectController::class, 'store'])->name('subjects.store');
 Route::delete('/subjects/{subject}', [SubjectController::class, 'destroy'])->name('subjects.destroy');
 
-Route::post('/assignments/auto-assign', [SectionSubjectAssignmentController::class, 'autoAssign']);
+// Route::post('/assignments/auto-assign', [SectionSubjectAssignmentController::class, 'autoAssign']);
 
 Route::resource('assignments', SectionSubjectAssignmentController::class);
 
@@ -54,7 +54,7 @@ Route::delete('/curriculum/semester', [CurriculumController::class, 'destroySeme
 // Route::post('/assignments/auto-assign', [SectionSubjectAssignmentController::class, 'autoAssign']);
 // Route::middleware(['auth', 'role:super admin,registrar'])
 //     ->resource('assignments', SectionSubjectAssignmentController::class);
-Route::middleware(['auth', 'role:super admin,registrar'])
+Route::middleware(['auth', 'role:super admin,registrar,staff'])
     ->resource('curriculum', CurriculumController::class);
 Route::get('/academics', [DepartmentController::class, 'index']);
 

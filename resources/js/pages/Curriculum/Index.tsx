@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useForm, router } from '@inertiajs/react';
+import { useForm, router, usePage } from '@inertiajs/react';
 import { Head } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 const breadcrumbs = [
@@ -18,6 +18,8 @@ export default function CurriculumIndex({ programs, selectedProgram, curriculum 
     // UI State for the "Add Subject" form placement
     const [activeSlot, setActiveSlot] = useState(null); // e.g., { year: 1, sem: 1 }
 
+    const { auth } = usePage().props
+    const isReadOnly = auth.user.role === 'staff'
     const { data, setData, post, processing, reset } = useForm({
         program_id: selectedProgram ? selectedProgram.id : '',
         subject_id: '',
@@ -142,17 +144,22 @@ export default function CurriculumIndex({ programs, selectedProgram, curriculum 
                                                                 )}
                                                             </div>
                                                             <div className="flex items-center space-x-3">
-                                                                <span className="text-sm font-semibold">   {c.subject.units} unit{c.subject.units > 1 ? 's' : ''}</span>
-                                                                <button
-                                                                    onClick={() =>
-                                                                        router.delete(`/curriculum/${c.id}`, {
-                                                                            preserveScroll: true
-                                                                        })
-                                                                    }
-                                                                    className="text-red-500 hover:text-red-700"
-                                                                >
-                                                                    ✖
-                                                                </button>
+                                                                <span className="text-sm font-semibold">
+                                                                    {c.subject.units} unit{c.subject.units > 1 ? 's' : ''}
+                                                                </span>
+
+                                                                {!isReadOnly && (
+                                                                    <button
+                                                                        onClick={() =>
+                                                                            router.delete(`/curriculum/${c.id}`, {
+                                                                                preserveScroll: true
+                                                                            })
+                                                                        }
+                                                                        className="text-red-500 hover:text-red-700"
+                                                                    >
+                                                                        ✖
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         </li>
                                                     ))}
@@ -160,8 +167,12 @@ export default function CurriculumIndex({ programs, selectedProgram, curriculum 
                                                 </ul>
 
                                                 {/* The Add Subject Inline Form */}
+                                                {/* The Add Subject Inline Form */}
                                                 {isAdding ? (
-                                                    <form onSubmit={submitSubject} className="bg-blue-50 p-3 rounded border border-blue-200">
+                                                    <form
+                                                        onSubmit={submitSubject}
+                                                        className="bg-blue-50 p-3 rounded border border-blue-200"
+                                                    >
                                                         <select
                                                             value={data.subject_id}
                                                             onChange={e => setData('subject_id', e.target.value)}
@@ -169,31 +180,55 @@ export default function CurriculumIndex({ programs, selectedProgram, curriculum 
                                                             className="w-full border rounded p-2 mb-2 text-sm"
                                                         >
                                                             <option value="">Select Subject...</option>
+
                                                             {validAvailableSubjects.map(s => (
                                                                 <option key={s.id} value={s.id}>
                                                                     {s.code} - {s.name} ({s.type})
                                                                 </option>
                                                             ))}
                                                         </select>
+
                                                         {validAvailableSubjects.length === 0 && (
-                                                            <p className="text-xs text-red-500 mb-2">No subjects available. Check prerequisites.</p>
+                                                            <p className="text-xs text-red-500 mb-2">
+                                                                No subjects available. Check prerequisites.
+                                                            </p>
                                                         )}
+
                                                         <div className="flex space-x-2">
-                                                            <button type="submit" disabled={processing} className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-bold flex-1">Save</button>
-                                                            <button type="button" onClick={() => setActiveSlot(null)} className="bg-gray-300 text-gray-800 px-3 py-1 rounded text-sm font-bold">Cancel</button>
+                                                            <button
+                                                                type="submit"
+                                                                disabled={processing}
+                                                                className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-bold flex-1"
+                                                            >
+                                                                Save
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setActiveSlot(null)}
+                                                                className="bg-gray-300 text-gray-800 px-3 py-1 rounded text-sm font-bold"
+                                                            >
+                                                                Cancel
+                                                            </button>
                                                         </div>
                                                     </form>
-                                                ) : (
+                                                ) : !isReadOnly ? (
                                                     <button
                                                         onClick={() => {
                                                             setActiveSlot({ year, sem });
-                                                            setData({ ...data, year_level: year, semester: sem, subject_id: '' });
+
+                                                            setData({
+                                                                ...data,
+                                                                year_level: year,
+                                                                semester: sem,
+                                                                subject_id: '',
+                                                            });
                                                         }}
                                                         className="w-full border-2 border-dashed border-gray-300 text-gray-500 py-2 rounded hover:border-blue-400 hover:text-blue-600 font-semibold transition-colors"
                                                     >
                                                         + Map Subject Here
                                                     </button>
-                                                )}
+                                                ) : null}
                                             </div>
                                         );
                                     })}
