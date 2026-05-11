@@ -126,6 +126,10 @@ Route::middleware(['auth', 'role:super admin,hr,staff'])->group(function () {
         ->name('schedules.reset');
     Route::put('/schedules/{schedule}', [ScheduleController::class, 'update'])
         ->name('schedules.update');
+
+    Route::get('/conflicts', [ConflictController::class, 'index'])->name('conflicts.index');
+    Route::post('/conflicts/scan', [ConflictController::class, 'scan'])->name('conflicts.scan');
+    Route::post('/conflicts/auto-resolve', [ConflictController::class, 'autoResolve'])->name('conflicts.auto-resolve');
 });
 
 // Route::get('/conflicts', function () {
