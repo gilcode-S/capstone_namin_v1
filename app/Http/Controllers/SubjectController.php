@@ -7,6 +7,7 @@ use App\Models\Programs;
 use App\Models\Domain;
 use App\Models\Teacher;
 use App\Models\Room;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -67,7 +68,12 @@ class SubjectController extends Controller
             $validated['domain_id'] = null;
         }
 
-        Subject::create($validated);
+        $subject = Subject::create($validated);
+
+        AuditLogService::created(
+            'Subject',
+            "Created subject: {$subject->code} - {$subject->name}"
+        );
 
         return redirect()->back()->with('success', 'Subject created successfully.');
     }
@@ -75,6 +81,11 @@ class SubjectController extends Controller
     public function destroy(Subject $subject)
     {
         $subject->delete();
+
+        AuditLogService::deleted(
+            'Subject',
+            "Deleted subject: {$subject->code} - {$subject->name}"
+        );
         return redirect()->back()->with('success', 'Subject deleted.');
     }
 }

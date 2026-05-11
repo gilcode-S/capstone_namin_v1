@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\DomainGroup;
 use App\Models\Domain;
 use App\Models\Schedule;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -114,7 +115,12 @@ class FacultyController extends Controller
             'shift_preferences' => 'required|array',
         ]);
 
-        Teacher::create($validated);
+        $teacher = Teacher::create($validated);
+
+        AuditLogService::created(
+            'Teacher',
+            "Created teacher: {$teacher->name} ({$teacher->id})"
+        );
 
         return redirect()->back()->with('success', 'Teacher created');
     }
@@ -142,12 +148,22 @@ class FacultyController extends Controller
 
         $faculty->update($validated);
 
+        AuditLogService::updated(
+            'Teacher',
+            "Updated teacher: {$faculty->name} ({$faculty->id})"
+        );
+
         return redirect()->back()->with('success', 'Teacher updated');
     }
 
     public function destroy(Teacher $faculty)
     {
         $faculty->delete();
+
+        AuditLogService::deleted(
+            'Teacher',
+            "Deleted teacher: {$faculty->name} ({$faculty->id})"
+        );
 
         return redirect()->back()->with('success', 'Teacher deleted');
     }

@@ -88,7 +88,7 @@ class GeneratorController extends Controller
 
             'version_number' => $nextVersion,
 
-            'status' => 'Draft',
+            'status' => 'Active',
 
             'effective_date' => now()->addWeeks(2),
         ]);

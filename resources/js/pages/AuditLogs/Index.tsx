@@ -110,7 +110,10 @@ export default function AuditLogIndex({ logs, filters }) {
                                 {logs.data && logs.data.length > 0 ? (
                                     logs.data.map(log => (
                                         <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="py-4 text-gray-700">{new Date(log.created_at).toISOString().split('T')[0]}</td>
+                                            <td className="py-4 text-gray-700">
+                                                {new Date(log.created_at).toLocaleDateString('en-US')} {''}
+                                                 {new Date(log.created_at).toLocaleTimeString('en-US')}
+                                            </td>
                                             <td className="py-4 text-gray-900 font-medium">{log.user_name}</td>
                                             <td className="py-4 text-gray-600">{log.role}</td>
                                             <td className="py-4 text-gray-600">{log.action}</td>

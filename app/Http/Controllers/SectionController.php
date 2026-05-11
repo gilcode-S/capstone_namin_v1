@@ -98,7 +98,7 @@ class SectionController extends Controller
             'is_octoberian' => 'nullable|boolean',
         ]);
 
-        Section::create([
+        $section = Section::create([
             'program_id' => $validated['program_id'],
             'year_level' => $validated['year_level'],
             'semester' => $validated['semester'],
@@ -107,6 +107,10 @@ class SectionController extends Controller
             'capacity' => $validated['capacity'],
             'is_octoberian' => $validated['is_octoberian'] ?? false,
         ]);
+        AuditLogService::created(
+            'Section',
+            "Created section: {$section->year_level}-{$section->letter} ({$section->shift})"
+        );
 
         return back()->with('success', 'Section created successfully.');
     }
@@ -132,13 +136,21 @@ class SectionController extends Controller
             'capacity' => $validated['capacity'],
             'is_octoberian' => $validated['is_octoberian'] ?? false,
         ]);
-
+        AuditLogService::updated(
+            'Section',
+            "Updated section: {$section->year_level}-{$section->letter} ({$section->shift})"
+        );
         return back()->with('success', 'Section updated successfully.');
     }
 
     public function destroy(Section $section)
     {
         $section->delete();
+        AuditLogService::deleted(
+            'Section',
+            "Deleted section: {$section->year_level}-{$section->letter} ({$section->shift})"
+        );
+
 
         return back()->with('success', 'Section deleted successfully.');
     }

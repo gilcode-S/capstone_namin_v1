@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Room;
 use App\Models\Department;
+use App\Services\AuditLogService;
 
 class RoomController extends Controller
 {
@@ -59,7 +60,12 @@ class RoomController extends Controller
             'equipment' => 'nullable|array',
         ]);
         $validated['equipment'] = $validated['equipment'] ?? [];
-        Room::create($validated);
+        $room = Room::create($validated);
+
+        AuditLogService::created(
+            'Room',
+            "Created room: {$room->name} (Capacity: {$room->capacity})"
+        );
 
         return back()->with('success', 'Room Created');
     }
@@ -80,6 +86,11 @@ class RoomController extends Controller
         $validated['equipment'] = $validated['equipment'] ?? [];
 
         $room->update($validated);
+        AuditLogService::updated(
+            'Room',
+            "Updated room: {$room->name} (Capacity: {$room->capacity})"
+        );
+
 
         return back()->with('success', 'Room updated successfully.');
     }
@@ -87,6 +98,11 @@ class RoomController extends Controller
     public function destroy(Room $room)
     {
         $room->delete();
+
+        AuditLogService::deleted(
+            'Room',
+            "Deleted room: {$room->name}"
+        );
         return back()->with('success', "Room deleted");
     }
 }
