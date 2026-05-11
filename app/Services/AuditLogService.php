@@ -3,90 +3,65 @@
 namespace App\Services;
 
 use App\Models\AuditLog;
-use Illuminate\Support\Facades\Auth;
 
 class AuditLogService
 {
     /**
-     * Create a new audit log entry
+     * General log creator
      */
-    public static function log(array $data): void
+    public static function log($action, $module, $description)
     {
-        $user = Auth::user();
+        if (!auth()->check()) {
+            return;
+        }
 
         AuditLog::create([
-            'user_id'     => $user?->id,
-            'user_name'   => $user?->name ?? 'System',
-            'role'        => $user?->role ?? null,
-
-            'action'      => $data['action'] ?? 'UNKNOWN',
-            'module'      => $data['module'] ?? 'GENERAL',
-
-            'description' => $data['description'] ?? null,
-
-            'old_data'    => isset($data['old_data']) ? json_encode($data['old_data']) : null,
-            'new_data'    => isset($data['new_data']) ? json_encode($data['new_data']) : null,
-
-            'is_restorable' => $data['is_restorable'] ?? true,
-
-            'created_at'  => now(),
+            'user_id' => auth()->id(),
+            'user_name' => auth()->user()->name,
+            'role' => auth()->user()->role,
+            'action' => $action,
+            'module' => $module,
+            'description' => $description,
         ]);
     }
 
     /**
-     * Helper for CREATE logs
+     * CREATE action
      */
-    public static function created(string $module, $newData, string $description = null): void
+    public static function created($module, $description)
     {
-        self::log([
-            'action' => 'CREATE',
-            'module' => $module,
-            'description' => $description,
-            'old_data' => null,
-            'new_data' => $newData,
-            'is_restorable' => false, // usually cannot restore create
-        ]);
+        self::log('CREATE', $module, $description);
     }
 
     /**
-     * Helper for UPDATE logs
+     * UPDATE action
      */
-    public static function updated(string $module, $oldData, $newData, string $description = null): void
+    public static function updated($module, $description)
     {
-        self::log([
-            'action' => 'UPDATE',
-            'module' => $module,
-            'description' => $description,
-            'old_data' => $oldData,
-            'new_data' => $newData,
-        ]);
+        self::log('UPDATE', $module, $description);
     }
 
     /**
-     * Helper for DELETE logs
+     * DELETE action
      */
-    public static function deleted(string $module, $oldData, string $description = null): void
+    public static function deleted($module, $description)
     {
-        self::log([
-            'action' => 'DELETE',
-            'module' => $module,
-            'description' => $description,
-            'old_data' => $oldData,
-            'new_data' => null,
-        ]);
+        self::log('DELETE', $module, $description);
     }
 
     /**
-     * Helper for RESTORE logs
+     * RESTORE action
      */
-    public static function restored(string $module, $oldData, $newData, string $description = null): void
+    public static function restored($module, $description)
     {
-        self::log([
-            'action' => 'RESTORE',
-            'module' => $module,
-            'description' => $description,
-            'old_data' => $oldData,
-            'new_data' => $newData,
-        ]);
+        self::log('RESTORE', $module, $description);
+    }
+
+    /**
+     * CUSTOM actions
+     */
+    public static function custom($action, $module, $description)
+    {
+        self::log($action, $module, $description);
     }
 }

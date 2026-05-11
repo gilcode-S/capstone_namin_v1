@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\Room;
+use App\Models\Schedule;
 use App\Models\ScheduleVersion;
 use App\Models\Section;
+use App\Services\AuditLogService;
 // use App\Services\GeneratorService;
 use App\Services\ScheduleGeneratorService;
 use Illuminate\Http\Request;
@@ -89,6 +92,16 @@ class GeneratorController extends Controller
 
             'effective_date' => now()->addWeeks(2),
         ]);
+
+        /*
+|--------------------------------------------------------------------------
+| REMOVE OLD SCHEDULES FOR THIS VERSION
+|--------------------------------------------------------------------------
+*/
+
+
+
+
         // 3. EXECUTE THE ALGORITHM!
         // We pass the new Version ID to the service so it knows where to save the blocks
         // $generator->generate($version->id);
@@ -101,7 +114,56 @@ class GeneratorController extends Controller
             $generator->generateScheduleForSection($section, $version->id);
         }
 
+        AuditLogService::custom(
+            'Generate Schedule',
+            'Scheduler',
+            'Generated schedule version #' .
+                $version->version_number .
+                ' for ' .
+                $version->academic_year .
+                ' ' .
+                $version->semester
+        );
+
         // 4. Redirect to the Schedule Viewer (Page 8)
         return redirect()->route('schedules.viewer')->with('success', 'Optimization Algorithm completed successfully!');
+    }
+
+    public function reset(Request $request)
+    {
+        $validated = $request->validate([
+            'academic_year' => 'required|string',
+            'semester' => 'required|string',
+        ]);
+
+        $versions = ScheduleVersion::where(
+            'academic_year',
+            $validated['academic_year']
+        )->where(
+            'semester',
+            $validated['semester']
+        )->get();
+
+        foreach ($versions as $version) {
+            Schedule::where(
+                'schedule_version_id',
+                $version->id
+            )->delete();
+
+            $version->delete();
+        }
+
+        AuditLogService::custom(
+            'Reset Schedule',
+            'Scheduler',
+            'Reset schedules for ' .
+                $validated['academic_year'] .
+                ' ' .
+                $validated['semester']
+        );
+
+        return redirect()
+            ->back()
+            ->with('success', 'Schedules reset successfully.');
     }
 }

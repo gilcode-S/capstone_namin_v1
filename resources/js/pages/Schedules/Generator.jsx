@@ -31,10 +31,25 @@ export default function GeneratorDashboard({
         post('/schedules/generate');
     };
 
+    const handleReset = () => {
+        if (
+            confirm(
+                `Are you sure you want to reset schedules for ${data.academic_year} ${data.semester}?`,
+            )
+        ) {
+            router.delete('/schedules/reset', {
+                data: {
+                    academic_year: data.academic_year,
+                    semester: data.semester,
+                },
+            });
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Generator" />
-            <div className=" max-w-7xl p-2 font-sans">
+            <div className="max-w-7xl p-2 font-sans">
                 <div className="mb-8">
                     <h1 className="text-2xl font-bold text-gray-900">
                         Pre-Flight Schedule Generator
@@ -155,19 +170,30 @@ export default function GeneratorDashboard({
                         </p>
                     </div>
 
-                    <button
-                        onClick={handleGenerate}
-                        disabled={hasErrors || processing}
-                        className={`rounded-lg px-6 py-3 font-bold shadow-sm transition ${
-                            hasErrors
-                                ? 'cursor-not-allowed bg-gray-200 text-gray-400'
-                                : 'bg-black text-white hover:bg-gray-800'
-                        }`}
-                    >
-                        {processing
-                            ? 'Processing Math...'
-                            : 'Run Optimization Algorithm'}
-                    </button>
+                    <div className="flex gap-3">
+                        {/* Reset Button */}
+                        <button
+                            onClick={handleReset}
+                            className="rounded-lg border border-red-200 bg-red-50 px-5 py-3 font-bold text-red-600 transition hover:bg-red-100"
+                        >
+                            Reset Schedule
+                        </button>
+
+                        {/* Generate Button */}
+                        <button
+                            onClick={handleGenerate}
+                            disabled={hasErrors || processing}
+                            className={`rounded-lg px-6 py-3 font-bold shadow-sm transition ${
+                                hasErrors
+                                    ? 'cursor-not-allowed bg-gray-200 text-gray-400'
+                                    : 'bg-black text-white hover:bg-gray-800'
+                            }`}
+                        >
+                            {processing
+                                ? 'Processing Math...'
+                                : 'Run Optimization Algorithm'}
+                        </button>
+                    </div>
                 </div>
             </div>
         </AppLayout>

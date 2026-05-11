@@ -122,6 +122,8 @@ Route::middleware(['auth', 'role:super admin,hr,staff'])->group(function () {
 
     // Page 8: The Schedule Viewer
     Route::get('/schedules/viewer', [ScheduleController::class, 'index'])->name('schedules.viewer');
+    Route::delete('/schedules/reset', [GeneratorController::class, 'reset'])
+        ->name('schedules.reset');
 });
 
 // Route::get('/conflicts', function () {

@@ -47,7 +47,7 @@ class DashboardController extends Controller
                 ['label' => 'Active Schedule', 'value' => 'V.2', 'desc' => '2026-2027 1st Sem', 'icon' => 'calendar'],
             ];
             $quickActions = [
-                ['title' => 'Generate New Schedule', 'desc' => 'Run optimization algorithm', 'url' => '/schedules/generate'],
+                ['title' => 'Generate New Schedule', 'desc' => 'Run optimization algorithm', 'url' => '/schedules/generator'],
                 ['title' => 'Resolve Conflicts', 'desc' => 'Review scheduling overlaps', 'url' => '/conflicts']
             ];
         } else { // Super Admin / Director
