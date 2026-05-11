@@ -94,4 +94,10 @@ class Faculty extends Model
     {
         return $this->hasMany(Schedule::class, 'teacher_id', 'id');
     }
+
+    public function getEfficiencyAttribute()
+    {
+        if ($this->max_hours <= 0) return 0;
+        return ($this->current_hours / $this->max_hours) * 100;
+    }
 }

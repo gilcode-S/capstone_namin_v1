@@ -27,4 +27,9 @@ class Room extends Model
             $room->generated_name = $baseName;
         });
     }
+
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class);
+    }
 }

@@ -46,4 +46,9 @@ class Subject extends Model
     {
         return $this->belongsTo(Room::class, 'req_room_id');
     }
+
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class);
+    }
 }

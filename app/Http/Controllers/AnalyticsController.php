@@ -5,64 +5,73 @@ namespace App\Http\Controllers;
 use App\Models\Teacher;
 use App\Models\Room;
 use App\Models\Schedule;
+use App\Models\Conflict;
+use App\Models\OptimizationLog;
+use App\Models\Subject;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use DB;
 
 class AnalyticsController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // 1. Calculate Teacher Workload (Real Data)
-        // In reality, you'd sum the units/hours from the schedules table for each teacher.
-        $teachers = Teacher::take(5)->get()->map(function ($teacher) {
-            // Mocking current hours for the visualizer. In prod: schedule()->sum('units')
-            $currentHours = rand(10, $teacher->max_hours); 
-            return [
-                'name' => $teacher->name,
-                'current' => $currentHours,
-                'maximum' => $teacher->max_hours,
-                'efficiency' => round(($currentHours / $teacher->max_hours) * 100)
-            ];
-        });
+        // --- 1. TOP STAT CARDS ---
+        $totalSubjects = Subject::count();
+        $scheduledSubjects = Schedule::distinct('subject_id')->count();
+        $efficiencyAve = $totalSubjects > 0 ? ($scheduledSubjects / $totalSubjects) * 100 : 0;
 
-        // 2. High-Level KPI Stats
-        $kpiStats = [
-            'efficiency' => 89,
-            'teacher_utilization' => 82,
-            'room_utilization' => 75
-        ];
+        $teacherUtil = Teacher::where('max_hours', '>', 0)
+            ->selectRaw('AVG(current_hours / max_hours) * 100 as avg_util')
+            ->first()->avg_util ?? 0;
 
-        // 3. Chart Data Formats (Mirroring your mockups)
-        $conflictTrends = [
-            ['month' => 'Jan', 'detected' => 8, 'resolved' => 5],
-            ['month' => 'Feb', 'detected' => 7, 'resolved' => 7],
-            ['month' => 'Mar', 'detected' => 5, 'resolved' => 4],
-            ['month' => 'Apr', 'detected' => 10, 'resolved' => 5],
-            ['month' => 'May', 'detected' => 8, 'resolved' => 6],
-            ['month' => 'Jun', 'detected' => 5, 'resolved' => 4],
-        ];
+        $totalSlots = Room::count() * 50; // Assuming 50 slots per room per week
+        $usedSlots = Schedule::count();
+        $roomUtil = $totalSlots > 0 ? ($usedSlots / $totalSlots) * 100 : 0;
 
-        $roomUtilization = [
-            ['day' => 'Mon', 'Classrooms' => 85, 'Computer Lab' => 70, 'PE Room' => 45],
-            ['day' => 'Tue', 'Classrooms' => 95, 'Computer Lab' => 85, 'PE Room' => 60],
-            ['day' => 'Wed', 'Classrooms' => 90, 'Computer Lab' => 92, 'PE Room' => 35],
-            ['day' => 'Thu', 'Classrooms' => 92, 'Computer Lab' => 80, 'PE Room' => 50],
-            ['day' => 'Fri', 'Classrooms' => 75, 'Computer Lab' => 65, 'PE Room' => 80],
-        ];
+        // --- 2. PERFORMANCE VIEW DATA ---
+        $workloadData = Teacher::with('department')
+            ->select('id', 'name', 'current_hours', 'max_hours', 'department_id')
+            ->when($request->dept, function ($q) use ($request) {
+                $q->whereHas('department', function ($sub) use ($request) {
+                    $sub->where('department_name', $request->dept);
+                });
+            })
+            ->get();
 
-        $departmentDist = [
-            ['name' => 'Criminology', 'value' => 35, 'color' => '#FF0000'],
-            ['name' => 'Tourism', 'value' => 28, 'color' => '#00FF00'],
-            ['name' => 'Business', 'value' => 19, 'color' => '#FFFF00'],
-            ['name' => 'Computer Science', 'value' => 18, 'color' => '#0000FF'],
-        ];
+        $conflictTrend = Conflict::selectRaw("DATE_FORMAT(created_at, '%b') as month, 
+            count(*) as detected, 
+            sum(case when status = 'Resolved' then 1 else 0 end) as resolved")
+            ->groupBy('month')
+            ->orderBy('created_at')
+            ->get();
 
-        return Inertia::render('Analytics/Index', [
-            'kpiStats' => $kpiStats,
-            'teacherData' => $teachers,
-            'conflictTrends' => $conflictTrends,
-            'roomUtilization' => $roomUtilization,
-            'departmentDist' => $departmentDist
+        // --- 3. UTILIZATION VIEW DATA ---
+        $roomTypeUsage = Room::join('schedules', 'rooms.id', '=', 'schedules.room_id')
+            ->selectRaw('rooms.type, count(schedules.id) as count')
+            ->groupBy('rooms.type')
+            ->get();
+        $deptDistribution = Schedule::join('subjects', 'schedules.subject_id', '=', 'subjects.id')
+            ->join('programs', 'subjects.program_id', '=', 'programs.id')
+            ->selectRaw('programs.name as name, count(schedules.id) as value')
+            ->groupBy('programs.name')
+            ->get();
+
+        // --- 4. OPTIMIZATION LOGS ---
+        $algoMetrics = OptimizationLog::latest()->take(4)->get();
+
+        return Inertia::render('Analytics/Dashboard', [
+            'stats' => [
+                'efficiency' => round($efficiencyAve, 1),
+                'teacher_util' => round($teacherUtil, 1),
+                'room_util' => round($roomUtil, 1)
+            ],
+            'workloadData' => $workloadData,
+            'conflictTrend' => $conflictTrend,
+            'roomTypeUsage' => $roomTypeUsage,
+            'deptDistribution' => $deptDistribution,
+            'algoMetrics' => $algoMetrics,
+            'filters' => $request->only(['dept', 'search'])
         ]);
     }
 }

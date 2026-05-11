@@ -51,7 +51,8 @@ class FacultyController extends Controller
 
             $currentHours = $this->calculateTeacherHours($t->id);
 
-            $t->assigned_load = $currentHours;
+            $t->assigned_load = $currentHours; // ✅ THIS is what UI uses
+
             $t->workload_percent = $t->max_hours
                 ? round(($currentHours / $t->max_hours) * 100)
                 : 0;
