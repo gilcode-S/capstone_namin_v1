@@ -23,4 +23,10 @@ class Department extends Model
     {
         return $this->hasMany(Teacher::class);
     }
+    public function schedules()
+    {
+        // This allows us to see how many schedules belong to this department 
+        // by looking through the teachers assigned to it.
+        return $this->hasManyThrough(Schedule::class, Teacher::class);
+    }
 }

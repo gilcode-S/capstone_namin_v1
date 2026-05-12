@@ -1,6 +1,8 @@
 <?php
 
+
 namespace App\Http\Controllers;
+
 
 use App\Models\AuditLog;
 use App\Models\Subject;
@@ -15,6 +17,7 @@ use App\Services\ScheduleGeneratorService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
+
 class GeneratorController extends Controller
 {
     /**
@@ -27,14 +30,17 @@ class GeneratorController extends Controller
         $readyTeachers = Teacher::has('domain')->count();
         $facultyReadiness = $totalTeachers > 0 ? round(($readyTeachers / $totalTeachers) * 100) : 0;
 
+
         // 2. Calculate Room Capacity (Simple Check: Do we have rooms?)
         $totalRooms = Room::count();
         $roomReadiness = $totalRooms > 0 ? '100%' : '0%';
+
 
         // 3. Curriculum Integrity (Find Majors missing prerequisites)
         $problemSubjects = Subject::where('type', 'Major')
             ->whereNull('program_id')
             ->get();
+
 
         $warnings = [];
         foreach ($problemSubjects as $subject) {
@@ -43,6 +49,8 @@ class GeneratorController extends Controller
                 'message' => 'Missing Program. Major subjects must be assigned to a specific Degree Program.'
             ];
         }
+
+
 
 
         // Return the React view with all calculated data
@@ -55,6 +63,7 @@ class GeneratorController extends Controller
         ]);
     }
 
+
     /**
      * THE TRIGGER: Run the algorithm and save the schedule.
      */
@@ -66,6 +75,7 @@ class GeneratorController extends Controller
             'semester' => 'required|string',
         ]);
 
+
         // 2. Create the "Version Container" in the database
         $latestVersion = ScheduleVersion::where(
             'academic_year',
@@ -74,7 +84,9 @@ class GeneratorController extends Controller
             ->where('semester', $validated['semester'])
             ->max('version_number');
 
+
         $nextVersion = ($latestVersion ?? 0) + 1;
+
 
         $version = ScheduleVersion::create([
             'name' => strtoupper(
@@ -82,16 +94,22 @@ class GeneratorController extends Controller
                     $validated['semester'] . ' SEMESTER'
             ),
 
+
             'academic_year' => $validated['academic_year'],
+
 
             'semester' => $validated['semester'],
 
+
             'version_number' => $nextVersion,
+
 
             'status' => 'Active',
 
+
             'effective_date' => now()->addWeeks(2),
         ]);
+
 
         /*
 |--------------------------------------------------------------------------
@@ -102,17 +120,24 @@ class GeneratorController extends Controller
 
 
 
+
+
+
+
         // 3. EXECUTE THE ALGORITHM!
         // We pass the new Version ID to the service so it knows where to save the blocks
         // $generator->generate($version->id);
+
 
         // 🔥 THIS is the missing part
         // 🚀 ONLY USE THE REAL SCHEDULER
         $sections = Section::all();
 
+
         foreach ($sections as $section) {
             $generator->generateScheduleForSection($section, $version->id);
         }
+
 
         AuditLogService::custom(
             'Generate Schedule',
@@ -125,9 +150,11 @@ class GeneratorController extends Controller
                 $version->semester
         );
 
+
         // 4. Redirect to the Schedule Viewer (Page 8)
         return redirect()->route('schedules.viewer')->with('success', 'Optimization Algorithm completed successfully!');
     }
+
 
     public function reset(Request $request)
     {
@@ -135,6 +162,7 @@ class GeneratorController extends Controller
             'academic_year' => 'required|string',
             'semester' => 'required|string',
         ]);
+
 
         $versions = ScheduleVersion::where(
             'academic_year',
@@ -144,14 +172,17 @@ class GeneratorController extends Controller
             $validated['semester']
         )->get();
 
+
         foreach ($versions as $version) {
             Schedule::where(
                 'schedule_version_id',
                 $version->id
             )->delete();
 
+
             $version->delete();
         }
+
 
         AuditLogService::custom(
             'Reset Schedule',
@@ -161,6 +192,7 @@ class GeneratorController extends Controller
                 ' ' .
                 $validated['semester']
         );
+
 
         return redirect()
             ->back()

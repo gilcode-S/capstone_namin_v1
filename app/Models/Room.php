@@ -32,4 +32,13 @@ class Room extends Model
     {
         return $this->hasMany(Schedule::class);
     }
+
+    /**
+     * Calculates current utilization based on a standard 40-hour school week
+     */
+    public function getUtilizationPercentageAttribute()
+    {
+        $totalHours = $this->schedules()->count(); // Simplified for count-based logic
+        return ($totalHours / 40) * 100;
+    }
 }

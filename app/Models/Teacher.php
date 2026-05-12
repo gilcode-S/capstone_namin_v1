@@ -31,6 +31,11 @@ class Teacher extends Model
         return $this->belongsTo(Domain::class, 'specialization_id');
     }
 
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class);
+    }
+
 
     public function requiredTeacher()
     {
@@ -50,5 +55,9 @@ class Teacher extends Model
     public function specialization()
     {
         return $this->belongsTo(Domain::class, 'specialization_id');
+    }
+    public function getIsOverloadedAttribute()
+    {
+        return $this->current_hours > $this->max_hours;
     }
 }

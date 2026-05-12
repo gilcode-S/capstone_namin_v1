@@ -57,6 +57,7 @@ return new class extends Migration
 
             // TRUE if system used emergency/fallback scheduling
             $table->boolean('is_fallback')->default(false);
+          
             $table->timestamps();
         });
     }

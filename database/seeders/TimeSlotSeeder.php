@@ -14,7 +14,7 @@ class TimeslotSeeder extends Seeder
      */
     public function run(): void
     {
-        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', ];
+        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday' ];
 
         // Strict 1-hour blocks with your exact 5-hour shift limits
         $shifts = [

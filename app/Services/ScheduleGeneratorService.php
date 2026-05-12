@@ -1,6 +1,8 @@
 <?php
 
+
 namespace App\Services;
+
 
 use App\Models\Section;
 use App\Models\Teacher;
@@ -10,6 +12,7 @@ use App\Models\Timeslot;
 use App\Models\Schedule; // Assuming you make a Schedule model for the final output
 use App\Models\CurriculumSubject;
 use Illuminate\Support\Facades\DB;
+
 
 class ScheduleGeneratorService
 {
@@ -23,9 +26,11 @@ class ScheduleGeneratorService
         $teachers = Teacher::all();
         $rankedTeachers = [];
 
+
         foreach ($teachers as $teacher) {
             $score = 0;
             $isQualified = false;
+
 
             // COMPETENCY CHECK: Major Subject (Strict Department Check)
             if ($subject->type === 'Major') {
@@ -42,6 +47,7 @@ class ScheduleGeneratorService
                 }
             }
 
+
             // SHIFT PREFERENCE CHECK (Soft Constraint)
             // Does the teacher prefer the shift that this section is in?
             $teacherShifts = $teacher->shift_preferences ?? [];
@@ -49,10 +55,12 @@ class ScheduleGeneratorService
                 $score += 20;
             }
 
+
             // HARD CONSTRAINT FILTER: Skip unqualified teachers entirely
             if (!$isQualified) {
                 continue;
             }
+
 
             // Add to our ranked array
             $rankedTeachers[] = [
@@ -61,13 +69,17 @@ class ScheduleGeneratorService
             ];
         }
 
+
         // Sort the array by score, highest first
         usort($rankedTeachers, function ($a, $b) {
             return $b['score'] <=> $a['score'];
         });
 
+
         return collect($rankedTeachers)->pluck('teacher');
     }
+
+
 
 
     /**
@@ -83,47 +95,60 @@ class ScheduleGeneratorService
             ->with('subject')
             ->get();
 
+
         // 2. Get available Timeslots for this section's shift (e.g., Only Morning slots)
         $availableTimeslots = Timeslot::where('shift', $section->shift)->get();
+
 
         // 3. Get all face-to-face rooms
         $rooms = Room::where('type', '!=', 'Online')->get();
 
+
         $generatedSchedule = [];
+
 
         // START THE GREEDY LOOP
         foreach ($curriculumSubjects as $curriculum) {
             $subject = $curriculum->subject;
             $unitsToSchedule = $subject->units;
 
+
             // Get our pre-processed, ranked list of competent teachers
             $rankedTeachers = $this->rankTeachersForSubject($subject, $section);
+
 
             // If no competent teacher exists, we must flag an error for the admin
             if ($rankedTeachers->isEmpty()) {
                 throw new \Exception("No competent teacher found for Subject: " . $subject->name);
             }
 
+
             // Grab the #1 ranked teacher
             $assignedTeacher = $rankedTeachers->first();
+
 
             // Loop to assign timeslots based on Subject Units (e.g., 3 units = 3 timeslots)
             $scheduledUnits = 0;
 
+
             foreach ($availableTimeslots as $timeslot) {
                 if ($scheduledUnits >= $unitsToSchedule) break; // Finished scheduling this subject
+
 
                 // HARD CONSTRAINTS CHECK
                 if ($this->hasConflict($timeslot->id, $assignedTeacher->id, $section->id)) {
                     continue; // Skip this timeslot, someone is busy
                 }
 
+
                 if ($this->isBreakingFourHourRule($timeslot, $assignedTeacher->id)) {
                     continue; // Skip, teacher needs a 1-hour break
                 }
 
+
                 // Find a room that isn't booked at this timeslot
                 $availableRoom = $this->findAvailableRoom($timeslot->id, $rooms, $subject);
+
 
                 if ($availableRoom) {
                     // Lock it in!
@@ -134,10 +159,11 @@ class ScheduleGeneratorService
                         'teacher_id' => $assignedTeacher->id,
                         'room_id' => $availableRoom->id,
                         'timeslot_id' => $timeslot->id,
-                      
+                     
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
+
 
                     // Insert into DB immediately to prevent conflicts with the next loop
                     DB::table('schedules')->insert($newScheduleBlock);
@@ -145,14 +171,17 @@ class ScheduleGeneratorService
                 }
             }
 
+
             if ($scheduledUnits < $unitsToSchedule) {
                 // The algorithm ran out of rooms or timeslots for this shift!
                 throw new \Exception("Could not fully schedule " . $subject->name . ". Not enough resources.");
             }
         }
 
+
         return true; // Success!
     }
+
 
     /**
      * CONFLICT DETECTOR: Ensures Teacher and Section aren't double-booked
@@ -167,6 +196,7 @@ class ScheduleGeneratorService
             })->exists();
     }
 
+
     /**
      * FATIGUE DETECTOR: The 4-Hour Rule
      * Checks if the teacher is teaching 4 consecutive hours right before this slot.
@@ -174,12 +204,14 @@ class ScheduleGeneratorService
     private function isBreakingFourHourRule($timeslot, $teacherId)
     {
         // For a 1-day MVP build, we keep this simple.
-        // In reality, you query the schedule to see if the teacher has 4 consecutive 
+        // In reality, you query the schedule to see if the teacher has 4 consecutive
         // timeslots on the exact same `day` immediately prior to $timeslot->start_time.
         // If true, return true to force a skip.
 
+
         return false; // Set to true when fully implemented
     }
+
 
     /**
      * ROOM FINDER: Grabs an empty room based on subject needs
@@ -188,18 +220,22 @@ class ScheduleGeneratorService
     {
         $bookedRoomIds = DB::table('schedules')->where('timeslot_id', $timeslotId)->pluck('room_id')->toArray();
 
+
         foreach ($rooms as $room) {
             if (!in_array($room->id, $bookedRoomIds)) {
+
 
                 // If it's a PE subject, it needs a PE room.
                 if (str_contains(strtolower($subject->name), 'pe') && $room->type !== 'PE') {
                     continue;
                 }
 
+
                 // If it's a computer lab subject, it needs a Lab.
                 if (str_contains(strtolower($subject->name), 'programming') && $room->type !== 'Lab') {
                     continue;
                 }
+
 
                 return $room; // We found a valid, empty room!
             }
@@ -207,3 +243,5 @@ class ScheduleGeneratorService
         return null;
     }
 }
+
+

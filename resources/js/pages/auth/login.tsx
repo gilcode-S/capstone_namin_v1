@@ -50,10 +50,10 @@ export default function Login() {
                         <div className="relative z-10">
 
                             {/* LOGO */}
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 ">
 
-                                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-2xl shadow-lg">
-                                    🎓
+                                <div className="w-12 h-12 rounded flex items-center justify-center text-2xl shadow-lg">
+                                    <img src="image/dasmaa.png" alt="" className="w-12 h-12 object-contain" />
                                 </div>
 
                                 <div>
@@ -61,9 +61,7 @@ export default function Login() {
                                         AISAT Scheduler
                                     </h2>
 
-                                    <p className="text-sm text-white/80">
-                                        Academic Management System
-                                    </p>
+
                                 </div>
                             </div>
                         </div>
@@ -71,20 +69,15 @@ export default function Login() {
                         {/* BOTTOM TEXT */}
                         <div className="relative z-10">
 
-                            <p className="uppercase tracking-[0.3em] text-sm text-yellow-100 mb-3">
-                                Smart Scheduling Platform
+                            <p className="uppercase tracking-[0.3em] text-xs text-yellow-100 mb-3">
+                                Competency-Aware Automatic Class Scheduler
                             </p>
 
-                            <h1 className="text-5xl font-extrabold leading-tight mb-6 drop-shadow-lg">
-                                Competency-Aware
-                                <br />
-                                Scheduling System
+                            <h1 className="text-3xl font-extrabold leading-tight mb-6 drop-shadow-lg">
+                                "Eliminating Conflicts, Empowering Education through Intelligent Automation."
                             </h1>
 
-                            <p className="text-white/90 max-w-md text-lg leading-relaxed">
-                                Streamline faculty scheduling, room assignments,
-                                and class management with intelligent automation.
-                            </p>
+
 
                         </div>
                     </div>
@@ -199,12 +192,12 @@ export default function Login() {
                                         Remember me
                                     </label>
 
-                                    <a
+                                    {/* <a
                                         href="/forgot-password"
                                         className="text-gray-900 font-medium hover:underline"
                                     >
                                         Forgot Password?
-                                    </a>
+                                    </a> */}
                                 </div>
 
                                 {/* BUTTON */}
