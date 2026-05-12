@@ -87,7 +87,7 @@ class AnalyticsController extends Controller
             ],
             [
                 'label' => 'Constraint Health',
-                'value' => '98.2%', 
+                'value' => '98.2%',
                 'sub' => 'System stability'
             ],
         ];
@@ -105,7 +105,7 @@ class AnalyticsController extends Controller
         ];
 
         // 5. Department Distribution (Pie Chart - Count Teachers active in this Set)
-        $departmentDist = Department::get()->map(function($d) use ($currentSet) {
+        $departmentDist = Department::get()->map(function ($d) use ($currentSet) {
             $count = Teacher::where('department_id', $d->id)
                 ->whereHas('schedules', fn($q) => $q->where('set', $currentSet))
                 ->count();
@@ -126,33 +126,24 @@ class AnalyticsController extends Controller
         ]);
     }
 
-    private function getRoomUtilizationData($set) {
-        // Updated to include Sunday
-        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-   
-        return collect($days)->map(function($day) use ($set) {
-            // Helper to count hours by room type and day
-            $getUtilization = function($type) use ($day, $set) {
-                $hours = Schedule::where('set', $set)
-                    ->where('day', $day)
-                    ->whereHas('room', fn($q) => $q->where('type', $type))
-                    ->with('timeslot')
-                    ->get()
-                    ->sum(function ($s) {
-                        if (!$s->timeslot) return 0;
-                        return (strtotime($s->timeslot->end_time) - strtotime($s->timeslot->start_time)) / 3600;
-                    });
-                
-                // Return as percentage of a standard 12-hour school day
-                return round(($hours / 12) * 100);
-            };
+    private function getRoomUtilizationData($set)
+    {
+        return Room::all()->map(function ($room) use ($set) {
+
+            $hours = Schedule::where('set', $set)
+                ->where('room_id', $room->id)
+                ->with('timeslot')
+                ->get()
+                ->sum(function ($s) {
+                    if (!$s->timeslot) return 0;
+
+                    return (strtotime($s->timeslot->end_time) -
+                        strtotime($s->timeslot->start_time)) / 3600;
+                });
 
             return [
-                'day' => substr($day, 0, 3), // e.g., 'Mon'
-                'Classroom' => $getUtilization('Classroom'),
-                'Lab' => $getUtilization('Lab'),
-                'PE' => $getUtilization('PE'),
-                'Online' => $getUtilization('Online'),
+                'room' => $room->name,
+                'utilization' => round(($hours / 12) * 100)
             ];
         });
     }
