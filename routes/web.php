@@ -45,6 +45,7 @@ Route::middleware(['auth', 'role:super admin,registrar'])
 Route::get('/subjects', [SubjectController::class, 'index'])->name('subjects.index');
 Route::post('/subjects', [SubjectController::class, 'store'])->name('subjects.store');
 Route::delete('/subjects/{subject}', [SubjectController::class, 'destroy'])->name('subjects.destroy');
+Route::put('/subjects/{subject}', [SubjectController::class, 'update']);
 
 // Route::post('/assignments/auto-assign', [SectionSubjectAssignmentController::class, 'autoAssign']);
 

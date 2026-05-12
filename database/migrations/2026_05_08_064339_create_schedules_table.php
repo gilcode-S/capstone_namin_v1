@@ -57,7 +57,9 @@ return new class extends Migration
 
             // TRUE if system used emergency/fallback scheduling
             $table->boolean('is_fallback')->default(false);
-          
+            $table->string('set')->default('A'); // Tracks if this is Set A or Set B
+            $table->string('day');                // Stores 'Monday', 'Tuesday', etc.
+
             $table->timestamps();
         });
     }

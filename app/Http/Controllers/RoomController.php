@@ -54,7 +54,7 @@ class RoomController extends Controller
             'room_number' => 'required|string',
             'description_name' => 'nullable|string',
 
-            'type' => 'required|in:classroom,laboratory,pe_room,online',
+            'type' => 'required|in:Classroom,Lab,PE,Online',
             'capacity' => 'required|integer|min:1',
 
             'equipment' => 'nullable|array',
@@ -78,7 +78,7 @@ class RoomController extends Controller
             'room_number' => 'required|string',
             'description_name' => 'nullable|string',
 
-            'type' => 'required|in:classroom,laboratory,pe_room,online',
+            'type' => 'required|in:Classroom,Lab,PE,Online',
             'capacity' => 'required|integer|min:1',
 
             'equipment' => 'nullable|array',

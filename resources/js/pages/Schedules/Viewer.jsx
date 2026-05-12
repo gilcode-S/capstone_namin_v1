@@ -34,6 +34,22 @@ export default function ScheduleViewer({
     const [selectedTeacher, setSelectedTeacher] = useState(null);
     const [sectionSet, setSectionSet] = useState('Set A');
 
+    const handleSetChange = (newSet) => {
+        setSectionSet(newSet);
+
+        router.get(
+            '/schedules/viewer',
+            {
+                section_set: newSet,
+            },
+            {
+                preserveState: true,
+                replace: true,
+                preserveScroll: true,
+            },
+        );
+    };
+
     const [sectionSearch, setSectionSearch] = useState('');
     const [teacherSearch, setTeacherSearch] = useState('');
 
@@ -62,7 +78,7 @@ export default function ScheduleViewer({
         'Thursday',
         'Friday',
         'Saturday',
-        'Sunday',
+       
     ];
 
     // Fixed Time blocks for the template rows
@@ -91,14 +107,42 @@ export default function ScheduleViewer({
     };
 
     // If database has no rooms yet, use these to force the grid shape to appear.
+    // =========================================
+    // ROOM FILTERING
+    // =========================================
+
+    const buildingOptions = [
+        'All Building',
+        ...new Set(rooms.map((r) => r.building).filter(Boolean)),
+    ];
+
+    const floorOptions = [
+        'All Floor',
+        ...new Set(rooms.map((r) => r.floor).filter(Boolean)),
+    ];
+
+    // Filtered rooms for grid
+    const filteredRooms = rooms.filter((room) => {
+        const buildingMatch =
+            filters.building === 'All Building' ||
+            room.building === filters.building;
+
+        const floorMatch =
+            filters.floor === 'All Floor' ||
+            String(room.floor) === String(filters.floor);
+
+        return buildingMatch && floorMatch;
+    });
+
+    // fallback if no rooms exist
     const displayRooms =
-        rooms && rooms.length > 0
-            ? rooms
+        filteredRooms && filteredRooms.length > 0
+            ? filteredRooms
             : [
-                  { id: 't1', name: 'ROOM 101' },
-                  { id: 't2', name: 'ROOM 102' },
-                  { id: 't3', name: 'ROOM 103' },
-                  { id: 't4', name: 'ROOM 104' },
+                  { id: 't1', generated_name: 'ROOM 101' },
+                  { id: 't2', generated_name: 'ROOM 102' },
+                  { id: 't3', generated_name: 'ROOM 103' },
+                  { id: 't4', generated_name: 'ROOM 104' },
               ];
 
     // --- BULLETPROOF DATA FETCHER ---
@@ -661,16 +705,24 @@ export default function ScheduleViewer({
                 <div className="flex flex-col items-end gap-2">
                     <div className="flex rounded-full bg-gray-900 p-1 text-sm font-bold text-white">
                         <button
-                            className={`rounded-full px-6 py-1 ${sectionSet === 'Set A' ? 'bg-gray-700' : ''}`}
-                            onClick={() => setSectionSet('Set A')}
+                            onClick={() => handleSetChange('Set A')} // Changed this
+                            className={`rounded-lg px-6 py-2 text-xs font-black transition-all ${
+                                sectionSet === 'Set A'
+                                    ? 'bg-white text-blue-600 shadow-sm'
+                                    : 'text-gray-400 hover:text-gray-600'
+                            }`}
                         >
                             SET A (FTF)
                         </button>
                         <button
-                            className={`rounded-full px-6 py-1 ${sectionSet === 'Set B' ? 'bg-gray-700' : ''}`}
-                            onClick={() => setSectionSet('Set B')}
+                            onClick={() => handleSetChange('Set B')} // Changed this
+                            className={`rounded-lg px-6 py-2 text-xs font-black transition-all ${
+                                sectionSet === 'Set B'
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'text-gray-400 hover:text-gray-600'
+                            }`}
                         >
-                            SET B (Online)
+                            SET B (ONLINE)
                         </button>
                     </div>
                     <div className="flex gap-2">
@@ -976,7 +1028,64 @@ export default function ScheduleViewer({
                                 <option>Afternoon</option>
                                 <option>Evening</option>
                             </select>
+                            <button
+                                onClick={() => handleSetChange('Set A')} // Changed this
+                                className={`rounded-lg px-6 py-2 text-xs font-black transition-all ${
+                                    sectionSet === 'Set A'
+                                        ? 'bg-white text-blue-600 shadow-sm'
+                                        : 'text-gray-400 hover:text-gray-600'
+                                }`}
+                            >
+                                SET A (FTF)
+                            </button>
+                            <button
+                                onClick={() => handleSetChange('Set B')} // Changed this
+                                className={`rounded-lg px-6 py-2 text-xs font-black transition-all ${
+                                    sectionSet === 'Set B'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'text-gray-400 hover:text-gray-600'
+                                }`}
+                            >
+                                SET B (ONLINE)
+                            </button>
+
+                            {/* BUILDING FILTER */}
+<select
+    className="rounded-lg border-2 border-gray-200 bg-gray-50 p-2 text-sm font-bold text-gray-700"
+    value={filters.building}
+    onChange={(e) =>
+        setFilters({
+            ...filters,
+            building: e.target.value,
+        })
+    }
+>
+    {buildingOptions.map((building) => (
+        <option key={building} value={building}>
+            {building}
+        </option>
+    ))}
+</select>
+
+{/* FLOOR FILTER */}
+<select
+    className="rounded-lg border-2 border-gray-200 bg-gray-50 p-2 text-sm font-bold text-gray-700"
+    value={filters.floor}
+    onChange={(e) =>
+        setFilters({
+            ...filters,
+            floor: e.target.value,
+        })
+    }
+>
+    {floorOptions.map((floor) => (
+        <option key={floor} value={floor}>
+            {floor}
+        </option>
+    ))}
+</select>
                         </div>
+
                         {renderMasterGrid()}
                     </div>
                 )}

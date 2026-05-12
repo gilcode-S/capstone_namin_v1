@@ -1,247 +1,523 @@
 <?php
 
-
 namespace App\Services;
-
 
 use App\Models\Section;
 use App\Models\Teacher;
 use App\Models\Subject;
 use App\Models\Room;
 use App\Models\Timeslot;
-use App\Models\Schedule; // Assuming you make a Schedule model for the final output
 use App\Models\CurriculumSubject;
 use Illuminate\Support\Facades\DB;
-
 
 class ScheduleGeneratorService
 {
     /**
-     * PAGE 10: THE PRE-PROCESSING ENGINE (COMPETENCY MATCHING)
-     * This ranks teachers for a specific subject based on their domains and department.
+     * RANK TEACHERS
      */
-    public function rankTeachersForSubject(Subject $subject, Section $section)
-    {
-        // 1. Get all teachers
+    public function rankTeachersForSubject(
+        Subject $subject,
+        Section $section,
+        $versionId,
+        $teacherLoads
+    ) {
+
         $teachers = Teacher::all();
+
         $rankedTeachers = [];
 
-
         foreach ($teachers as $teacher) {
+
             $score = 0;
+
             $isQualified = false;
 
-
-            // COMPETENCY CHECK: Major Subject (Strict Department Check)
+            /**
+             * MAJOR SUBJECTS
+             */
             if ($subject->type === 'Major') {
-                if ($teacher->department_id === $subject->program->department_id) {
-                    $score += 50; // Huge point boost for matching department
+
+                if (
+                    $subject->program &&
+                    $teacher->department_id ===
+                    $subject->program->department_id
+                ) {
+
+                    $score += 50;
+
                     $isQualified = true;
                 }
             }
-            // COMPETENCY CHECK: Minor Subject (Domain Check)
+
+            /**
+             * MINOR SUBJECTS
+             */
             else {
-                if ($teacher->domainGroup && $teacher->domainGroup->domains->contains('id', $subject->domain_id)) {
+
+                if (
+                    $teacher->domainGroup &&
+                    $teacher->domainGroup->domains->contains(
+                        'id',
+                        $subject->domain_id
+                    )
+                ) {
+
                     $score += 40;
+
                     $isQualified = true;
                 }
             }
 
+            /**
+             * SHIFT PREFERENCE
+             */
+            $teacherShifts =
+                $teacher->shift_preferences ?? [];
 
-            // SHIFT PREFERENCE CHECK (Soft Constraint)
-            // Does the teacher prefer the shift that this section is in?
-            $teacherShifts = $teacher->shift_preferences ?? [];
-            if (in_array($section->shift, $teacherShifts)) {
+            if (
+                in_array(
+                    $section->shift,
+                    $teacherShifts
+                )
+            ) {
+
                 $score += 20;
             }
 
-
-            // HARD CONSTRAINT FILTER: Skip unqualified teachers entirely
+            /**
+             * SKIP UNQUALIFIED
+             */
             if (!$isQualified) {
                 continue;
             }
 
+            /**
+             * LOAD BALANCING
+             */
+            $currentLoad =
+                $teacherLoads[$teacher->id] ?? 0;
 
-            // Add to our ranked array
+            $maxHours =
+                $teacher->max_hours ?? 30;
+
+            /**
+             * SKIP OVERLOADED
+             */
+            if ($currentLoad >= $maxHours) {
+                continue;
+            }
+
+            /**
+             * LOWER LOAD = HIGHER SCORE
+             */
+            $score += max(0, 30 - $currentLoad);
+
             $rankedTeachers[] = [
                 'teacher' => $teacher,
-                'score' => $score
+                'score' => $score,
+                'load' => $currentLoad,
             ];
         }
 
-
-        // Sort the array by score, highest first
+        /**
+         * SORT BY:
+         * 1. SCORE DESC
+         * 2. LOAD ASC
+         */
         usort($rankedTeachers, function ($a, $b) {
+
+            if ($a['score'] === $b['score']) {
+                return $a['load'] <=> $b['load'];
+            }
+
             return $b['score'] <=> $a['score'];
         });
 
-
-        return collect($rankedTeachers)->pluck('teacher');
+        return collect($rankedTeachers)
+            ->pluck('teacher');
     }
 
-
-
-
     /**
-     * PAGE 11: THE GREEDY CONSTRUCTOR ALGORITHM
-     * Takes a specific section, finds its curriculum, and builds the schedule.
+     * MAIN GENERATOR
      */
-    public function generateScheduleForSection(Section $section, $versionId)
-    {
-        // 1. Get the subjects this section needs from the Curriculum Guide
-        $curriculumSubjects = CurriculumSubject::where('program_id', $section->program_id)
-            ->where('year_level', $section->year_level)
-            ->where('semester', $section->semester)
-            ->with('subject')
-            ->get();
+    public function generateScheduleForSection(
+        Section $section,
+        $versionId
+    ) {
 
+        DB::beginTransaction();
 
-        // 2. Get available Timeslots for this section's shift (e.g., Only Morning slots)
-        $availableTimeslots = Timeslot::where('shift', $section->shift)->get();
+        try {
 
+            /**
+             * IN-MEMORY TEACHER LOAD TRACKER
+             */
+            $teacherLoads = [];
 
-        // 3. Get all face-to-face rooms
-        $rooms = Room::where('type', '!=', 'Online')->get();
+            foreach (Teacher::all() as $teacher) {
 
-
-        $generatedSchedule = [];
-
-
-        // START THE GREEDY LOOP
-        foreach ($curriculumSubjects as $curriculum) {
-            $subject = $curriculum->subject;
-            $unitsToSchedule = $subject->units;
-
-
-            // Get our pre-processed, ranked list of competent teachers
-            $rankedTeachers = $this->rankTeachersForSubject($subject, $section);
-
-
-            // If no competent teacher exists, we must flag an error for the admin
-            if ($rankedTeachers->isEmpty()) {
-                throw new \Exception("No competent teacher found for Subject: " . $subject->name);
+                $teacherLoads[$teacher->id] =
+                    DB::table('schedules')
+                        ->where(
+                            'schedule_version_id',
+                            $versionId
+                        )
+                        ->where(
+                            'teacher_id',
+                            $teacher->id
+                        )
+                        ->count();
             }
 
+            /**
+             * CURRICULUM SUBJECTS
+             */
+            $curriculumSubjects =
+                CurriculumSubject::where(
+                    'program_id',
+                    $section->program_id
+                )
+                ->where(
+                    'year_level',
+                    $section->year_level
+                )
+                ->where(
+                    'semester',
+                    $section->semester
+                )
+                ->with('subject.program')
+                ->get();
 
-            // Grab the #1 ranked teacher
-            $assignedTeacher = $rankedTeachers->first();
+            /**
+             * AVAILABLE TIMESLOTS
+             */
+            $availableTimeslots =
+                Timeslot::where(
+                    'shift',
+                    $section->shift
+                )->get();
 
+            /**
+             * AVAILABLE ROOMS
+             */
+            $rooms = Room::where(
+                'type',
+                '!=',
+                'Online'
+            )->get();
 
-            // Loop to assign timeslots based on Subject Units (e.g., 3 units = 3 timeslots)
-            $scheduledUnits = 0;
+            /**
+             * START SCHEDULING
+             */
+            foreach ($curriculumSubjects as $curriculum) {
 
+                $subject = $curriculum->subject;
 
-            foreach ($availableTimeslots as $timeslot) {
-                if ($scheduledUnits >= $unitsToSchedule) break; // Finished scheduling this subject
-
-
-                // HARD CONSTRAINTS CHECK
-                if ($this->hasConflict($timeslot->id, $assignedTeacher->id, $section->id)) {
-                    continue; // Skip this timeslot, someone is busy
+                if (!$subject) {
+                    continue;
                 }
 
+                $unitsToSchedule =
+                    $subject->units;
 
-                if ($this->isBreakingFourHourRule($timeslot, $assignedTeacher->id)) {
-                    continue; // Skip, teacher needs a 1-hour break
+                /**
+                 * GET RANKED TEACHERS
+                 */
+                $rankedTeachers =
+                    $this->rankTeachersForSubject(
+                        $subject,
+                        $section,
+                        $versionId,
+                        $teacherLoads
+                    );
+
+                if ($rankedTeachers->isEmpty()) {
+
+                    throw new \Exception(
+                        "No qualified teacher found for {$subject->name}"
+                    );
                 }
 
+                $success = false;
 
-                // Find a room that isn't booked at this timeslot
-                $availableRoom = $this->findAvailableRoom($timeslot->id, $rooms, $subject);
+                /**
+                 * TRY TEACHERS
+                 */
+                foreach ($rankedTeachers as $teacher) {
 
+                    $tempSchedules = [];
 
-                if ($availableRoom) {
-                    // Lock it in!
-                    $newScheduleBlock = [
-                        'schedule_version_id' => $versionId,
-                        'section_id' => $section->id,
-                        'subject_id' => $subject->id,
-                        'teacher_id' => $assignedTeacher->id,
-                        'room_id' => $availableRoom->id,
-                        'timeslot_id' => $timeslot->id,
-                     
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
+                    $scheduledUnits = 0;
 
+                    $tempLoadAdded = 0;
 
-                    // Insert into DB immediately to prevent conflicts with the next loop
-                    DB::table('schedules')->insert($newScheduleBlock);
-                    $scheduledUnits++;
+                    /**
+                     * SHUFFLE TIMESLOTS
+                     */
+                    foreach (
+                        $availableTimeslots->shuffle()
+                        as $timeslot
+                    ) {
+
+                        /**
+                         * DONE
+                         */
+                        if (
+                            $scheduledUnits >=
+                            $unitsToSchedule
+                        ) {
+
+                            break;
+                        }
+
+                        /**
+                         * CONFLICT CHECK
+                         */
+                        if (
+                            $this->hasConflict(
+                                $timeslot->id,
+                                $teacher->id,
+                                $section->id,
+                                $versionId
+                            )
+                        ) {
+                            continue;
+                        }
+
+                        /**
+                         * REAL-TIME LOAD CHECK
+                         */
+                        $currentLoad =
+                            $teacherLoads[$teacher->id];
+
+                        $maxHours =
+                            $teacher->max_hours ?? 30;
+
+                        if (
+                            $currentLoad >=
+                            $maxHours
+                        ) {
+                            continue;
+                        }
+
+                        /**
+                         * ROOM CHECK
+                         */
+                        $room =
+                            $this->findAvailableRoom(
+                                $timeslot->id,
+                                $rooms,
+                                $subject,
+                                $versionId
+                            );
+
+                        if (!$room) {
+                            continue;
+                        }
+
+                        /**
+                         * TEMP STORE
+                         */
+                        $tempSchedules[] = [
+                            'schedule_version_id' =>
+                                $versionId,
+
+                            'section_id' =>
+                                $section->id,
+
+                            'subject_id' =>
+                                $subject->id,
+
+                            'teacher_id' =>
+                                $teacher->id,
+
+                            'room_id' =>
+                                $room->id,
+
+                            'timeslot_id' =>
+                                $timeslot->id,
+
+                            'created_at' => now(),
+
+                            'updated_at' => now(),
+                        ];
+
+                        /**
+                         * UPDATE COUNTERS
+                         */
+                        $scheduledUnits++;
+
+                        $teacherLoads[$teacher->id]++;
+
+                        $tempLoadAdded++;
+                    }
+
+                    /**
+                     * SUCCESS
+                     */
+                    if (
+                        $scheduledUnits >=
+                        $unitsToSchedule
+                    ) {
+
+                        DB::table('schedules')
+                            ->insert($tempSchedules);
+
+                        $success = true;
+
+                        break;
+                    }
+
+                    /**
+                     * ROLLBACK TEMP LOADS
+                     */
+                    $teacherLoads[$teacher->id] -=
+                        $tempLoadAdded;
+                }
+
+                /**
+                 * FAILED
+                 */
+                if (!$success) {
+
+                    logger()->warning(
+                        'Scheduling Failed',
+                        [
+                            'subject' =>
+                                $subject->name,
+
+                            'section_id' =>
+                                $section->id,
+                        ]
+                    );
+
+                    throw new \Exception(
+                        "Could not fully schedule {$subject->name}"
+                    );
                 }
             }
 
+            DB::commit();
 
-            if ($scheduledUnits < $unitsToSchedule) {
-                // The algorithm ran out of rooms or timeslots for this shift!
-                throw new \Exception("Could not fully schedule " . $subject->name . ". Not enough resources.");
-            }
+            return true;
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            throw $e;
         }
-
-
-        return true; // Success!
     }
 
-
     /**
-     * CONFLICT DETECTOR: Ensures Teacher and Section aren't double-booked
+     * CONFLICT CHECKER
      */
-    private function hasConflict($timeslotId, $teacherId, $sectionId)
-    {
+    private function hasConflict(
+        $timeslotId,
+        $teacherId,
+        $sectionId,
+        $versionId
+    ) {
+
         return DB::table('schedules')
-            ->where('timeslot_id', $timeslotId)
-            ->where(function ($query) use ($teacherId, $sectionId) {
-                $query->where('teacher_id', $teacherId)
-                    ->orWhere('section_id', $sectionId);
-            })->exists();
+            ->where(
+                'schedule_version_id',
+                $versionId
+            )
+            ->where(
+                'timeslot_id',
+                $timeslotId
+            )
+            ->where(function ($query)
+                use (
+                    $teacherId,
+                    $sectionId
+                ) {
+
+                $query->where(
+                    'teacher_id',
+                    $teacherId
+                )
+                ->orWhere(
+                    'section_id',
+                    $sectionId
+                );
+            })
+            ->exists();
     }
 
-
     /**
-     * FATIGUE DETECTOR: The 4-Hour Rule
-     * Checks if the teacher is teaching 4 consecutive hours right before this slot.
+     * ROOM FINDER
      */
-    private function isBreakingFourHourRule($timeslot, $teacherId)
-    {
-        // For a 1-day MVP build, we keep this simple.
-        // In reality, you query the schedule to see if the teacher has 4 consecutive
-        // timeslots on the exact same `day` immediately prior to $timeslot->start_time.
-        // If true, return true to force a skip.
+    private function findAvailableRoom(
+        $timeslotId,
+        $rooms,
+        $subject,
+        $versionId
+    ) {
 
-
-        return false; // Set to true when fully implemented
-    }
-
-
-    /**
-     * ROOM FINDER: Grabs an empty room based on subject needs
-     */
-    private function findAvailableRoom($timeslotId, $rooms, $subject)
-    {
-        $bookedRoomIds = DB::table('schedules')->where('timeslot_id', $timeslotId)->pluck('room_id')->toArray();
-
+        $bookedRooms =
+            DB::table('schedules')
+                ->where(
+                    'schedule_version_id',
+                    $versionId
+                )
+                ->where(
+                    'timeslot_id',
+                    $timeslotId
+                )
+                ->pluck('room_id')
+                ->toArray();
 
         foreach ($rooms as $room) {
-            if (!in_array($room->id, $bookedRoomIds)) {
 
-
-                // If it's a PE subject, it needs a PE room.
-                if (str_contains(strtolower($subject->name), 'pe') && $room->type !== 'PE') {
-                    continue;
-                }
-
-
-                // If it's a computer lab subject, it needs a Lab.
-                if (str_contains(strtolower($subject->name), 'programming') && $room->type !== 'Lab') {
-                    continue;
-                }
-
-
-                return $room; // We found a valid, empty room!
+            /**
+             * ROOM TAKEN
+             */
+            if (
+                in_array(
+                    $room->id,
+                    $bookedRooms
+                )
+            ) {
+                continue;
             }
+
+            /**
+             * PE ROOM REQUIREMENT
+             */
+            if (
+                str_contains(
+                    strtolower($subject->name),
+                    'pe'
+                ) &&
+                $room->type !== 'PE'
+            ) {
+                continue;
+            }
+
+            /**
+             * LAB ROOM REQUIREMENT
+             */
+            if (
+                (
+                    str_contains(
+                        strtolower($subject->name),
+                        'programming'
+                    ) ||
+                    str_contains(
+                        strtolower($subject->name),
+                        'computer'
+                    )
+                ) &&
+                $room->type !== 'Lab'
+            ) {
+                continue;
+            }
+
+            return $room;
         }
+
         return null;
     }
 }
-
-

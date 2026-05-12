@@ -19,12 +19,66 @@ export default function SubjectIndex({ subjects, programs, domains, teachers, ro
     const [showAdvanced, setShowAdvanced] = useState(false);
     const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-    const { data, setData, post, processing, reset, errors } = useForm({
-        name: '', code: '', type: 'Major', units: 3, year_level: '',
-        program_id: '', prerequisite_subject_id: '', domain_id: '',
-        pref_day: '', pref_shift: '', pref_teacher_id: '', pref_room_id: '',
-        req_day: '', req_shift: '', req_teacher_id: '', req_room_id: ''
+    // ADD FORM
+    const {
+        data,
+        setData,
+        post,
+        processing,
+        reset,
+        errors,
+    } = useForm({
+        name: '',
+        code: '',
+        type: 'Major',
+        units: 3,
+        year_level: '',
+
+        program_id: '',
+        prerequisite_subject_id: '',
+        domain_id: '',
+
+        pref_day: '',
+        pref_shift: '',
+        pref_teacher_id: '',
+        pref_room_id: '',
+
+        req_day: '',
+        req_shift: '',
+        req_teacher_id: '',
+        req_room_id: '',
     });
+
+    // EDIT FORM
+    const {
+        data: editData,
+        setData: setEditData,
+        put,
+        processing: editProcessing,
+        errors: editErrors,
+    } = useForm({
+        name: '',
+        code: '',
+        type: 'Major',
+        units: 3,
+        year_level: '',
+
+        program_id: '',
+        prerequisite_subject_id: '',
+        domain_id: '',
+
+        pref_day: '',
+        pref_shift: '',
+        pref_teacher_id: '',
+        pref_room_id: '',
+
+        req_day: '',
+        req_shift: '',
+        req_teacher_id: '',
+        req_room_id: '',
+    });
+
+    const [editingSubject, setEditingSubject] = useState(null);
 
     // Dynamically filter prerequisites: Only show Major subjects that belong to the selected Program
     const validPrerequisites = subjects.data.filter(sub => {
@@ -48,6 +102,46 @@ export default function SubjectIndex({ subjects, programs, domains, teachers, ro
     const handleSubmit = (e) => {
         e.preventDefault();
         post('/subjects', { onSuccess: () => reset() });
+    };
+
+    const openEditModal = (subject) => {
+        setEditingSubject(subject);
+
+        setEditData({
+            name: subject.name || '',
+            code: subject.code || '',
+            type: subject.type || 'Major',
+            units: subject.units || 3,
+            year_level: subject.year_level || '',
+
+            program_id: subject.program_id || '',
+            prerequisite_subject_id:
+                subject.prerequisite_subject_id || '',
+
+            domain_id: subject.domain_id || '',
+
+            pref_day: subject.pref_day || '',
+            pref_shift: subject.pref_shift || '',
+            pref_teacher_id: subject.pref_teacher_id || '',
+            pref_room_id: subject.pref_room_id || '',
+
+            req_day: subject.req_day || '',
+            req_shift: subject.req_shift || '',
+            req_teacher_id: subject.req_teacher_id || '',
+            req_room_id: subject.req_room_id || '',
+        });
+    };
+    const handleUpdate = (e) => {
+        e.preventDefault();
+
+        if (!editingSubject) return;
+
+        put(`/subjects/${editingSubject.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setEditingSubject(null);
+            },
+        });
     };
 
     return (
@@ -243,8 +337,24 @@ export default function SubjectIndex({ subjects, programs, domains, teachers, ro
                                             {s.type === 'Major' ? `Program: ${s.program?.code}` : `Domain: ${s.domain?.name}`}
                                             {s.prerequisite && <div className="text-xs text-red-500 mt-1">Req: {s.prerequisite.code}</div>}
                                         </td>
-                                        <td className="p-2 text-right">
-                                            <button onClick={() => { if (confirm('Delete subject?')) router.delete(`/subjects/${s.id}`) }} className="text-red-500 hover:underline">Delete</button>
+                                        <td className="p-2 text-right space-x-3">
+                                            <button
+                                                onClick={() => openEditModal(s)}
+                                                className="text-blue-600 hover:underline font-bold"
+                                            >
+                                                Edit
+                                            </button>
+
+                                            <button
+                                                onClick={() => {
+                                                    if (confirm('Delete subject?')) {
+                                                        router.delete(`/subjects/${s.id}`);
+                                                    }
+                                                }}
+                                                className="text-red-500 hover:underline font-bold"
+                                            >
+                                                Delete
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
@@ -256,6 +366,103 @@ export default function SubjectIndex({ subjects, programs, domains, teachers, ro
                     </div>
                 </div>
             </div>
+
+            {editingSubject && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-3xl rounded-xl bg-white p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+                        <h2 className="mb-6 text-2xl font-black">
+                            Edit Subject
+                        </h2>
+
+                        <form onSubmit={handleUpdate}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                                <div>
+                                    <label className="block text-sm font-bold">
+                                        Subject Name
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        value={editData.name}
+                                        onChange={(e) =>
+                                            setEditData('name', e.target.value)
+                                        }
+                                        className="mt-1 w-full border rounded p-2"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold">
+                                        Subject Code
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        value={editData.code}
+                                        onChange={(e) =>
+                                            setEditData('code', e.target.value)
+                                        }
+                                        className="mt-1 w-full border rounded p-2"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold">
+                                        Units
+                                    </label>
+
+                                    <input
+                                        type="number"
+                                        value={editData.units}
+                                        onChange={(e) =>
+                                            setEditData('units', e.target.value)
+                                        }
+                                        className="mt-1 w-full border rounded p-2"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold">
+                                        Year Level
+                                    </label>
+
+                                    <select
+                                        value={editData.year_level}
+                                        onChange={(e) =>
+                                            setEditData('year_level', e.target.value)
+                                        }
+                                        className="mt-1 w-full border rounded p-2"
+                                    >
+                                        <option value="1">1st Year</option>
+                                        <option value="2">2nd Year</option>
+                                        <option value="3">3rd Year</option>
+                                        <option value="4">4th Year</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingSubject(null)}
+                                    className="rounded bg-gray-300 px-4 py-2 font-bold"
+                                >
+                                    Cancel
+                                </button>
+
+                                <button
+                                    type="submit"
+                                    disabled={editProcessing}
+                                    className="rounded bg-blue-600 px-6 py-2 font-bold text-white"
+                                >
+                                    Update Subject
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </AppLayout>
     );
 }

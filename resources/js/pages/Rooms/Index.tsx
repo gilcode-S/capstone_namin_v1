@@ -851,10 +851,10 @@ export default function Index() {
                                         required
                                     >
                                         <option value="">Select type</option>
-                                        <option value="classroom">Classroom</option>
-                                        <option value="laboratory">Computer Lab</option>
-                                        <option value="pe_room">PE Room</option>
-                                        <option value="online">Online</option>
+                                        <option value="Classroom">Classroom</option>
+                                        <option value="Lab">Computer Lab</option>
+                                        <option value="PE">PE Room</option>
+                                        <option value="Online">Online</option>
                                     </select>
                                 </div>
 
@@ -944,7 +944,7 @@ export default function Index() {
                                 </div>
 
                                 {/* STATUS */}
-                                <div>
+                                {/* <div>
                                     <Label>Status</Label>
                                     <select
                                         name="resource_status"
@@ -956,7 +956,7 @@ export default function Index() {
                                         <option value="occupied">Occupied</option>
                                         <option value="maintenance">Maintenance</option>
                                     </select>
-                                </div>
+                                </div> */}
 
                             </form>
                         </div>

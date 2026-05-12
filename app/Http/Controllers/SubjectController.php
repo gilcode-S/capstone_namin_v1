@@ -78,6 +78,46 @@ class SubjectController extends Controller
         return redirect()->back()->with('success', 'Subject created successfully.');
     }
 
+    public function update(Request $request, Subject $subject)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => 'required|string|unique:subjects,code,' . $subject->id,
+            'type' => 'required|in:Major,Minor',
+            'units' => 'required|integer|min:1',
+            'year_level' => 'required|integer|min:1|max:4',
+
+            'program_id' => 'nullable|exists:programs,id',
+            'prerequisite_subject_id' => 'nullable|exists:subjects,id',
+            'domain_id' => 'nullable|exists:domains,id',
+
+            'pref_day' => 'nullable|string',
+            'pref_shift' => 'nullable|in:Morning,Afternoon,Evening',
+            'pref_teacher_id' => 'nullable|exists:teachers,id',
+            'pref_room_id' => 'nullable|exists:rooms,id',
+
+            'req_day' => 'nullable|string',
+            'req_shift' => 'nullable|in:Morning,Afternoon,Evening',
+            'req_teacher_id' => 'nullable|exists:teachers,id',
+            'req_room_id' => 'nullable|exists:rooms,id',
+        ]);
+
+        if ($validated['type'] === 'Minor') {
+            $validated['program_id'] = null;
+        } else {
+            $validated['domain_id'] = null;
+        }
+
+        $subject->update($validated);
+
+        AuditLogService::updated(
+            'Subject',
+            "Updated subject: {$subject->code} - {$subject->name}"
+        );
+
+        return back()->with('success', 'Subject updated successfully.');
+    }
+
     public function destroy(Subject $subject)
     {
         $subject->delete();

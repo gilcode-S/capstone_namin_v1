@@ -274,7 +274,7 @@ export default function Index() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <StatCard title="Total Section" value={stats?.total_sections ?? 0} />
-          <StatCard title="Total Student" value={stats?.total_students ?? 0} />
+          <StatCard title="Total Student" value={stats?.total_capacity ?? 0} />
           <StatCard title="Total Morning" value={stats?.total_morning ?? 0} />
           <StatCard title="Total Afternoon" value={stats?.total_afternoon ?? 0} />
           <StatCard title="Total Evening" value={stats?.total_evening ?? 0} />
