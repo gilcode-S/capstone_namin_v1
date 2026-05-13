@@ -19,7 +19,7 @@ class ScheduleController extends Controller
     public function index(Request $request) // Added Request $request here
     {
         // 1. Detect which Set we are viewing (Default to Set A)
-        $currentSet = $request->query('section_set', 'Set A');
+
 
         // 2. Get the Active Version
         $activeVersion = ScheduleVersion::where('status', 'Active')->first()
@@ -32,31 +32,12 @@ class ScheduleController extends Controller
         $schedules = Schedule::with([
             'subject:id,code',
             'teacher:id,name,code',
-            'room:id,generated_name,capacity',
-            'section:id,name,year_level', // Added year_level here
+            'room:id,generated_name,capacity,building,floor',
+            'section:id,name,year_level,capacity',
             'timeslot:id,start_time,end_time,day'
         ])
             ->where('schedule_version_id', $versionId)
-            ->whereHas('section', function ($query) use ($currentSet) {
-                if ($currentSet === 'Set A') {
-                    // Set A logic: Show only 1st Year face-to-face
-                    $query->where('year_level', 1);
-                } else {
-                    // Set B logic: Show 2nd, 3rd, and 4th Year
-                    $query->whereIn('year_level', [2, 3, 4]);
-                }
-            })
-            ->get()
-            ->map(function ($schedule) use ($currentSet) {
-                // 4. Force "ONLINE" label for Set B without changing React code
-                if ($currentSet === 'Set B') {
-                    // We temporarily override the room name in the data sent to the UI
-                    if ($schedule->room) {
-                        $schedule->room->generated_name = "ONLINE";
-                    }
-                }
-                return $schedule;
-            });
+            ->get();
 
         // 5. Teachers List (Same as your original code)
         $teachers = Teacher::all()->map(function ($teacher) use ($versionId) {
@@ -78,12 +59,12 @@ class ScheduleController extends Controller
 
         // 6. Return data to the untouched Viewer UI
         return Inertia::render('Schedules/Viewer', [
-            'activeVersion' => $versionName . " ($currentSet)", // Updates the title text
+            'activeVersion' => $versionName , // Updates the title text
             'schedules' => $schedules,
             'rooms' => Room::orderBy('generated_name')->get(),
             'teachers' => $teachers,
             'sections' => Section::orderBy('name')->get(),
-            'sectionSet' => $currentSet, // Keeps the React state in sync
+          // Keeps the React state in sync
         ]);
     }
 
@@ -98,15 +79,29 @@ class ScheduleController extends Controller
         $newTeacherId = $request->teacher_id ?? $schedule->teacher_id;
 
 
+        $isFirstYear = $schedule->section->year_level == 1;
+
         $conflict = Schedule::where('schedule_version_id', $schedule->schedule_version_id)
             ->where('timeslot_id', $newTimeslotId)
-            ->where(function ($q) use ($newRoomId, $newTeacherId, $schedule) {
-                $q->where('room_id', $newRoomId)
+            ->where(function ($q) use ($newRoomId, $newTeacherId, $schedule, $isFirstYear) {
+                // Room conflict ONLY if they are in the same Year Level Group
+                $q->where(function ($roomQ) use ($newRoomId, $isFirstYear) {
+                    $roomQ->where('room_id', $newRoomId)
+                        ->whereHas('section', function ($sectionQ) use ($isFirstYear) {
+                            if ($isFirstYear) {
+                                $sectionQ->where('year_level', 1);
+                            } else {
+                                $sectionQ->whereIn('year_level', [2, 3, 4]);
+                            }
+                        });
+                })
+                    // Teacher and Section conflicts ALWAYS matter regardless of year
                     ->orWhere('teacher_id', $newTeacherId)
                     ->orWhere('section_id', $schedule->section_id);
             })
             ->where('id', '!=', $schedule->id)
             ->exists();
+
 
 
         if ($conflict) {

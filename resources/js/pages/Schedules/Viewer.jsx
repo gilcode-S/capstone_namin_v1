@@ -28,7 +28,7 @@ export default function ScheduleViewer({
     const [activeTab, setActiveTab] = useState('grid');
     const [editingSchedule, setEditingSchedule] = useState(null);
     const [draggedItem, setDraggedItem] = useState(null);
-    const [viewSet, setViewSet] = useState('Set A');
+    // const [viewSet, setViewSet] = useState('Set A');
     // View States for clicking cards
     const [selectedSection, setSelectedSection] = useState(null);
     const [selectedTeacher, setSelectedTeacher] = useState(null);
@@ -36,18 +36,6 @@ export default function ScheduleViewer({
 
     const handleSetChange = (newSet) => {
         setSectionSet(newSet);
-
-        router.get(
-            '/schedules/viewer',
-            {
-                section_set: newSet,
-            },
-            {
-                preserveState: true,
-                replace: true,
-                preserveScroll: true,
-            },
-        );
     };
 
     const [sectionSearch, setSectionSearch] = useState('');
@@ -187,6 +175,60 @@ export default function ScheduleViewer({
 
         return map;
     }, [schedules]);
+
+
+    const masterGridSchedules = useMemo(() => {
+        return schedules.filter((s) => {
+            if (!s.section) return false;
+    
+            if (sectionSet === 'Set A') {
+                return s.section.year_level === 1;
+            }
+    
+            return [2, 3, 4].includes(s.section.year_level);
+        });
+    }, [schedules, sectionSet]);
+
+    const masterGridMap = useMemo(() => {
+        const map = {};
+    
+        masterGridSchedules.forEach((s) => {
+            if (!s.timeslot) return;
+    
+            const timeKey =
+                `${formatTime(s.timeslot.start_time)}-${formatTime(s.timeslot.end_time)}`
+                    .replace(/\s/g, '')
+                    .toLowerCase();
+    
+            const dayKey = (s.timeslot.day || '').toLowerCase();
+    
+            const roomKey = `${timeKey}|${dayKey}|room|${s.room_id}`;
+    
+            // Clone schedule for ONLINE override
+            const cloned = { ...s };
+    
+            if (sectionSet === 'Set B') {
+                cloned.room = {
+                    ...s.room,
+                    generated_name: 'ONLINE',
+                };
+            }
+    
+            map[roomKey] = cloned;
+        });
+    
+        return map;
+    }, [masterGridSchedules, sectionSet]);
+
+    const getMasterGridSchedule = (time, room_id, day) => {
+        const cleanTime = time.replace(/\s/g, '').toLowerCase();
+    
+        const dayKey = (day || '').toLowerCase();
+    
+        const key = `${cleanTime}|${dayKey}|room|${room_id}`;
+    
+        return masterGridMap[key] || null;
+    };
 
     const getSchedule = (
         time,
@@ -574,11 +616,11 @@ export default function ScheduleViewer({
                                                     {/* Formats to just '07:00 am' */}
                                                 </td>
                                                 {displayRooms.map((room) => {
-                                                    const sched = getSchedule(
-                                                        time,
-                                                        room.id,
-                                                        filters.day,
-                                                    );
+                                                 const sched = getMasterGridSchedule(
+                                                    time,
+                                                    room.id,
+                                                    filters.day,
+                                                );
                                                     return (
                                                         <td
                                                             key={`${time}-${room.id}`}
@@ -679,6 +721,69 @@ export default function ScheduleViewer({
             </div>
         );
     };
+    
+    const getDisplayRoom = (sched, mode = 'section') => {
+        if (!sched) return '';
+    
+        const year = sched.section?.year_level;
+    
+        // =========================
+        // SECTION VIEW RULES
+        // =========================
+        if (mode === 'section') {
+            // FIRST YEAR
+            if (year === 1) {
+                // Set A = FTF
+                if (sectionSet === 'Set A') {
+                    return sched.room?.generated_name || sched.room?.name;
+                }
+    
+                // Set B = ONLINE
+                return 'ONLINE';
+            }
+    
+            // SECOND - FOURTH YEAR
+            if ([2, 3, 4].includes(year)) {
+                // Set B = FTF
+                if (sectionSet === 'Set B') {
+                    return sched.room?.generated_name || sched.room?.name;
+                }
+    
+                // Set A = ONLINE
+                return 'ONLINE';
+            }
+        }
+    
+        // =========================
+        // TEACHER VIEW RULES
+        // =========================
+        if (mode === 'teacher') {
+            // FIRST YEAR
+            if (year === 1) {
+                // Set A = FTF
+                if (sectionSet  === 'Set A') {
+                    return sched.room?.generated_name || sched.room?.name;
+                }
+    
+                // Set B = ONLINE
+                return 'ONLINE';
+            }
+    
+            // SECOND - FOURTH YEAR
+            if ([2, 3, 4].includes(year)) {
+                // Set B = FTF
+                if (sectionSet  === 'Set B') {
+                    return sched.room?.generated_name || sched.room?.name;
+                }
+    
+                // Set A = ONLINE
+                return 'ONLINE';
+            }
+        }
+    
+        // fallback
+        return sched.room?.generated_name || sched.room?.name;
+    };
 
     // --- RENDER: SECTION DETAIL (Time vs Day) ---
     const renderSectionDetail = () => (
@@ -712,7 +817,7 @@ export default function ScheduleViewer({
                                     : 'text-gray-400 hover:text-gray-600'
                             }`}
                         >
-                            SET A (FTF)
+                            SET A (FTF1)
                         </button>
                         <button
                             onClick={() => handleSetChange('Set B')} // Changed this
@@ -800,15 +905,9 @@ export default function ScheduleViewer({
                                                             }
                                                         </div>
                                                         <div className="font-semibold text-gray-700">
-                                                            {
-                                                                sched.room
-                                                                    ?.generated_name
-                                                            }{' '}
-                                                            •{' '}
-                                                            {
-                                                                sched.teacher
-                                                                    ?.name
-                                                            }
+                                                        <div className="font-semibold text-gray-700">
+    {getDisplayRoom(sched, 'section')} • {sched.teacher?.name}
+</div>
                                                         </div>
                                                     </div>
                                                 )}
@@ -849,6 +948,26 @@ export default function ScheduleViewer({
 
                 {/* ✅ ADD THIS RIGHT SIDE BLOCK */}
                 <div className="flex gap-2">
+                <button
+                            onClick={() => handleSetChange('Set A')} // Changed this
+                            className={`rounded-lg px-6 py-2 text-xs font-black transition-all ${
+                                sectionSet === 'Set A'
+                                    ? 'bg-white text-blue-600 shadow-sm'
+                                    : 'text-gray-400 hover:text-gray-600'
+                            }`}
+                        >
+                            SET A (FTF1)
+                        </button>
+                        <button
+                            onClick={() => handleSetChange('Set B')} // Changed this
+                            className={`rounded-lg px-6 py-2 text-xs font-black transition-all ${
+                                sectionSet === 'Set B'
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'text-gray-400 hover:text-gray-600'
+                            }`}
+                        >
+                            SET B (ONLINE)
+                        </button>
                     <button
                         onClick={() =>
                             downloadExcelJS(selectedTeacher, 'teacher')
@@ -922,11 +1041,7 @@ export default function ScheduleViewer({
                                                             }
                                                         </div>
                                                         <div className="font-semibold text-gray-700">
-                                                            {sched.room
-                                                                ?.generated_name ||
-                                                                sched.room
-                                                                    ?.name}{' '}
-                                                            •{' '}
+                                                        {getDisplayRoom(sched, 'teacher')} •{' '}
                                                             {
                                                                 sched.section
                                                                     ?.name
