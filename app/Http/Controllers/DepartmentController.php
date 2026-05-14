@@ -28,7 +28,7 @@ class DepartmentController extends Controller
     public function store(Request $request)
     {
         $departmentData = $request->validate([
-            'name' => 'required',
+            'name' => 'required|unique:departments,name',
             'domain_group_id' => 'required|exists:domain_groups,id'
         ]);
         Department::create($departmentData);
@@ -52,7 +52,7 @@ class DepartmentController extends Controller
     public function update(Request $request, Department $department)
     {
         $departmentData = $request->validate([
-            'name' => 'required',
+            'name' => 'required|unique:departments,name',
             'domain_group_id' => 'required|exists:domain_groups,id'
         ]);
 

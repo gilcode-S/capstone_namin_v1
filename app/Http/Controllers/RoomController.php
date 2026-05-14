@@ -7,6 +7,7 @@ use Inertia\Inertia;
 use App\Models\Room;
 use App\Models\Department;
 use App\Services\AuditLogService;
+use Illuminate\Validation\Rule;
 
 class RoomController extends Controller
 {
@@ -51,12 +52,19 @@ class RoomController extends Controller
         $validated = $request->validate([
             'building' => 'required|string',
             'floor' => 'required|integer',
-            'room_number' => 'required|string',
-            'description_name' => 'nullable|string',
+            'room_number' => [
+                'required',
+                Rule::unique('rooms')
+                    ->where(function ($query) use ($request) {
+                        return $query
+                            ->where('building', $request->building)
+                            ->where('floor', $request->floor);
+                    }),
+            ],
 
+            'description_name' => 'nullable|string',
             'type' => 'required|in:Classroom,Lab,PE,Online',
             'capacity' => 'required|integer|min:1',
-
             'equipment' => 'nullable|array',
         ]);
         $validated['equipment'] = $validated['equipment'] ?? [];
@@ -75,7 +83,16 @@ class RoomController extends Controller
         $validated = $request->validate([
             'building' => 'required|string',
             'floor' => 'required|integer',
-            'room_number' => 'required|string',
+            'room_number' => [
+                'required',
+                Rule::unique('rooms')
+                    ->ignore($room->id)
+                    ->where(function ($query) use ($request) {
+                        return $query
+                            ->where('building', $request->building)
+                            ->where('floor', $request->floor);
+                    }),
+            ],
             'description_name' => 'nullable|string',
 
             'type' => 'required|in:Classroom,Lab,PE,Online',

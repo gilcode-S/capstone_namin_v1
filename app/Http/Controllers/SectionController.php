@@ -7,6 +7,7 @@ use App\Models\Programs;
 use App\Models\Section;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class SectionController extends Controller
@@ -94,9 +95,26 @@ class SectionController extends Controller
             'year_level' => 'required|integer|min:1|max:4',
             'semester' => 'required|integer|min:1|max:2',
             'shift' => 'required|in:Morning,Afternoon,Evening',
-            'letter' => 'required|string|max:1',
+
+            'letter' => [
+                'required',
+                'string',
+                'max:1',
+
+                Rule::unique('sections')->where(function ($query) use ($request) {
+                    return $query
+                        ->where('program_id', $request->program_id)
+                        ->where('year_level', $request->year_level)
+                        ->where('semester', $request->semester)
+                        ->where('shift', $request->shift);
+                }),
+            ],
+
             'capacity' => 'required|integer|min:1',
             'is_octoberian' => 'nullable|boolean',
+        ], [
+            'letter.unique' =>
+            'This section already exists.',
         ]);
 
         $section = Section::create([
@@ -123,9 +141,28 @@ class SectionController extends Controller
             'year_level' => 'required|integer|min:1|max:4',
             'semester' => 'required|integer|min:1|max:2',
             'shift' => 'required|in:Morning,Afternoon,Evening',
-            'letter' => 'required|string|max:1',
+
+            'letter' => [
+                'required',
+                'string',
+                'max:1',
+
+                Rule::unique('sections')
+                    ->ignore($section->id)
+                    ->where(function ($query) use ($request) {
+                        return $query
+                            ->where('program_id', $request->program_id)
+                            ->where('year_level', $request->year_level)
+                            ->where('semester', $request->semester)
+                            ->where('shift', $request->shift);
+                    }),
+            ],
+
             'capacity' => 'required|integer|min:1',
             'is_octoberian' => 'nullable|boolean',
+        ], [
+            'letter.unique' =>
+            'This section already exists.',
         ]);
 
         $section->update([

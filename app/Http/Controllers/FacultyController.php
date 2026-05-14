@@ -97,8 +97,8 @@ class FacultyController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'code' => 'required|unique:teachers,code',
-            'name' => 'required|string',
+            'code' => 'required|string|max:255|unique:teachers,code',
+            'name' => 'required|string|max:255|unique:teachers,name',
 
             'department_id' => 'required|exists:departments,id',
             'degree' => 'required|in:Undergraduate,Masters,PhD',
@@ -129,8 +129,8 @@ class FacultyController extends Controller
     public function update(Request $request, Teacher $faculty)
     {
         $validated = $request->validate([
-            'code' => 'required|unique:teachers,code,' . $faculty->id,
-            'name' => 'required|string',
+            'code' => 'required|string|max:255|unique:teachers,code,' . $faculty->id,
+            'name' => 'required|string|max:255|unique:teachers,name,' . $faculty->id,
 
             'department_id' => 'required|exists:departments,id',
             'degree' => 'required|in:Undergraduate,Masters,PhD',

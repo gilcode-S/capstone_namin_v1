@@ -103,7 +103,7 @@ const emptyForm = {
 
 export default function Index() {
   const { faculties, departments, stats, filters, shifts, domainGroups,
-    domains } = usePage().props as unknown as {
+    domains, errors } = usePage().props as unknown as {
       faculties: {
         data: Faculty[],
         links: any[]
@@ -718,7 +718,7 @@ export default function Index() {
                     {/* HOURS + PROGRESS */}
                     <td className="p-3 w-[180px]">
                       <div className="text-xs mb-1">
-                      {f.assigned_load ?? 0} / {f.max_hours ?? 0}
+                        {f.assigned_load ?? 0} / {f.max_hours ?? 0}
                       </div>
 
                       <div className="w-full bg-gray-200 h-2 rounded-full">
@@ -843,6 +843,11 @@ export default function Index() {
                   onChange={handleChange}
                   required
                 />
+                {errors.code && (
+  <p className="text-xs text-red-500 mt-1">
+    {errors.code}
+  </p>
+)}
               </div>
 
               {/* DEPARTMENT */}
@@ -924,6 +929,7 @@ export default function Index() {
                     onChange={handleChange}
                     disabled={!form.domain_group_id}
                     className="border rounded-md px-3 py-2 w-full"
+                    required
                   >
                     <option value="">Select Specialization</option>
 
@@ -978,13 +984,14 @@ export default function Index() {
               {/* AVAILABILITY */}
               <div>
                 <Label>Availability Days</Label>
-                <div className="grid grid-cols-3 gap-2 mt-2 text-sm">
+                <div className="grid grid-cols-3 gap-2 mt-2 text-sm" >
                   {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => (
                     <label key={day} className="flex items-center gap-2">
                       <input
                         type="checkbox"
                         checked={(form.availability_days || []).includes(day)}
                         onChange={() => handleDayChange(day)}
+                        
                       />
                       {day}
                     </label>
@@ -1000,6 +1007,8 @@ export default function Index() {
                     <label key={shift} className="flex items-center gap-2">
                       <input
                         type="checkbox"
+                        
+                        
                         checked={(form.shift_preferences || []).includes(shift)}
                         onChange={() => handleShiftChange(shift)}
                       />
@@ -1023,7 +1032,7 @@ export default function Index() {
 
         {/* pop up modal */}
         {/* FACULTY VIEW MODAL */}
-        
+
       </div>
     </AppLayout >
   )

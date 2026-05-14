@@ -114,7 +114,7 @@ Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
 });
 
 
-Route::middleware(['auth', 'role:super admin,hr,staff'])->group(function () {
+Route::middleware(['auth', 'role:super admin,staff'])->group(function () {
     // Page 9: The Pre-Flight Dashboard
     Route::get('/schedules/generator', [GeneratorController::class, 'index'])->name('generator.index');
 

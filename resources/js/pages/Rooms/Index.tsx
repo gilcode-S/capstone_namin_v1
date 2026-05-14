@@ -56,7 +56,7 @@ const emptyForm = {
 }
 
 export default function Index() {
-    const { rooms, departments, stats, filters } = usePage().props as unknown as {
+    const { rooms, departments, stats, filters, errors } = usePage().props as unknown as {
         rooms: {
             data: Room[],
             links: any[],
@@ -69,7 +69,7 @@ export default function Index() {
             maintenance: number
         }
     }
-
+    const [formErrors, setFormErrors] = useState<any>({})
 
     const [open, setOpen] = useState(false)
     const [form, setForm] = useState<any>(emptyForm)
@@ -117,6 +117,7 @@ export default function Index() {
     /* CLOSE */
     const handleClose = () => {
         setForm(emptyForm)
+        setFormErrors({})
         setIsEdit(false)
         setEditId(null)
         setOpen(false)
@@ -362,15 +363,19 @@ export default function Index() {
                     setLoading(false)
                     handleClose()
                 },
-                onError: () => setLoading(false)
+                onError: () =>setFormErrors(errors)
             })
         } else {
             router.post('/rooms', payload, {
+                onError: (errors) => {
+                    setFormErrors(errors)
+                    setLoading(false)
+                },
                 onSuccess: () => {
+                    setFormErrors({})
                     setLoading(false)
                     handleClose()
-                },
-                onError: () => setLoading(false)
+                }
             })
         }
     }
@@ -811,7 +816,16 @@ export default function Index() {
                 <Pagination links={rooms.links} />
 
                 {/* MODAL */}
-                <Dialog open={open} onOpenChange={setOpen}>
+                <Dialog
+                    open={open}
+                    onOpenChange={(value) => {
+                        setOpen(value)
+
+                        if (!value) {
+                            handleClose()
+                        }
+                    }}
+                >
                     <DialogContent className="max-w-xl w-full p-0 max-h-[90vh] flex flex-col">
 
                         {/* HEADER */}
@@ -838,6 +852,11 @@ export default function Index() {
                                         onChange={handleChange}
                                         required
                                     />
+                                    {formErrors.room_number && (
+                                        <p className="text-red-500 text-sm">
+                                            {formErrors.room_number}
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* TYPE */}
@@ -899,6 +918,7 @@ export default function Index() {
                                             value={form.building || ''}
                                             onChange={handleChange}
                                             className="border rounded px-3 py-2"
+                                            required
                                         >
                                             <option value="">Building</option>
                                             <option value="C">Building C</option>
@@ -911,6 +931,7 @@ export default function Index() {
                                             value={form.floor || ''}
                                             onChange={handleChange}
                                             className="border rounded px-3 py-2"
+                                            required
                                         >
                                             <option value="">Floor</option>
                                             <option value="1">Floor 1</option>

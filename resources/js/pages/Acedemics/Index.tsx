@@ -34,7 +34,7 @@ interface Department {
 /* ================= PAGE ================= */
 
 const Index = () => {
-    const { departments, domains } = usePage().props as { departments: Department[], domains: any[] }
+    const { departments, domains, errors } = usePage().props as { departments: Department[], domains: any[] }
 
     /* ================= STATES ================= */
 
@@ -389,6 +389,11 @@ const Index = () => {
                                     setProgramForm({ ...programForm, name: e.target.value })
                                 }
                             />
+                               {errors?.name && (
+                                <p className="text-red-500 text-sm">
+                                    {errors.name}
+                                </p>
+                            )}
 
                             <Label>Program Code</Label>
                             <Input
@@ -397,6 +402,11 @@ const Index = () => {
                                     setProgramForm({ ...programForm, code: e.target.value })
                                 }
                             />
+                               {errors?.name && (
+                                <p className="text-red-500 text-sm">
+                                    {errors.name}
+                                </p>
+                            )}
 
                             <Label>Department</Label>
                             <select
@@ -453,7 +463,13 @@ const Index = () => {
                                     setDeptForm({ ...deptForm, name: e.target.value })
                                 }
                                 placeholder="Department Name"
+                                required
                             />
+                            {errors?.name && (
+                                <p className="text-red-500 text-sm">
+                                    {errors.name}
+                                </p>
+                            )}
 
                             <select
                                 value={deptForm.domain_group_id}
@@ -495,7 +511,13 @@ const Index = () => {
                                 onChange={(e) =>
                                     setProgramForm({ ...programForm, name: e.target.value })
                                 }
+                                required
                             />
+                            {errors?.name && (
+                                <p className="text-red-500 text-sm">
+                                    {errors.name}
+                                </p>
+                            )}
                             <Label>Program Code</Label>
                             <Input
                                 placeholder="Program Code"
@@ -503,7 +525,13 @@ const Index = () => {
                                 onChange={(e) =>
                                     setProgramForm({ ...programForm, code: e.target.value })
                                 }
+                                required
                             />
+                            {errors?.name && (
+                                <p className="text-red-500 text-sm">
+                                    {errors.name}
+                                </p>
+                            )}
                             <select
                                 value={programForm.department_id}
                                 onChange={(e) =>

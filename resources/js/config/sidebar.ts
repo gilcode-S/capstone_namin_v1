@@ -76,6 +76,7 @@ export const sidebarConfig = {
         { title: "Subject", href: "/subjects", icon: BookOpen },
         { title: "Section", href: "/section", icon: PanelsRightBottom },
         { title: "Academics", href: "/academics", icon: Layers },
+        { title: "Curriculum", href: "/curriculum", icon: Layers },
       ]
     }
   ],
@@ -99,7 +100,7 @@ export const sidebarConfig = {
       label: "HR",
       items: [
         { title: "Faculty", href: "/faculty", icon: Users },
-        { title: "View Schedule", href: '/schedules/viewer', icon: ScanHeart }, // ✅ FIXED
+       // { title: "View Schedule", href: '/schedules/viewer', icon: ScanHeart }, // ✅ FIXED
       ]
     }
   ]

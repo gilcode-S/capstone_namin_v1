@@ -24,9 +24,9 @@ class ProgramController extends Controller
     {
         // validation
         $validated = $request->validate([
-            'department_id' => 'required|exists:departments,id',
+            'name' => 'required|unique:programs,name',
             'code' => 'required|unique:programs,code',
-            'name' => 'required'
+            'department_id' => 'required|exists:departments,id'
         ]);
 
 
@@ -39,9 +39,9 @@ class ProgramController extends Controller
     {
         // validation
         $validated = $request->validate([
-            'department_id' => 'required|exists:departments,id',
+            'name' => 'required|unique:programs,name,' . $program->id,
             'code' => 'required|unique:programs,code,' . $program->id,
-            'name' => 'required'
+            'department_id' => 'required|exists:departments,id'
         ]);
 
 

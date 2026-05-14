@@ -513,6 +513,7 @@ export default function Index() {
                     name="year_level"
                     value={form.year_level}
                     onChange={handleChange}
+                    required
                     className="w-full h-11 rounded-lg border px-3"
                   >
                     <option value="">Select Year</option>
@@ -531,6 +532,7 @@ export default function Index() {
                     value={form.semester}
                     onChange={handleChange}
                     className="w-full h-11 rounded-lg border px-3"
+                    required
                   >
                     <option value="">Select Semester</option>
 
@@ -552,6 +554,7 @@ export default function Index() {
                     value={form.shift}
                     onChange={handleChange}
                     className="w-full h-11 rounded-lg border px-3"
+                    required
                   >
                     <option value="">Select Shift</option>
                     <option value="Morning">Morning</option>
@@ -602,6 +605,7 @@ export default function Index() {
                   value={form.capacity}
                   onChange={handleChange}
                   className="h-11 rounded-lg"
+                  required
                 />
               </div>
 

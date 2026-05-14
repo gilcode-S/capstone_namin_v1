@@ -43,8 +43,8 @@ class DashboardController extends Controller
         } elseif ($role === 'staff') {
             $stats = [
                 ['label' => 'Total Classrooms', 'value' => Room::count(), 'desc' => 'Available physical spaces', 'icon' => 'building-office'],
-                ['label' => 'Unresolved Conflicts', 'value' => 3 /* Simulated from ConflictScanner */, 'desc' => 'Requires immediate action', 'icon' => 'exclamation-triangle', 'alert' => true],
-                ['label' => 'Active Schedule', 'value' => 'V.2', 'desc' => '2026-2027 1st Sem', 'icon' => 'calendar'],
+                ['label' => 'Unresolved Conflicts', 'value' => 0 /* Simulated from ConflictScanner */, 'desc' => 'Requires immediate action', 'icon' => 'exclamation-triangle', 'alert' => true],
+                ['label' => 'Active Schedule', 'value' => 'V.1', 'desc' => '2026-2027 1st Sem', 'icon' => 'calendar'],
             ];
             $quickActions = [
                 ['title' => 'Generate New Schedule', 'desc' => 'Run optimization algorithm', 'url' => '/schedules/generator'],
