@@ -18,7 +18,7 @@ class SubjectController extends Controller
         // Fetch all data needed for the dropdowns
         $programs = Programs::all();
         $domains = Domain::all();
-        $teachers = Teacher::all();
+        $teachers = Teacher::with('domainGroup.domains')->get();
         $rooms = Room::orderBy('generated_name')->get();
 
         // Fetch existing subjects to display in the table (and to use as prerequisites)

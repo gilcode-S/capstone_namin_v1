@@ -144,6 +144,37 @@ export default function SubjectIndex({ subjects, programs, domains, teachers, ro
         });
     };
 
+    const filteredTeachers = teachers.filter((teacher) => {
+
+        /**
+         * MAJOR SUBJECTS
+         * Only teachers from same department
+         */
+        if (data.type === 'Major') {
+
+            const selectedProgram = programs.find(
+                p => p.id === parseInt(data.program_id)
+            );
+
+            if (!selectedProgram) return false;
+
+            return teacher.department_id === selectedProgram.department_id;
+        }
+
+        /**
+         * MINOR SUBJECTS
+         * Only teachers with matching domain
+         */
+        if (data.type === 'Minor') {
+
+            return teacher.domain_group?.domains?.some(
+                d => d.id === parseInt(data.domain_id)
+            );
+        }
+
+        return false;
+    });
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Subject" />
@@ -281,7 +312,7 @@ export default function SubjectIndex({ subjects, programs, domains, teachers, ro
                                     <div className="space-y-2">
                                         <select value={data.pref_day} onChange={e => setData('pref_day', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Preferred Day...</option>{daysOfWeek.map(d => <option key={d} value={d}>{d}</option>)}</select>
                                         <select value={data.pref_shift} onChange={e => setData('pref_shift', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Preferred Shift...</option><option value="Morning">Morning</option><option value="Afternoon">Afternoon</option><option value="Evening">Evening</option></select>
-                                        <select value={data.pref_teacher_id} onChange={e => setData('pref_teacher_id', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Preferred Teacher...</option>{teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+                                        <select value={data.pref_teacher_id} onChange={e => setData('pref_teacher_id', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Preferred Teacher...</option>{filteredTeachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
                                         <select value={data.pref_room_id} onChange={e => setData('pref_room_id', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Preferred Room...</option>{rooms.map(r => <option key={r.id} value={r.id}>{r.generated_name}</option>)}</select>
                                     </div>
                                 </div>
@@ -293,7 +324,7 @@ export default function SubjectIndex({ subjects, programs, domains, teachers, ro
                                     <div className="space-y-2">
                                         <select value={data.req_day} onChange={e => setData('req_day', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Required Day...</option>{daysOfWeek.map(d => <option key={d} value={d}>{d}</option>)}</select>
                                         <select value={data.req_shift} onChange={e => setData('req_shift', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Required Shift...</option><option value="Morning">Morning</option><option value="Afternoon">Afternoon</option><option value="Evening">Evening</option></select>
-                                        <select value={data.req_teacher_id} onChange={e => setData('req_teacher_id', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Required Teacher...</option>{teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+                                        <select value={data.req_teacher_id} onChange={e => setData('req_teacher_id', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Required Teacher...</option>{filteredTeachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
                                         <select value={data.req_room_id} onChange={e => setData('req_room_id', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Required Room...</option>{rooms.map(r => <option key={r.id} value={r.id}>{r.generated_name}</option>)}</select>
                                     </div>
                                 </div>

@@ -22,7 +22,25 @@ class ScheduleGeneratorService
         $teacherLoads
     ) {
 
-        $teachers = Teacher::all();
+        /**
+         * HARD CONSTRAINT:
+         * REQUIRED TEACHER
+         */
+        if ($subject->req_teacher_id) {
+
+            $teachers = Teacher::where(
+                'id',
+                $subject->req_teacher_id
+            )->get();
+        }
+
+        /**
+         * NORMAL LOGIC
+         */
+        else {
+
+            $teachers = Teacher::all();
+        }
 
         $rankedTeachers = [];
 
@@ -158,15 +176,15 @@ class ScheduleGeneratorService
 
                 $teacherLoads[$teacher->id] =
                     DB::table('schedules')
-                        ->where(
-                            'schedule_version_id',
-                            $versionId
-                        )
-                        ->where(
-                            'teacher_id',
-                            $teacher->id
-                        )
-                        ->count();
+                    ->where(
+                        'schedule_version_id',
+                        $versionId
+                    )
+                    ->where(
+                        'teacher_id',
+                        $teacher->id
+                    )
+                    ->count();
             }
 
             /**
@@ -271,6 +289,17 @@ class ScheduleGeneratorService
                         }
 
                         /**
+                         * HARD CONSTRAINT:
+                         * REQUIRED DAY
+                         */
+                        if ($subject->req_day) {
+
+                            if ($timeslot->day !== $subject->req_day) {
+                                continue;
+                            }
+                        }
+
+                        /**
                          * CONFLICT CHECK
                          */
                         if (
@@ -320,22 +349,22 @@ class ScheduleGeneratorService
                          */
                         $tempSchedules[] = [
                             'schedule_version_id' =>
-                                $versionId,
+                            $versionId,
 
                             'section_id' =>
-                                $section->id,
+                            $section->id,
 
                             'subject_id' =>
-                                $subject->id,
+                            $subject->id,
 
                             'teacher_id' =>
-                                $teacher->id,
+                            $teacher->id,
 
                             'room_id' =>
-                                $room->id,
+                            $room->id,
 
                             'timeslot_id' =>
-                                $timeslot->id,
+                            $timeslot->id,
 
                             'created_at' => now(),
 
@@ -378,18 +407,93 @@ class ScheduleGeneratorService
                 /**
                  * FAILED
                  */
+                /**
+                 * FAILED
+                 */
+                /**
+                 * FAILED
+                 */
                 if (!$success) {
+
+                    $requiredRoom = null;
+                    $requiredTeacher = null;
+                    $requiredDay = $subject->req_day;
+
+                    /**
+                     * REQUIRED TEACHER
+                     */
+                    if ($subject->req_teacher_id) {
+
+                        $requiredTeacher =
+                            Teacher::find($subject->req_teacher_id);
+                    }
+
+                    /**
+                     * REQUIRED ROOM
+                     */
+                    if ($subject->req_room_id) {
+
+                        $requiredRoom =
+                            Room::find($subject->req_room_id);
+                    }
 
                     logger()->warning(
                         'Scheduling Failed',
                         [
-                            'subject' =>
-                                $subject->name,
-
-                            'section_id' =>
-                                $section->id,
+                            'subject' => $subject->name,
+                            'section_id' => $section->id,
+                            'required_teacher' =>
+                            $requiredTeacher?->name,
+                            'required_room' =>
+                            $requiredRoom?->generated_name,
+                            'required_day' =>
+                            $requiredDay,
                         ]
                     );
+
+                    /**
+                     * ALL HARD CONSTRAINTS FAILED
+                     */
+                    if (
+                        $requiredTeacher &&
+                        $requiredDay &&
+                        $requiredRoom
+                    ) {
+
+                        throw new \Exception(
+                            "Could not schedule {$subject->name} because required teacher {$requiredTeacher->name}, required room {$requiredRoom->generated_name}, and {$requiredDay} timeslot are unavailable."
+                        );
+                    }
+
+                    /**
+                     * REQUIRED TEACHER FAILED
+                     */
+                    if ($requiredTeacher) {
+
+                        throw new \Exception(
+                            "Could not schedule {$subject->name} because required teacher {$requiredTeacher->name} has no available timeslot."
+                        );
+                    }
+
+                    /**
+                     * REQUIRED DAY FAILED
+                     */
+                    if ($requiredDay) {
+
+                        throw new \Exception(
+                            "Could not schedule {$subject->name} because no available {$requiredDay} timeslot exists."
+                        );
+                    }
+
+                    /**
+                     * REQUIRED ROOM FAILED
+                     */
+                    if ($requiredRoom) {
+
+                        throw new \Exception(
+                            "Could not schedule {$subject->name} because required room {$requiredRoom->generated_name} is unavailable."
+                        );
+                    }
 
                     throw new \Exception(
                         "Could not fully schedule {$subject->name}"
@@ -400,7 +504,6 @@ class ScheduleGeneratorService
             DB::commit();
 
             return true;
-
         } catch (\Exception $e) {
 
             DB::rollBack();
@@ -429,19 +532,19 @@ class ScheduleGeneratorService
                 $timeslotId
             )
             ->where(function ($query)
-                use (
-                    $teacherId,
-                    $sectionId
-                ) {
+            use (
+                $teacherId,
+                $sectionId
+            ) {
 
                 $query->where(
                     'teacher_id',
                     $teacherId
                 )
-                ->orWhere(
-                    'section_id',
-                    $sectionId
-                );
+                    ->orWhere(
+                        'section_id',
+                        $sectionId
+                    );
             })
             ->exists();
     }
@@ -458,18 +561,28 @@ class ScheduleGeneratorService
 
         $bookedRooms =
             DB::table('schedules')
-                ->where(
-                    'schedule_version_id',
-                    $versionId
-                )
-                ->where(
-                    'timeslot_id',
-                    $timeslotId
-                )
-                ->pluck('room_id')
-                ->toArray();
+            ->where(
+                'schedule_version_id',
+                $versionId
+            )
+            ->where(
+                'timeslot_id',
+                $timeslotId
+            )
+            ->pluck('room_id')
+            ->toArray();
 
         foreach ($rooms as $room) {
+            /**
+             * HARD CONSTRAINT:
+             * REQUIRED ROOM
+             */
+            if ($subject->req_room_id) {
+
+                if ($room->id != $subject->req_room_id) {
+                    continue;
+                }
+            }
 
             /**
              * ROOM TAKEN
