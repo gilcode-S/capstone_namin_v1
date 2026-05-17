@@ -10,8 +10,8 @@ const breadcrumbs = [
         href: '/dashboard',
     },
     {
-        title: 'Generator',
-        href: '/schedules/generator',
+        title: 'Subject',
+        href: '/subjects',
     },
 ];
 export default function SubjectIndex({ subjects, programs, domains, teachers, rooms, flash }) {

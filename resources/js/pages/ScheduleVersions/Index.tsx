@@ -20,6 +20,7 @@ interface Semester {
   id: number
   school_year: string
   term: string
+  start_date?: string
 }
 
 interface Creator {
@@ -97,11 +98,14 @@ export default function Index() {
 
     const yearMatch =
       !filters.academic_year ||
-      v.semester?.school_year === filters.academic_year
+      v.semester?.school_year?.trim() ===
+      filters.academic_year.trim()
 
     const semesterMatch =
       !filters.semester ||
-      v.semester?.term === filters.semester
+
+      v.semester?.term?.trim().toLowerCase() ===
+      filters.semester.trim().toLowerCase()
 
     return yearMatch && semesterMatch
   })
@@ -131,8 +135,8 @@ export default function Index() {
           <div className="flex items-center gap-2">
             <GitBranch className="text-blue-500" />
             <h1 className="text-2xl font-bold">Schedule Version History <br /> </h1>
-          
-         
+
+
           </div>
 
           {/* <Button onClick={() => setOpen(true)} className="gap-2">

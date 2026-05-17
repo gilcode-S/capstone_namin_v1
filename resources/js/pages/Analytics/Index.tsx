@@ -42,7 +42,7 @@ export default function AnalyticsDashboard({ kpiStats, teacherData, conflictTren
 
                 {/* Navigation Tabs */}
                 <div className="flex bg-gray-200 rounded-full p-1 mb-8 shadow-inner">
-                    {['Performance', 'Utilization', 'Optimization', 'Insights'].map(tab => (
+                    {['Performance', 'Optimization', ].map(tab => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}

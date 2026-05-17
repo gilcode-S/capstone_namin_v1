@@ -194,8 +194,10 @@ class GeneratorController extends Controller
         );
 
 
+
+
         return redirect()
-            ->back()
-            ->with('success', 'Schedules reset successfully.');
+            ->route('schedules.viewer')
+            ->with('success', 'Schedule Reset successfully!');
     }
 }

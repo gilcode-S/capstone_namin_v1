@@ -71,6 +71,17 @@ export const sidebarConfig = {
 
   registrar: [
     {
+      label: "Analytics",
+      items: [
+        {
+          title: "Analytics",
+          href: "/analytics",
+          icon: ChartNoAxesColumnIncreasingIcon
+        }
+      ]
+    },
+    {
+      
       label: "Academics",
       items: [
         { title: "Subject", href: "/subjects", icon: BookOpen },
@@ -82,6 +93,16 @@ export const sidebarConfig = {
   ],
 
   staff: [
+    {
+      label: "Analytics",
+      items: [
+        {
+          title: "Analytics",
+          href: "/analytics",
+          icon: ChartNoAxesColumnIncreasingIcon
+        }
+      ]
+    },
     {
       label: "Scheduling",
       items: [
@@ -96,6 +117,16 @@ export const sidebarConfig = {
   ],
 
   hr: [
+    {
+      label: "Analytics",
+      items: [
+        {
+          title: "Analytics",
+          href: "/analytics",
+          icon: ChartNoAxesColumnIncreasingIcon
+        }
+      ]
+    },
     {
       label: "HR",
       items: [

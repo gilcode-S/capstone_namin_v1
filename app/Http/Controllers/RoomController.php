@@ -14,6 +14,9 @@ class RoomController extends Controller
     public function index(Request $request)
     {
         $query = Room::query()->orderBy('generated_name', 'asc');
+        $query = Room::with([
+            'schedules.timeslot'
+        ])->orderBy('generated_name', 'asc');
 
         // TYPE FILTER
         if ($request->type) {

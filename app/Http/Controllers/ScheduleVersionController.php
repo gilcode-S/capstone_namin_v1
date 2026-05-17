@@ -27,7 +27,7 @@ class ScheduleVersionController extends Controller
             });
         }
         if ($request->filled('version_id')) {
-            $query->where('schedule_version_id', $request->version_id);
+            $query->where('id', $request->version_id);
         }
 
         return Inertia::render("ScheduleVersions/Index", [
