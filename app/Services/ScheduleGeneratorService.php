@@ -209,11 +209,21 @@ class ScheduleGeneratorService
             /**
              * AVAILABLE TIMESLOTS
              */
-            $availableTimeslots =
-                Timeslot::where(
-                    'shift',
-                    $section->shift
-                )->get();
+            $defaultGenerationDays = [
+                'Monday',
+                'Tuesday',
+                'Wednesday',
+                'Thursday',
+                'Friday',
+                'Saturday',
+            ];
+
+            $availableTimeslots = Timeslot::where(
+                'shift',
+                $section->shift
+            )
+                ->whereIn('day', $defaultGenerationDays)
+                ->get();
 
             /**
              * AVAILABLE ROOMS
@@ -257,6 +267,23 @@ class ScheduleGeneratorService
                 }
 
                 $success = false;
+                /**
+                 * SUBJECT-SPECIFIC TIMESLOTS
+                 */
+                $subjectTimeslots = $availableTimeslots;
+
+                /**
+                 * ALLOW SPECIAL DAYS (EX: SUNDAY)
+                 */
+                if ($subject->req_day) {
+
+                    $subjectTimeslots = Timeslot::where(
+                        'shift',
+                        $section->shift
+                    )
+                        ->where('day', $subject->req_day)
+                        ->get();
+                }
 
                 /**
                  * TRY TEACHERS
@@ -273,7 +300,7 @@ class ScheduleGeneratorService
                      * SHUFFLE TIMESLOTS
                      */
                     foreach (
-                        $availableTimeslots->shuffle()
+                        $subjectTimeslots->shuffle()
                         as $timeslot
                     ) {
 

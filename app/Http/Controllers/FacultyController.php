@@ -46,23 +46,28 @@ class FacultyController extends Controller
 
         $teachers = $query->paginate(10)->withQueryString();
 
-        // 🔥 FIX: compute inside collection
-        $teachers->getCollection()->transform(function ($t) {
+        /**
+         * GLOBAL AVERAGE LOAD
+         * (ALL TEACHERS)
+         */
+        $allTeachers = Teacher::all();
 
-            $currentHours = $this->calculateTeacherHours($t->id);
+        $totalPercent = 0;
 
-            $t->assigned_load = $currentHours; // ✅ THIS is what UI uses
+        foreach ($allTeachers as $teacher) {
 
-            $t->workload_percent = $t->max_hours
-                ? round(($currentHours / $t->max_hours) * 100)
+            $hours = $this->calculateTeacherHours($teacher->id);
+
+            $percent = $teacher->max_hours
+                ? (($hours / $teacher->max_hours) * 100)
                 : 0;
 
-            return $t;
-        });
+            $totalPercent += $percent;
+        }
 
-        $avgLoad = $teachers->getCollection()->avg(function ($t) {
-            return $t->workload_percent ?? 0;
-        });
+        $avgLoad = $allTeachers->count()
+            ? round($totalPercent / $allTeachers->count(), 1)
+            : 0;
 
         return Inertia::render('Facultys/Index', [
             'faculties' => $teachers->through(function ($t) {
@@ -70,8 +75,8 @@ class FacultyController extends Controller
                     ...$t->toArray(),
 
                     // 🔥 now consistent
-                    'assigned_load' => $t->assigned_load,
-                    'workload_percent' => $t->workload_percent,
+                    // 'assigned_load' => $t->assigned_load,
+                    // 'workload_percent' => $t->workload_percent,
 
                     'availability_full' => $t->availability_days ?? [],
                     'schedule_full' => [],

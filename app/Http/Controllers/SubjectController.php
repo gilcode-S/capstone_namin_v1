@@ -25,13 +25,21 @@ class SubjectController extends Controller
         $subjects = Subject::with(['program', 'domain', 'prerequisite', 'prefTeacher', 'reqRoom'])->latest()
             ->paginate(20)
             ->withQueryString();;
+        $allSubjects = Subject::select(
+            'id',
+            'name',
+            'code',
+            'type',
+            'program_id'
+        )->get();
 
         return Inertia::render('Subjects/Index', [
             'programs' => $programs,
             'domains' => $domains,
             'teachers' => $teachers,
             'rooms' => $rooms,
-            'subjects' => $subjects
+            'subjects' => $subjects,
+            'allSubjects' => $allSubjects,
         ]);
     }
 

@@ -1,0 +1,209 @@
+erDiagram
+    %% Laravel ERD Diagram
+
+    User {
+        bigint id PK
+        string name
+        string email
+        string password
+        string role
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Timeslot {
+        bigint id PK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Teacher {
+        bigint id PK
+        json availability_days
+        json shift_preferences
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Subject {
+        bigint id PK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Section {
+        bigint id PK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    ScheduleVersion {
+        bigint id PK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Schedule {
+        bigint id PK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Room {
+        bigint id PK
+        json equipment
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Programs {
+        bigint id PK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    OptimizationLog {
+        bigint id PK
+        string algorithm_name
+        string execution_time
+        string hard_constraints_score
+        string soft_constraints_score
+        string resource_efficiency
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Faculty {
+        bigint id PK
+        string department_id FK
+        string faculty_code
+        string first_name
+        string last_name
+        string email
+        string employment_type
+        string max_load_units
+        string status
+        string qualification_level
+        string years_experience
+        string current_load
+        string degree
+        string domain
+        string program
+        string domain_group_id
+        string domain_id FK
+        json preferred_timeslots
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    DomainRelation {
+        bigint id PK
+        string domain_a
+        string domain_b
+        string score
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    DomainGroupRelation {
+        bigint id PK
+        string domain_group_a
+        string domain_group_b
+        string score
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    DomainGroup {
+        bigint id PK
+        string name
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Domain {
+        bigint id PK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Department {
+        bigint id PK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    CurriculumSubject {
+        bigint id PK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Conflict {
+        bigint id PK
+        string schedule_id_a FK
+        string schedule_id_b FK
+        string conflict_type
+        string status
+        string resolution_method
+        timestamp resolved_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    AuditLog {
+        bigint id PK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Teacher ||--o{ Schedule : "has many"
+    Teacher }o--|| Department : "belongs to"
+    Teacher }o--|| Programs : "belongs to"
+    Teacher }o--|| Domain : "belongs to"
+    Teacher }o--|| Teacher : "belongs to"
+    Teacher }o--|| Room : "belongs to"
+    Teacher }o--|| DomainGroup : "belongs to"
+    Teacher }o--|| Domain : "belongs to"
+    Subject ||--o{ Schedule : "has many"
+    Subject }o--|| Programs : "belongs to"
+    Subject }o--|| Domain : "belongs to"
+    Subject }o--|| Subject : "belongs to"
+    Subject }o--|| Teacher : "belongs to"
+    Subject }o--|| Room : "belongs to"
+    Subject }o--|| Teacher : "belongs to"
+    Subject }o--|| Room : "belongs to"
+    Section }o--|| Programs : "belongs to"
+    ScheduleVersion }o--|| Semester : "belongs to"
+    ScheduleVersion }o--|| User : "belongs to"
+    Schedule }o--|| ScheduleVersion : "belongs to"
+    Schedule }o--|| Subject : "belongs to"
+    Schedule }o--|| Teacher : "belongs to"
+    Schedule }o--|| Room : "belongs to"
+    Schedule }o--|| Timeslot : "belongs to"
+    Schedule }o--|| Section : "belongs to"
+    Room ||--o{ Schedule : "has many"
+    Programs ||--o{ Section : "has many"
+    Programs }o--|| Department : "belongs to"
+    Faculty ||--o{ FacultyAvailability : "has many"
+    Faculty ||--o{ SectionSubjectAssignment : "has many"
+    Faculty ||--o{ Schedule : "has many"
+    Faculty }o--|| Department : "belongs to"
+    Faculty }o--|| DomainGroup : "belongs to"
+    Faculty }o--|| Domain : "belongs to"
+    Faculty }o--o{ Shift : "has many"
+    Faculty }o--o{ Subject : "has many"
+    DomainGroupRelation }o--|| DomainGroup : "belongs to"
+    DomainGroupRelation }o--|| DomainGroup : "belongs to"
+    DomainGroup ||--o{ Domain : "has many"
+    DomainGroup ||--o{ Department : "has many"
+    Domain }o--|| DomainGroup : "belongs to"
+    Department ||--o{ Programs : "has many"
+    Department ||--o{ Teacher : "has many"
+    Department }o--|| DomainGroup : "belongs to"
+    Department }o--o{ Schedule : "has many"
+    CurriculumSubject }o--|| Programs : "belongs to"
+    CurriculumSubject }o--|| Subject : "belongs to"
+    Conflict }o--|| Schedule : "belongs to"
+    Conflict }o--|| Schedule : "belongs to"
+    AuditLog }o--|| User : "belongs to"

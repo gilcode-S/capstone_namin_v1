@@ -58,16 +58,21 @@ export default function ScheduleViewer({
         floor: 'All Floor',
         shift: 'All Shift',
     });
+    const hasSundaySchedule = schedules.some(
+        (s) => s.timeslot?.day === 'Sunday',
+    );
 
-    const DAYS = [
-        'Monday',
-        'Tuesday',
-        'Wednesday',
-        'Thursday',
-        'Friday',
-        'Saturday',
-       
-    ];
+    const DAYS = hasSundaySchedule
+        ? [
+              'Monday',
+              'Tuesday',
+              'Wednesday',
+              'Thursday',
+              'Friday',
+              'Saturday',
+              'Sunday',
+          ]
+        : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     // Fixed Time blocks for the template rows
     const SHIFTS = {
@@ -176,57 +181,56 @@ export default function ScheduleViewer({
         return map;
     }, [schedules]);
 
-
     const masterGridSchedules = useMemo(() => {
         return schedules.filter((s) => {
             if (!s.section) return false;
-    
+
             if (sectionSet === 'Set A') {
                 return s.section.year_level === 1;
             }
-    
+
             return [2, 3, 4].includes(s.section.year_level);
         });
     }, [schedules, sectionSet]);
 
     const masterGridMap = useMemo(() => {
         const map = {};
-    
+
         masterGridSchedules.forEach((s) => {
             if (!s.timeslot) return;
-    
+
             const timeKey =
                 `${formatTime(s.timeslot.start_time)}-${formatTime(s.timeslot.end_time)}`
                     .replace(/\s/g, '')
                     .toLowerCase();
-    
+
             const dayKey = (s.timeslot.day || '').toLowerCase();
-    
+
             const roomKey = `${timeKey}|${dayKey}|room|${s.room_id}`;
-    
+
             // Clone schedule for ONLINE override
             const cloned = { ...s };
-    
+
             if (sectionSet === 'Set B') {
                 cloned.room = {
                     ...s.room,
                     generated_name: 'ONLINE',
                 };
             }
-    
+
             map[roomKey] = cloned;
         });
-    
+
         return map;
     }, [masterGridSchedules, sectionSet]);
 
     const getMasterGridSchedule = (time, room_id, day) => {
         const cleanTime = time.replace(/\s/g, '').toLowerCase();
-    
+
         const dayKey = (day || '').toLowerCase();
-    
+
         const key = `${cleanTime}|${dayKey}|room|${room_id}`;
-    
+
         return masterGridMap[key] || null;
     };
 
@@ -616,11 +620,12 @@ export default function ScheduleViewer({
                                                     {/* Formats to just '07:00 am' */}
                                                 </td>
                                                 {displayRooms.map((room) => {
-                                                 const sched = getMasterGridSchedule(
-                                                    time,
-                                                    room.id,
-                                                    filters.day,
-                                                );
+                                                    const sched =
+                                                        getMasterGridSchedule(
+                                                            time,
+                                                            room.id,
+                                                            filters.day,
+                                                        );
                                                     return (
                                                         <td
                                                             key={`${time}-${room.id}`}
@@ -721,12 +726,12 @@ export default function ScheduleViewer({
             </div>
         );
     };
-    
+
     const getDisplayRoom = (sched, mode = 'section') => {
         if (!sched) return '';
-    
+
         const year = sched.section?.year_level;
-    
+
         // =========================
         // SECTION VIEW RULES
         // =========================
@@ -737,23 +742,23 @@ export default function ScheduleViewer({
                 if (sectionSet === 'Set A') {
                     return sched.room?.generated_name || sched.room?.name;
                 }
-    
+
                 // Set B = ONLINE
                 return 'ONLINE';
             }
-    
+
             // SECOND - FOURTH YEAR
             if ([2, 3, 4].includes(year)) {
                 // Set B = FTF
                 if (sectionSet === 'Set B') {
                     return sched.room?.generated_name || sched.room?.name;
                 }
-    
+
                 // Set A = ONLINE
                 return 'ONLINE';
             }
         }
-    
+
         // =========================
         // TEACHER VIEW RULES
         // =========================
@@ -761,26 +766,26 @@ export default function ScheduleViewer({
             // FIRST YEAR
             if (year === 1) {
                 // Set A = FTF
-                if (sectionSet  === 'Set A') {
+                if (sectionSet === 'Set A') {
                     return sched.room?.generated_name || sched.room?.name;
                 }
-    
+
                 // Set B = ONLINE
                 return 'ONLINE';
             }
-    
+
             // SECOND - FOURTH YEAR
             if ([2, 3, 4].includes(year)) {
                 // Set B = FTF
-                if (sectionSet  === 'Set B') {
+                if (sectionSet === 'Set B') {
                     return sched.room?.generated_name || sched.room?.name;
                 }
-    
+
                 // Set A = ONLINE
                 return 'ONLINE';
             }
         }
-    
+
         // fallback
         return sched.room?.generated_name || sched.room?.name;
     };
@@ -905,9 +910,18 @@ export default function ScheduleViewer({
                                                             }
                                                         </div>
                                                         <div className="font-semibold text-gray-700">
-                                                        <div className="font-semibold text-gray-700">
-    {getDisplayRoom(sched, 'section')} • {sched.teacher?.name}
-</div>
+                                                            <div className="font-semibold text-gray-700">
+                                                                {getDisplayRoom(
+                                                                    sched,
+                                                                    'section',
+                                                                )}{' '}
+                                                                •{' '}
+                                                                {
+                                                                    sched
+                                                                        .teacher
+                                                                        ?.name
+                                                                }
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 )}
@@ -948,26 +962,26 @@ export default function ScheduleViewer({
 
                 {/* ✅ ADD THIS RIGHT SIDE BLOCK */}
                 <div className="flex gap-2">
-                <button
-                            onClick={() => handleSetChange('Set A')} // Changed this
-                            className={`rounded-lg px-6 py-2 text-xs font-black transition-all ${
-                                sectionSet === 'Set A'
-                                    ? 'bg-white text-blue-600 shadow-sm'
-                                    : 'text-gray-400 hover:text-gray-600'
-                            }`}
-                        >
-                            SET A (FTF1)
-                        </button>
-                        <button
-                            onClick={() => handleSetChange('Set B')} // Changed this
-                            className={`rounded-lg px-6 py-2 text-xs font-black transition-all ${
-                                sectionSet === 'Set B'
-                                    ? 'bg-blue-600 text-white shadow-md'
-                                    : 'text-gray-400 hover:text-gray-600'
-                            }`}
-                        >
-                            SET B (ONLINE)
-                        </button>
+                    <button
+                        onClick={() => handleSetChange('Set A')} // Changed this
+                        className={`rounded-lg px-6 py-2 text-xs font-black transition-all ${
+                            sectionSet === 'Set A'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-gray-400 hover:text-gray-600'
+                        }`}
+                    >
+                        SET A (FTF1)
+                    </button>
+                    <button
+                        onClick={() => handleSetChange('Set B')} // Changed this
+                        className={`rounded-lg px-6 py-2 text-xs font-black transition-all ${
+                            sectionSet === 'Set B'
+                                ? 'bg-blue-600 text-white shadow-md'
+                                : 'text-gray-400 hover:text-gray-600'
+                        }`}
+                    >
+                        SET B (ONLINE)
+                    </button>
                     <button
                         onClick={() =>
                             downloadExcelJS(selectedTeacher, 'teacher')
@@ -1041,7 +1055,11 @@ export default function ScheduleViewer({
                                                             }
                                                         </div>
                                                         <div className="font-semibold text-gray-700">
-                                                        {getDisplayRoom(sched, 'teacher')} •{' '}
+                                                            {getDisplayRoom(
+                                                                sched,
+                                                                'teacher',
+                                                            )}{' '}
+                                                            •{' '}
                                                             {
                                                                 sched.section
                                                                     ?.name
@@ -1165,40 +1183,40 @@ export default function ScheduleViewer({
                             </button>
 
                             {/* BUILDING FILTER */}
-<select
-    className="rounded-lg border-2 border-gray-200 bg-gray-50 p-2 text-sm font-bold text-gray-700"
-    value={filters.building}
-    onChange={(e) =>
-        setFilters({
-            ...filters,
-            building: e.target.value,
-        })
-    }
->
-    {buildingOptions.map((building) => (
-        <option key={building} value={building}>
-            {building}
-        </option>
-    ))}
-</select>
+                            <select
+                                className="rounded-lg border-2 border-gray-200 bg-gray-50 p-2 text-sm font-bold text-gray-700"
+                                value={filters.building}
+                                onChange={(e) =>
+                                    setFilters({
+                                        ...filters,
+                                        building: e.target.value,
+                                    })
+                                }
+                            >
+                                {buildingOptions.map((building) => (
+                                    <option key={building} value={building}>
+                                        {building}
+                                    </option>
+                                ))}
+                            </select>
 
-{/* FLOOR FILTER */}
-<select
-    className="rounded-lg border-2 border-gray-200 bg-gray-50 p-2 text-sm font-bold text-gray-700"
-    value={filters.floor}
-    onChange={(e) =>
-        setFilters({
-            ...filters,
-            floor: e.target.value,
-        })
-    }
->
-    {floorOptions.map((floor) => (
-        <option key={floor} value={floor}>
-            {floor}
-        </option>
-    ))}
-</select>
+                            {/* FLOOR FILTER */}
+                            <select
+                                className="rounded-lg border-2 border-gray-200 bg-gray-50 p-2 text-sm font-bold text-gray-700"
+                                value={filters.floor}
+                                onChange={(e) =>
+                                    setFilters({
+                                        ...filters,
+                                        floor: e.target.value,
+                                    })
+                                }
+                            >
+                                {floorOptions.map((floor) => (
+                                    <option key={floor} value={floor}>
+                                        {floor}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         {renderMasterGrid()}

@@ -14,7 +14,7 @@ const breadcrumbs = [
         href: '/subjects',
     },
 ];
-export default function SubjectIndex({ subjects, programs, domains, teachers, rooms, flash }) {
+export default function SubjectIndex({ subjects, programs, domains, teachers, rooms, flash, allSubjects, }) {
 
     const [showAdvanced, setShowAdvanced] = useState(false);
     const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -81,7 +81,7 @@ export default function SubjectIndex({ subjects, programs, domains, teachers, ro
     const [editingSubject, setEditingSubject] = useState(null);
 
     // Dynamically filter prerequisites: Only show Major subjects that belong to the selected Program
-    const validPrerequisites = subjects.data.filter(sub => {
+    const validPrerequisites = allSubjects.filter(sub => {
 
         // MAJOR SUBJECTS
         if (data.type === 'Major') {
@@ -306,7 +306,7 @@ export default function SubjectIndex({ subjects, programs, domains, teachers, ro
                         {showAdvanced && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded mb-4 bg-gray-50">
                                 {/* SOFT CONSTRAINTS */}
-                                <div>
+                                {/* <div>
                                     <h3 className="font-bold text-blue-600 mb-2">Soft Constraints (Preferred)</h3>
                                     <p className="text-xs text-gray-500 mb-3">Algorithm will try to fulfill these, but will ignore them to prevent conflicts.</p>
                                     <div className="space-y-2">
@@ -315,7 +315,7 @@ export default function SubjectIndex({ subjects, programs, domains, teachers, ro
                                         <select value={data.pref_teacher_id} onChange={e => setData('pref_teacher_id', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Preferred Teacher...</option>{filteredTeachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
                                         <select value={data.pref_room_id} onChange={e => setData('pref_room_id', e.target.value)} className="w-full border p-2 text-sm rounded"><option value="">Preferred Room...</option>{rooms.map(r => <option key={r.id} value={r.id}>{r.generated_name}</option>)}</select>
                                     </div>
-                                </div>
+                                </div> */}
 
                                 {/* HARD CONSTRAINTS */}
                                 <div>

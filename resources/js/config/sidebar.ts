@@ -51,7 +51,7 @@ export const sidebarConfig = {
       label: "Scheduling",
       items: [
  
-        { title: "Schedule Versions", href: "/version-history", icon: Calendar },
+        // { title: "Schedule Versions", href: "/version-history", icon: Calendar },
         { title: "View Schedule", href: '/schedules/viewer', icon: ScanHeart },
         { title: "Generate Schedule", href: '/schedules/generator', icon: PlusCircle },
         { title: "Conflict Detection", href: "/conflicts", icon: AlertCircle } // ✅ FIXED
@@ -86,7 +86,7 @@ export const sidebarConfig = {
       items: [
         { title: "Subject", href: "/subjects", icon: BookOpen },
         { title: "Section", href: "/section", icon: PanelsRightBottom },
-        { title: "Academics", href: "/academics", icon: Layers },
+        // { title: "Academics", href: "/academics", icon: Layers },
         { title: "Curriculum", href: "/curriculum", icon: Layers },
       ]
     }
@@ -108,7 +108,7 @@ export const sidebarConfig = {
       items: [
         { title: "Rooms", href: "/rooms", icon: Folder },
         { title: "Curriculum", href: "/curriculum", icon: Layers },
-        { title: "Schedule Versions", href: "/version-history", icon: Calendar },
+        // { title: "Schedule Versions", href: "/version-history", icon: Calendar },
         { title: "Generate Schedule", href: '/schedules/generator', icon: PlusCircle },
         { title: "Conflict Detection", href: "/conflicts", icon: AlertCircle }, // ✅ FIXED
         { title: "View Schedule", href: '/schedules/viewer', icon: ScanHeart }, // ✅ FIXED

@@ -61,13 +61,22 @@ export default function Index() {
             data: Room[],
             links: any[],
         },
+
         departments: Department[],
+
         stats: {
             total: number
-            available: number
-            occupied: number
-            maintenance: number
-        }
+            avg_idle: number
+            avg_utilization: number
+        },
+
+        filters: {
+            type?: string
+            building?: string
+            floor?: string
+        },
+
+        errors: any
     }
     const [formErrors, setFormErrors] = useState<any>({})
 
@@ -206,12 +215,11 @@ export default function Index() {
         return days
     }
     const groupedRooms = {
-        classroom: rooms.data.filter(r => r.type === 'classroom'),
-        laboratory: rooms.data.filter(r => r.type === 'laboratory'),
-        other: rooms.data.filter(r => {
-            const type = r.type || r.type
-            return type !== 'classroom' && type !== 'laboratory'
-        })
+        classroom: rooms.data.filter(r => r.type === 'Classroom'),
+        laboratory: rooms.data.filter(r => r.type === 'Lab'),
+        other: rooms.data.filter(r =>
+            !['Classroom', 'Lab'].includes(r.type)
+        )
     }
     const getAvailableRanges = (timeslots: any[]) => {
         if (!timeslots.length) {
@@ -363,7 +371,7 @@ export default function Index() {
                     setLoading(false)
                     handleClose()
                 },
-                onError: () =>setFormErrors(errors)
+                onError: () => setFormErrors(errors)
             })
         } else {
             router.post('/rooms', payload, {
@@ -391,27 +399,34 @@ export default function Index() {
     const avgIdle =
         rooms.data.length > 0
             ? (
-                rooms.data.reduce((sum, r) => sum + getRoomIdlePercentage(r), 0)
-                / rooms.data.length
+                rooms.data.reduce(
+                    (sum, r) => sum + getRoomIdlePercentage(r),
+                    0
+                ) / rooms.data.length
             ).toFixed(1)
             : 0
+
     const avgUtilization =
         rooms.data.length > 0
             ? (
-                rooms.data.reduce((sum, r) => sum + getRoomUtilization(r), 0)
-                / rooms.data.length
+                rooms.data.reduce(
+                    (sum, r) => sum + getRoomUtilization(r),
+                    0
+                ) / rooms.data.length
             ).toFixed(1)
             : 0
     const formatRoomType = (type: string | undefined) => {
         if (!type) return ''
 
         switch (type) {
-            case 'classroom':
+            case 'Classroom':
                 return 'Classroom'
-            case 'laboratory':
+            case 'Lab':
                 return 'Lab'
-            case 'pe_room':
+            case 'PE':
                 return 'PE Room'
+            case 'Online':
+                return 'Online'
             default:
                 return type
         }
@@ -462,7 +477,7 @@ export default function Index() {
                     <div className="rounded-xl border p-4 bg-white shadow-sm">
                         <p className="text-sm text-muted-foreground">Avg. Idle</p>
                         <h2 className="text-2xl font-bold">
-                            <span className='text-green-500'> {avgIdle} %</span>
+                            <span className='text-green-500'> {stats.avg_idle}%</span>
                         </h2>
 
                     </div>
@@ -470,7 +485,7 @@ export default function Index() {
                     <div className="rounded-xl border p-4 bg-white shadow-sm">
                         <p className="text-sm text-muted-foreground">Avg. Utilization</p>
                         <h2 className="text-2xl font-bold">
-                            {avgUtilization}%
+                            {stats.avg_utilization}%
 
                         </h2>
                     </div>
@@ -709,9 +724,10 @@ export default function Index() {
                                         className="border rounded-lg px-3 py-2 text-sm"
                                     >
                                         <option value="">All Types</option>
-                                        <option value="classroom">Classroom</option>
-                                        <option value="laboratory">Lab</option>
-                                        <option value="pe_room">PE Room</option>
+                                        <option value="Classroom">Classroom</option>
+                                        <option value="Lab">Lab</option>
+                                        <option value="PE">PE Room</option>
+                                        <option value="Online">Online</option>
                                     </select>
 
                                 </div>
@@ -736,7 +752,9 @@ export default function Index() {
                                                     ? (type?.toLowerCase() === typeFilter.toLowerCase())
                                                     : true
                                             const matchBuilding = buildingFilter ? r.building === buildingFilter : true
-                                            const matchFloor = floorFilter ? r.floor === floorFilter : true
+                                            const matchFloor = floorFilter
+                                                ? Number(r.floor) === Number(floorFilter)
+                                                : true
 
                                             return matchType && matchBuilding && matchFloor
                                         })
@@ -1046,7 +1064,7 @@ export default function Index() {
                                     <div className="flex justify-between">
                                         <span className="text-gray-500">Type:</span>
                                         <span className="capitalize">
-                                            {selectedRoom.resource_type}
+                                            {selectedRoom.type}
                                         </span>
                                     </div>
 

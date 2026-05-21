@@ -1,8 +1,6 @@
 <?php
 
-
 namespace App\Http\Controllers;
-
 
 use App\Models\AuditLog;
 use App\Models\Subject;
@@ -11,137 +9,259 @@ use App\Models\Room;
 use App\Models\Schedule;
 use App\Models\ScheduleVersion;
 use App\Models\Section;
+use App\Models\Timeslot;
 use App\Services\AuditLogService;
-// use App\Services\GeneratorService;
 use App\Services\ScheduleGeneratorService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-
 
 class GeneratorController extends Controller
 {
     /**
-     * PAGE 9: Load the Pre-Flight Dashboard and calculate readiness.
+     * PAGE 9: Load the Pre-Flight Dashboard
      */
     public function index()
     {
-        // 1. Calculate Faculty Readiness (% of teachers with domains)
+        /**
+         * FACULTY READINESS
+         */
         $totalTeachers = Teacher::count();
+
         $readyTeachers = Teacher::has('domain')->count();
-        $facultyReadiness = $totalTeachers > 0 ? round(($readyTeachers / $totalTeachers) * 100) : 0;
 
+        $facultyReadiness =
+            $totalTeachers > 0
+            ? round(($readyTeachers / $totalTeachers) * 100)
+            : 0;
 
-        // 2. Calculate Room Capacity (Simple Check: Do we have rooms?)
+        /**
+         * ROOM READINESS
+         */
         $totalRooms = Room::count();
-        $roomReadiness = $totalRooms > 0 ? '100%' : '0%';
 
+        $roomReadiness =
+            $totalRooms > 0
+            ? '100%'
+            : '0%';
 
-        // 3. Curriculum Integrity (Find Majors missing prerequisites)
+        /**
+         * CURRICULUM VALIDATION
+         */
         $problemSubjects = Subject::where('type', 'Major')
             ->whereNull('program_id')
             ->get();
 
-
         $warnings = [];
+
         foreach ($problemSubjects as $subject) {
+
             $warnings[] = [
                 'subject' => $subject->code,
-                'message' => 'Missing Program. Major subjects must be assigned to a specific Degree Program.'
+
+                'message' =>
+                'Missing Program. Major subjects must be assigned to a Degree Program.'
             ];
         }
 
+        return Inertia::render(
+            'Schedules/Generator',
+            [
+                'readiness' => [
+                    'faculty' =>
+                    $facultyReadiness . '%',
 
+                    'rooms' =>
+                    $roomReadiness,
+                ],
 
-
-        // Return the React view with all calculated data
-        return Inertia::render('Schedules/Generator', [
-            'readiness' => [
-                'faculty' => $facultyReadiness . '%',
-                'rooms' => $roomReadiness
-            ],
-            'warnings' => $warnings,
-        ]);
+                'warnings' => $warnings,
+            ]
+        );
     }
 
-
     /**
-     * THE TRIGGER: Run the algorithm and save the schedule.
+     * MAIN GENERATOR
      */
-    public function generate(Request $request, ScheduleGeneratorService $generator)
-    {
-        // 1. Validate the incoming request (Year & Semester)
+    public function generate(
+        Request $request,
+        ScheduleGeneratorService $generator
+    ) {
+
+        /**
+         * VALIDATE REQUEST
+         */
         $validated = $request->validate([
             'academic_year' => 'required|string',
+
             'semester' => 'required|string',
         ]);
 
+        /**
+         * PRE-FLIGHT CHECKS
+         */
+        if (Teacher::count() === 0) {
 
-        // 2. Create the "Version Container" in the database
+            return back()->withErrors([
+                'generation' =>
+                'No teachers found.'
+            ]);
+        }
+
+        if (Room::count() === 0) {
+
+            return back()->withErrors([
+                'generation' =>
+                'No rooms found.'
+            ]);
+        }
+
+        if (Timeslot::count() === 0) {
+
+            return back()->withErrors([
+                'generation' =>
+                'No timeslots found.'
+            ]);
+        }
+
+        if (Section::count() === 0) {
+
+            return back()->withErrors([
+                'generation' =>
+                'No sections found.'
+            ]);
+        }
+
+        /**
+         * PREVENT DUPLICATE ACTIVE SCHEDULES
+         */
+        $existingSchedules = ScheduleVersion::where(
+            'academic_year',
+            $validated['academic_year']
+        )
+            ->where(
+                'semester',
+                $validated['semester']
+            )
+            ->where(
+                'status',
+                'Active'
+            )
+            ->exists();
+
+        if ($existingSchedules) {
+
+            return back()->withErrors([
+                'generation' =>
+                'An active schedule already exists for this semester.'
+            ]);
+        }
+
+        /**
+         * ARCHIVE OLD ACTIVE VERSIONS
+         */
+        ScheduleVersion::where(
+            'status',
+            'Active'
+        )->update([
+            'status' => 'Archived'
+        ]);
+
+        /**
+         * NEXT VERSION NUMBER
+         */
         $latestVersion = ScheduleVersion::where(
             'academic_year',
             $validated['academic_year']
         )
-            ->where('semester', $validated['semester'])
+            ->where(
+                'semester',
+                $validated['semester']
+            )
             ->max('version_number');
 
+        $nextVersion =
+            ($latestVersion ?? 0) + 1;
 
-        $nextVersion = ($latestVersion ?? 0) + 1;
-
-
+        /**
+         * CREATE VERSION
+         */
         $version = ScheduleVersion::create([
             'name' => strtoupper(
-                $validated['academic_year'] . ' ' .
-                    $validated['semester'] . ' SEMESTER'
+                $validated['academic_year']
+                    . ' ' .
+                    $validated['semester']
+                    . ' SEMESTER'
             ),
 
+            'academic_year' =>
+            $validated['academic_year'],
 
-            'academic_year' => $validated['academic_year'],
+            'semester' =>
+            $validated['semester'],
 
-
-            'semester' => $validated['semester'],
-
-
-            'version_number' => $nextVersion,
-
+            'version_number' =>
+            $nextVersion,
 
             'status' => 'Active',
 
-
-            'effective_date' => now()->addWeeks(2),
+            'effective_date' =>
+            now()->addWeeks(2),
         ]);
 
+        /**
+         * ORDER SECTIONS
+         * PRIORITIZE LOWER YEARS FIRST
+         */
+        $sections = Section::orderBy('year_level')
+            ->orderBy('shift')
+            ->get();
 
-        /*
-|--------------------------------------------------------------------------
-| REMOVE OLD SCHEDULES FOR THIS VERSION
-|--------------------------------------------------------------------------
-*/
+        /**
+         * FULL GENERATION TRANSACTION
+         */
+        DB::beginTransaction();
 
+        try {
 
+            foreach ($sections as $section) {
 
+                $generator->generateScheduleForSection(
+                    $section,
+                    $version->id
+                );
+            }
 
+            DB::commit();
 
+        } catch (\Exception $e) {
 
+            DB::rollBack();
 
+            /**
+             * CLEAN FAILED VERSION
+             */
+            Schedule::where(
+                'schedule_version_id',
+                $version->id
+            )->delete();
 
-        // 3. EXECUTE THE ALGORITHM!
-        // We pass the new Version ID to the service so it knows where to save the blocks
-        // $generator->generate($version->id);
+            $version->delete();
 
-
-        // 🔥 THIS is the missing part
-        // 🚀 ONLY USE THE REAL SCHEDULER
-        $sections = Section::all();
-
-
-        foreach ($sections as $section) {
-            $generator->generateScheduleForSection($section, $version->id);
+            return back()->withErrors([
+                'generation' =>
+                $e->getMessage()
+            ]);
         }
 
-
+        /**
+         * AUDIT LOG
+         */
         AuditLogService::custom(
             'Generate Schedule',
+
             'Scheduler',
+
             'Generated schedule version #' .
                 $version->version_number .
                 ' for ' .
@@ -150,54 +270,64 @@ class GeneratorController extends Controller
                 $version->semester
         );
 
-
-        // 4. Redirect to the Schedule Viewer (Page 8)
-        return redirect()->route('schedules.viewer')->with('success', 'Optimization Algorithm completed successfully!');
+        /**
+         * REDIRECT
+         */
+        return redirect()
+            ->route('schedules.viewer')
+            ->with(
+                'success',
+                'Optimization Algorithm completed successfully!'
+            );
     }
 
-
+    /**
+     * RESET SCHEDULES
+     */
     public function reset(Request $request)
     {
         $validated = $request->validate([
             'academic_year' => 'required|string',
+
             'semester' => 'required|string',
         ]);
-
 
         $versions = ScheduleVersion::where(
             'academic_year',
             $validated['academic_year']
-        )->where(
-            'semester',
-            $validated['semester']
-        )->get();
-
+        )
+            ->where(
+                'semester',
+                $validated['semester']
+            )
+            ->get();
 
         foreach ($versions as $version) {
+
             Schedule::where(
                 'schedule_version_id',
                 $version->id
             )->delete();
 
-
             $version->delete();
         }
 
-
         AuditLogService::custom(
             'Reset Schedule',
+
             'Scheduler',
+
             'Reset schedules for ' .
                 $validated['academic_year'] .
                 ' ' .
                 $validated['semester']
         );
 
-
-
-
         return redirect()
             ->route('schedules.viewer')
-            ->with('success', 'Schedule Reset successfully!');
+            ->with(
+                'success',
+                'Schedule Reset successfully!'
+            );
     }
 }
