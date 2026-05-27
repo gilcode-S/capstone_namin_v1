@@ -37,7 +37,7 @@ class Schedule extends Model
 
     public function timeslot()
     {
-        return $this->belongsTo(Timeslot::class);
+        return $this->belongsTo(TimeSlot::class);
     }
 
     public function section()

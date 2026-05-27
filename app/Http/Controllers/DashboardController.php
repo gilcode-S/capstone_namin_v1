@@ -64,16 +64,55 @@ class DashboardController extends Controller
         }
 
         // 2. Fetch Global Recent Activities (Using Laravel's diffForHumans for nice formatting)
-        $activities = AuditLog::latest()->take(5)->get()->map(function ($log) {
-            return [
-                'id' => $log->id,
-                'action' => $log->action,
-                'description' => $log->description,
-                'user' => $log->user_name,
-                'module' => $log->module,
-                'time' => $log->created_at->diffForHumans() // e.g., "2 hours ago"
-            ];
-        });
+        // 2. Fetch Role-Based Recent Activities
+        $activityQuery = AuditLog::query();
+
+        if ($role === 'hr') {
+
+            // HR only sees Faculty/Teacher related logs
+            $activityQuery->whereIn('module', [
+                'Faculty',
+                'Teacher'
+            ]);
+        } elseif ($role === 'registrar') {
+
+            // Registrar sees academic management logs
+            $activityQuery->whereIn('module', [
+                'Subject',
+                'Section',
+                'Curriculum'
+            ]);
+        } elseif ($role === 'staff') {
+
+            // Staff sees scheduling/resource logs
+            $activityQuery->whereIn('module', [
+                'Scheduler',
+                'Room',
+                'Facility',
+                'Schedule',
+                'Conflict'
+            ]);
+        } else {
+
+            // Super Admin sees everything
+            $activityQuery = AuditLog::query();
+        }
+
+        $activities = $activityQuery
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(function ($log) {
+
+                return [
+                    'id' => $log->id,
+                    'action' => $log->action,
+                    'description' => $log->description,
+                    'user' => $log->user_name,
+                    'module' => $log->module,
+                    'time' => $log->created_at->diffForHumans()
+                ];
+            });
 
         // 3. Optimization Metrics (Simulated for the Director/Scheduler view)
         $metrics = [

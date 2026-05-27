@@ -18,7 +18,7 @@ interface Department {
     department_name: string
 }
 interface TimeSlot {
-    day_of_week: string
+    day: string
     start_time: string
     end_time: string
 }
@@ -174,7 +174,7 @@ export default function Index() {
         return room.schedules?.some((s: any) => {
             const today = now.toLocaleString('en-US', { weekday: 'long' })
 
-            if (s.timeslot.day_of_week !== today) return false
+            if (s.timeslot.day !== today) return false
 
             const currentTime = new Date(
                 `1970-01-01T${now.toTimeString().slice(0, 8)}`
@@ -188,28 +188,66 @@ export default function Index() {
     }
 
     const getNextSchedule = (room: any) => {
+
         const now = new Date()
-        const currentTime = new Date(`1970-01-01T${now.toTimeString().slice(0, 8)}`)
+
+        const today = now.toLocaleString('en-US', {
+            weekday: 'long'
+        })
+
+        const currentTime = now.getHours() * 60 + now.getMinutes()
 
         const upcoming = room.schedules
-            ?.map((s: any) => {
-                const start = new Date(`1970-01-01T${s.timeslot.start_time}`)
-                return { ...s, start }
+            ?.filter((s: any) => {
+
+                if (!s.timeslot) return false
+
+                // same day only
+                if (s.timeslot.day !== today) {
+                    return false
+                }
+
+                const [hour, minute] =
+                    s.timeslot.start_time.split(':')
+
+                const startMinutes =
+                    Number(hour) * 60 + Number(minute)
+
+                return startMinutes > currentTime
             })
-            .filter((s: any) => s.start > currentTime)
-            .sort((a: any, b: any) => a.start - b.start)
+            .sort((a: any, b: any) =>
+                a.timeslot.start_time.localeCompare(
+                    b.timeslot.start_time
+                )
+            )
 
         return upcoming?.[0]
     }
 
     const groupSchedulesByDay = (room: any) => {
+
         const days: any = {}
 
         room.schedules?.forEach((s: any) => {
-            const day = s.timeslot.day_of_week
 
-            if (!days[day]) days[day] = []
-            days[day].push(s.timeslot)
+            if (!s.timeslot) return
+
+            const rawDay = s.timeslot.day
+
+            if (!rawDay) return
+
+            const day =
+                rawDay.charAt(0).toUpperCase() +
+                rawDay.slice(1).toLowerCase()
+
+            if (!days[day]) {
+                days[day] = []
+            }
+
+            days[day].push({
+                start_time: s.timeslot.start_time,
+                end_time: s.timeslot.end_time
+            })
         })
 
         return days
@@ -222,31 +260,92 @@ export default function Index() {
         )
     }
     const getAvailableRanges = (timeslots: any[]) => {
-        if (!timeslots.length) {
-            return [{ start: "07:00", end: "19:00" }] // whole day free
+
+        const DAY_START = "07:00:00"
+        const DAY_END = "19:00:00"
+
+        if (!timeslots || timeslots.length === 0) {
+            return [{
+                start: DAY_START,
+                end: DAY_END
+            }]
         }
 
-        const sorted = [...timeslots].sort((a, b) =>
-            a.start_time.localeCompare(b.start_time)
-        )
+        /**
+         * SORT TIMESLOTS
+         */
+        const sorted = [...timeslots]
+            .filter(t => t.start_time && t.end_time)
+            .sort((a, b) =>
+                a.start_time.localeCompare(b.start_time)
+            )
 
-        const available: any[] = []
-        let lastEnd = "07:00:00"
+        /**
+         * MERGE OVERLAPPING SLOTS
+         */
+        const merged: any[] = []
 
         sorted.forEach(slot => {
-            if (slot.start_time > lastEnd) {
+
+            if (!merged.length) {
+                merged.push({
+                    start_time: slot.start_time,
+                    end_time: slot.end_time
+                })
+                return
+            }
+
+            const last = merged[merged.length - 1]
+
+            /**
+             * OVERLAP OR TOUCHING
+             */
+            if (slot.start_time <= last.end_time) {
+
+                /**
+                 * EXTEND END
+                 */
+                if (slot.end_time > last.end_time) {
+                    last.end_time = slot.end_time
+                }
+
+            } else {
+
+                merged.push({
+                    start_time: slot.start_time,
+                    end_time: slot.end_time
+                })
+            }
+        })
+
+        /**
+         * BUILD AVAILABLE RANGES
+         */
+        const available: any[] = []
+
+        let current = DAY_START
+
+        merged.forEach(slot => {
+
+            if (slot.start_time > current) {
+
                 available.push({
-                    start: lastEnd,
+                    start: current,
                     end: slot.start_time
                 })
             }
-            lastEnd = slot.end_time
+
+            current = slot.end_time
         })
 
-        if (lastEnd < "19:00:00") {
+        /**
+         * LAST GAP
+         */
+        if (current < DAY_END) {
+
             available.push({
-                start: lastEnd,
-                end: "19:00:00"
+                start: current,
+                end: DAY_END
             })
         }
 
@@ -634,9 +733,7 @@ export default function Index() {
                         )}
                         {activeTab === 'idle' && (
                             <div className="grid md:grid-cols-3 gap-4">
-                                {rooms.data
-                                    .filter(r => !isRoomOccupiedNow(r))
-                                    .map((r: any) => {
+                               {rooms.data.map((r: any) => {
 
                                         const days = groupSchedulesByDay(r)
                                         const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']

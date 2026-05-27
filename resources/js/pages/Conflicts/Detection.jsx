@@ -381,7 +381,7 @@ export default function ConflictDetection({
                                 {/* BREAKDOWN + INSIGHTS */}
                                 <div className="grid grid-cols-2 gap-8">
                                     {/* CONFLICT PATTERNS */}
-                                    <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                                    {/* <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
                                         <div className="mb-6 flex items-center justify-between">
                                             <h3 className="text-sm font-black tracking-widest text-gray-400 uppercase">
                                                 Conflict Patterns
@@ -450,10 +450,10 @@ export default function ConflictDetection({
                                                 );
                                             })}
                                         </div>
-                                    </div>
+                                    </div> */}
 
                                     {/* SMART INSIGHTS */}
-                                    <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                                    {/* <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
                                         <div className="mb-6 flex items-center justify-between">
                                             <h3 className="text-sm font-black tracking-widest text-gray-400 uppercase">
                                                 AI Insights
@@ -500,7 +500,7 @@ export default function ConflictDetection({
                                                 </p>
                                             </div>
                                         </div>
-                                    </div>
+                                    </div> */}
                                 </div>
                             </div>
                         )}

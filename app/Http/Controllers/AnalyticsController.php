@@ -127,24 +127,31 @@ class AnalyticsController extends Controller
     }
 
     private function getRoomUtilizationData($set)
-    {
-        return Room::all()->map(function ($room) use ($set) {
+{
+    return Room::all()->map(function ($room) use ($set) {
 
-            $hours = Schedule::where('set', $set)
-                ->where('room_id', $room->id)
-                ->with('timeslot')
-                ->get()
-                ->sum(function ($s) {
-                    if (!$s->timeslot) return 0;
+        $hours = Schedule::where('set', $set)
+            ->where('room_id', $room->id)
+            ->with('timeslot')
+            ->get()
+            ->sum(function ($s) {
 
-                    return (strtotime($s->timeslot->end_time) -
-                        strtotime($s->timeslot->start_time)) / 3600;
-                });
+                if (!$s->timeslot) return 0;
 
-            return [
-                'room' => $room->name,
-                'utilization' => round(($hours / 12) * 100)
-            ];
-        });
-    }
+                return (
+                    strtotime($s->timeslot->end_time) -
+                    strtotime($s->timeslot->start_time)
+                ) / 3600;
+            });
+
+        return [
+            'room' => $room->generated_name,
+            'utilization' => min(
+                100,
+                round(($hours / 60) * 100)
+            ),
+            'hours' => round($hours, 1),
+        ];
+    });
+}
 }

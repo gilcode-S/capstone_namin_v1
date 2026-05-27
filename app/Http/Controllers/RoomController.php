@@ -247,7 +247,7 @@ class RoomController extends Controller
 
         AuditLogService::deleted(
             'Room',
-            "Deleted room: {$room->name}"
+            "Deleted room: {$room->generated_name}"
         );
         return back()->with('success', "Room deleted");
     }

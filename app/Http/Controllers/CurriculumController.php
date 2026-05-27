@@ -7,6 +7,7 @@ use App\Models\Subject;
 use App\Models\CurriculumSubject;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Services\AuditLogService;
 
 class CurriculumController extends Controller
 {
@@ -27,13 +28,11 @@ class CurriculumController extends Controller
                 ->where('program_id', $programId)
                 ->get();
 
-            // Load available subjects: 
-            // 1. Major subjects assigned to this specific program
-            // 2. ALL Minor subjects (since they are shared across all programs)
+            // Load available subjects
             $availableSubjects = Subject::with('prerequisite')
-                ->where(function($query) use ($programId) {
+                ->where(function ($query) use ($programId) {
                     $query->where('program_id', $programId)
-                          ->orWhere('type', 'Minor');
+                        ->orWhere('type', 'Minor');
                 })->get();
         }
 
@@ -54,25 +53,52 @@ class CurriculumController extends Controller
             'semester' => 'required|integer|in:1,2'
         ]);
 
-        // Prevent duplicate subjects in the same curriculum
+        // Prevent duplicate subjects
         $exists = CurriculumSubject::where('program_id', $validated['program_id'])
             ->where('subject_id', $validated['subject_id'])
             ->exists();
 
         if ($exists) {
-            return redirect()->back()->withErrors(['subject_id' => 'This subject is already in the curriculum.']);
+            return redirect()->back()
+                ->withErrors([
+                    'subject_id' => 'This subject is already in the curriculum.'
+                ]);
         }
 
-        CurriculumSubject::create($validated);
+        $curriculum = CurriculumSubject::create($validated);
 
-        return redirect()->back()->with('success', 'Subject added to curriculum.');
+        // Get related info
+        $program = Programs::find($validated['program_id']);
+        $subject = Subject::find($validated['subject_id']);
+
+        // AUDIT LOG
+        AuditLogService::created(
+            'Curriculum',
+            "Added subject {$subject->code} to {$program->code} curriculum (Year {$validated['year_level']} - Semester {$validated['semester']})"
+        );
+
+        return redirect()->back()
+            ->with('success', 'Subject added to curriculum.');
     }
 
     public function destroy($id)
     {
-        $item = CurriculumSubject::findOrFail($id);
+        $item = CurriculumSubject::with(['subject', 'program'])
+            ->findOrFail($id);
+
+        // Save info before delete
+        $subjectCode = $item->subject->code ?? 'Unknown Subject';
+        $programCode = $item->program->code ?? 'Unknown Program';
+
         $item->delete();
-        
-        return redirect()->back()->with('success', 'Subject removed from curriculum.');
+
+        // AUDIT LOG
+        AuditLogService::deleted(
+            'Curriculum',
+            "Removed subject {$subjectCode} from {$programCode} curriculum"
+        );
+
+        return redirect()->back()
+            ->with('success', 'Subject removed from curriculum.');
     }
 }

@@ -664,7 +664,7 @@ export default function Index() {
                 <tr className="border-b">
                   <th className="p-3">Teacher</th>
                   <th className="p-3">Department</th>
-                  <th className="p-3">Subjects</th>
+                  {/* <th className="p-3">Subjects</th> */}
                   <th className="p-3">Hours</th>
                   <th className="p-3">Availability</th>
                   <th className="p-3">Workload</th>
@@ -696,7 +696,7 @@ export default function Index() {
                     </td>
 
                     {/* SUBJECTS */}
-                    <td className="p-3">
+                    {/* <td className="p-3">
                       <div className="flex flex-wrap gap-1">
                         {f.subjects?.slice(0, 2).map((s: string, i: number) => (
                           <span
@@ -713,7 +713,7 @@ export default function Index() {
                           </span>
                         )}
                       </div>
-                    </td>
+                    </td> */}
 
                     {/* HOURS + PROGRESS */}
                     <td className="p-3 w-[180px]">

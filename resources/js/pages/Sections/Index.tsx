@@ -283,7 +283,7 @@ export default function Index() {
         {/* FILTER BAR */}
         {/* FILTER BAR (FIGMA MATCH) */}
         <div className="bg-white border rounded-2xl p-4 mb-6 shadow-sm">
-          <p className="text-sm font-medium mb-3">Filters</p>
+       
 
           <div className="bg-white border rounded-2xl p-4 mb-6 shadow-sm">
             <p className="text-sm font-medium mb-3">Filters</p>
@@ -351,20 +351,7 @@ export default function Index() {
               </select>
 
               {/* SECTION LETTER */}
-              <select
-                value={filters.letter}
-                onChange={(e) =>
-                  handleFilterChange('letter', e.target.value)
-                }
-              >
-                <option value="">All Sections</option>
-
-                {sectionLetters.map((letter: string) => (
-                  <option key={letter} value={letter}>
-                    Section {letter}
-                  </option>
-                ))}
-              </select>
+             
             </div>
           </div>
         </div>

@@ -13,18 +13,53 @@ use Inertia\Inertia;
 
 class SubjectController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Fetch all data needed for the dropdowns
-        $programs = Programs::all();
+        $programs = Programs::with('department')->get();
+    
         $domains = Domain::all();
+    
         $teachers = Teacher::with('domainGroup.domains')->get();
+    
         $rooms = Room::orderBy('generated_name')->get();
-
-        // Fetch existing subjects to display in the table (and to use as prerequisites)
-        $subjects = Subject::with(['program', 'domain', 'prerequisite', 'prefTeacher', 'reqRoom'])->latest()
+    
+        /**
+         * FILTERS
+         */
+        $query = Subject::with([
+            'program.department',
+            'domain',
+            'prerequisite',
+            'prefTeacher',
+            'reqRoom'
+        ]);
+    
+        /**
+         * FILTER BY TYPE
+         */
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+    
+        /**
+         * FILTER BY DEPARTMENT
+         */
+        if ($request->filled('department')) {
+    
+            $query->whereHas('program.department', function ($q) use ($request) {
+    
+                $q->where('id', $request->department);
+            });
+        }
+    
+        /**
+         * SUBJECTS
+         */
+        $subjects = $query
+            ->latest()
             ->paginate(20)
-            ->withQueryString();;
+            ->withQueryString();
+    
         $allSubjects = Subject::select(
             'id',
             'name',
@@ -32,14 +67,28 @@ class SubjectController extends Controller
             'type',
             'program_id'
         )->get();
-
+    
         return Inertia::render('Subjects/Index', [
+    
             'programs' => $programs,
+    
             'domains' => $domains,
+    
             'teachers' => $teachers,
+    
             'rooms' => $rooms,
+    
             'subjects' => $subjects,
+    
             'allSubjects' => $allSubjects,
+    
+            /**
+             * SEND FILTERS BACK
+             */
+            'filters' => [
+                'type' => $request->type,
+                'department' => $request->department,
+            ],
         ]);
     }
 

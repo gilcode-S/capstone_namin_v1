@@ -36,7 +36,7 @@ export default function Dashboard({ roleStats, quickActions, activities, metrics
                     </div>
                     <div className="bg-gray-100 px-4 py-2 rounded-lg border font-bold text-gray-700 text-sm flex items-center shadow-sm">
                         <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                        {userRole} Portal
+                        {userRole} portal
                     </div>
                 </div>
 

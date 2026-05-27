@@ -20,12 +20,19 @@ const breadcrumbs = [
     },
 ];
 
+const departmentColors = {
+    'Computer Science Department': '#3B82F6', // blue
+    'Tourism Department': '#F59E0B', // orange
+    'Criminology Department': '#EF4444', // red
+    'Business Accounting Department': '#EAB308', // yellow
+};
+
 export default function AnalyticsDashboard({ kpiStats, teacherData, conflictTrends, roomUtilization, departmentDist, algoMetrics }) {
     const [activeTab, setActiveTab] = useState('Performance');
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Conflicts Dashboard" />
+            <Head title="Analytics Dashboard" />
             <div className="max-w-7xl p-2 font-sans bg-gray-50 min-h-screen">
                 {/* Header */}
                 <div className="mb-8">
@@ -42,7 +49,7 @@ export default function AnalyticsDashboard({ kpiStats, teacherData, conflictTren
 
                 {/* Navigation Tabs */}
                 <div className="flex bg-gray-200 rounded-full p-1 mb-8 shadow-inner">
-                    {['Performance', 'Optimization', ].map(tab => (
+                    {['Performance', 'Utilization', 'Optimization',].map(tab => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -104,6 +111,113 @@ export default function AnalyticsDashboard({ kpiStats, teacherData, conflictTren
                                 ))}
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* TAB 2: UTILIZATION */}
+                {activeTab === 'Utilization' && (
+                    <div className="space-y-6">
+
+                        {/* ROOM UTILIZATION (TOP CARDS) */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <h2 className="text-sm font-black text-gray-900 mb-6 uppercase tracking-tight">
+                                Room Utilization Overview
+                            </h2>
+
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {roomUtilization.map((room, i) => (
+                                    <div
+                                        key={i}
+                                        className="bg-gray-50 p-4 rounded-xl border border-gray-100"
+                                    >
+                                        <div className="text-[11px] font-black text-gray-500 uppercase mb-2">
+                                            {room.room}
+                                        </div>
+
+                                        <div className="text-2xl font-black text-gray-900 mb-2">
+                                            {room.utilization}%
+                                        </div>
+
+                                        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-indigo-500 rounded-full"
+                                                style={{ width: `${room.utilization}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* DEPARTMENT DISTRIBUTION (FIXED + COLORED + NO OVERLAP) */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <h2 className="text-sm font-black text-gray-900 mb-1 uppercase tracking-tight">
+                                Department Distribution
+                            </h2>
+                            <p className="text-xs text-gray-400 mb-6 font-bold uppercase">
+                                Faculty allocation across departments
+                            </p>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+
+                                {/* DONUT CHART */}
+                                <div className="flex justify-center items-center">
+                                    <ResponsiveContainer width={260} height={260}>
+                                        <PieChart>
+                                            <Pie
+                                                data={departmentDist}
+                                                dataKey="value"
+                                                nameKey="name"
+                                                innerRadius={70}
+                                                outerRadius={100}
+                                                paddingAngle={5}
+                                            >
+                                                {departmentDist.map((entry, index) => (
+                                                    <Cell
+                                                        key={`cell-${index}`}
+                                                        fill={departmentColors[entry.name] || '#9CA3AF'}
+                                                    />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+
+                                {/* LEGEND (FIXED NO OVERLAP) */}
+                                <div className="space-y-3">
+                                    {departmentDist.map((dept, i) => (
+                                        <div
+                                            key={i}
+                                            className="flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-100"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <span
+                                                    className="w-3 h-3 rounded-full"
+                                                    style={{
+                                                        backgroundColor:
+                                                            departmentColors[dept.name] || '#9CA3AF'
+                                                    }}
+                                                />
+                                                <div>
+                                                    <p className="text-sm font-bold text-gray-800">
+                                                        {dept.name}
+                                                    </p>
+                                                    <p className="text-[10px] text-gray-400 uppercase font-bold">
+                                                        Active Faculty
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="text-2xl font-black text-gray-900">
+                                                {dept.value}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 )}
 

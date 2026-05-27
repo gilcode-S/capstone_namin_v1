@@ -14,7 +14,7 @@ const breadcrumbs = [
         href: '/subjects',
     },
 ];
-export default function SubjectIndex({ subjects, programs, domains, teachers, rooms, flash, allSubjects, }) {
+export default function SubjectIndex({ subjects, programs, domains, teachers, rooms, flash, allSubjects, filters, }) {
 
     const [showAdvanced, setShowAdvanced] = useState(false);
     const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -79,6 +79,13 @@ export default function SubjectIndex({ subjects, programs, domains, teachers, ro
     });
 
     const [editingSubject, setEditingSubject] = useState(null);
+    const [typeFilter, setTypeFilter] = useState(
+        filters?.type || ''
+    )
+
+    const [departmentFilter, setDepartmentFilter] = useState(
+        filters?.department || ''
+    )
 
     // Dynamically filter prerequisites: Only show Major subjects that belong to the selected Program
     const validPrerequisites = allSubjects.filter(sub => {
@@ -174,6 +181,30 @@ export default function SubjectIndex({ subjects, programs, domains, teachers, ro
 
         return false;
     });
+
+    // const [typeFilter, setTypeFilter] = useState(
+    //     subjects.filters?.type || ''
+    // )
+
+    // const [departmentFilter, setDepartmentFilter] = useState(
+    //     subjects.filters?.department || ''
+    // )
+
+    const applyFilters = (newFilters = {}) => {
+
+        router.get('/subjects', {
+
+            type: typeFilter,
+            department: departmentFilter,
+
+            ...newFilters
+
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        })
+    }
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -336,6 +367,62 @@ export default function SubjectIndex({ subjects, programs, domains, teachers, ro
                         </button>
                     </form>
                 </div>
+                <div className="flex flex-wrap gap-3 mb-4">
+
+    {/* TYPE FILTER */}
+    <select
+        value={typeFilter}
+        onChange={(e) => {
+
+            setTypeFilter(e.target.value)
+
+            applyFilters({
+                type: e.target.value
+            })
+        }}
+        className="border rounded-lg px-3 py-2 text-sm"
+    >
+        <option value="">All Types</option>
+        <option value="Major">Major</option>
+        <option value="Minor">Minor</option>
+    </select>
+
+    {/* DEPARTMENT FILTER */}
+    <select
+        value={departmentFilter}
+        onChange={(e) => {
+
+            setDepartmentFilter(e.target.value)
+
+            applyFilters({
+                department: e.target.value
+            })
+        }}
+        className="border rounded-lg px-3 py-2 text-sm"
+    >
+        <option value="">All Departments</option>
+
+        {[
+            ...new Map(
+                programs
+                    .filter(p => p.department)
+                    .map(p => [
+                        p.department.id,
+                        p.department
+                    ])
+            ).values()
+        ].map((dept) => (
+
+            <option
+                key={dept.id}
+                value={dept.id}
+            >
+                {dept.name}
+            </option>
+        ))}
+    </select>
+
+</div>
 
                 {/* Existing Subjects Table */}
                 <div className="bg-white p-6 rounded-lg shadow-md">

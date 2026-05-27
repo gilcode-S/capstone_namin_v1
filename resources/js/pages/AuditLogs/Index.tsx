@@ -14,7 +14,9 @@ const breadcrumbs = [
         href: '/audit-logs',
     },
 ];
-export default function AuditLogIndex({ logs, filters }) {
+export default function AuditLogIndex({ logs,
+    filters,
+    modules }) {
 
     // Handle dynamic filtering
     const handleFilterChange = (key, value) => {
@@ -56,29 +58,54 @@ export default function AuditLogIndex({ logs, filters }) {
                             className="w-full bg-gray-50 border-none rounded-lg p-2 text-sm focus:ring-2 focus:ring-gray-200 cursor-pointer"
                         >
                             <option value="All User">All User</option>
-                            <option value="Super Admin">Super Admin</option>
-                            <option value="HR">HR</option>
-                            <option value="Registrar">Registrar</option>
-                            <option value="Scheduler">Scheduler</option>
+
+                            <option value="super admin">
+                                Super Admin
+                            </option>
+
+                            <option value="hr">
+                                HR
+                            </option>
+
+                            <option value="registrar">
+                                Registrar
+                            </option>
+
+                            <option value="staff">
+                                Staff
+                            </option>
                         </select>
                     </div>
 
                     <div className="w-full md:w-48 mt-5">
                         <select
                             value={filters.module || 'All Module'}
-                            onChange={(e) => handleFilterChange('module', e.target.value)}
-                            className="w-full bg-gray-50 border-none rounded-lg p-2 text-sm focus:ring-2 focus:ring-gray-200 cursor-pointer"
+                            onChange={(e) =>
+                                handleFilterChange('module', e.target.value)
+                            }
+                            className="w-full bg-gray-50 border-none rounded-lg p-2 text-sm"
                         >
-                            <option value="All Module">All Module</option>
-                            <option value="Scheduler">Scheduler</option>
-                            <option value="Faculty">Faculty</option>
-                            <option value="Curriculum">Curriculum</option>
-                            <option value="Facility">Facility</option>
+                            <option value="All Module">
+                                All Module
+                            </option>
+
+                            {modules.map((module) => (
+                                <option key={module} value={module}>
+                                    {module}
+                                </option>
+
+                            ))}
                         </select>
                     </div>
 
                     <div className="w-full md:w-48 mt-5">
-                        <select className="w-full bg-gray-50 border-none rounded-lg p-2 text-sm focus:ring-2 focus:ring-gray-200 cursor-pointer">
+                        <select
+                            value={filters.time || 'All Time'}
+                            onChange={(e) =>
+                                handleFilterChange('time', e.target.value)
+                            }
+                            className="w-full bg-gray-50 border-none rounded-lg p-2 text-sm focus:ring-2 focus:ring-gray-200 cursor-pointer"
+                        >
                             <option>All Time</option>
                             <option>Today</option>
                             <option>This Week</option>
@@ -112,7 +139,7 @@ export default function AuditLogIndex({ logs, filters }) {
                                         <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                                             <td className="py-4 text-gray-700">
                                                 {new Date(log.created_at).toLocaleDateString('en-US')} {''}
-                                                 {new Date(log.created_at).toLocaleTimeString('en-US')}
+                                                {new Date(log.created_at).toLocaleTimeString('en-US')}
                                             </td>
                                             <td className="py-4 text-gray-900 font-medium">{log.user_name}</td>
                                             <td className="py-4 text-gray-600">{log.role}</td>

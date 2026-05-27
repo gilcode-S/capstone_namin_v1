@@ -1,7 +1,9 @@
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { StrictMode } from 'react';
+
 import { createRoot } from 'react-dom/client';
+import { Toaster } from 'react-hot-toast';
 import '../css/app.css';
 
 import { initializeTheme } from './hooks/use-appearance';
@@ -12,7 +14,7 @@ createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
     resolve: async (name) => {
         const pages = import.meta.glob('./pages/**/*.{jsx,tsx}')
-    
+
         return (
             pages[`./pages/${name}.jsx`] ||
             pages[`./pages/${name}.tsx`]
@@ -24,6 +26,7 @@ createInertiaApp({
         root.render(
             <StrictMode>
                 <App {...props} />
+                <Toaster position="top-right" />
             </StrictMode>,
         );
     },

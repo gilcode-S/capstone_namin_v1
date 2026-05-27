@@ -71,15 +71,37 @@ class FacultyController extends Controller
 
         return Inertia::render('Facultys/Index', [
             'faculties' => $teachers->through(function ($t) {
+
+                /**
+                 * CALCULATE HOURS
+                 */
+                $assignedLoad = $this->calculateTeacherHours($t->id);
+
+                /**
+                 * CALCULATE WORKLOAD %
+                 */
+                $workloadPercent = $t->max_hours
+                    ? round(($assignedLoad / $t->max_hours) * 100)
+                    : 0;
+
                 return [
                     ...$t->toArray(),
 
-                    // 🔥 now consistent
-                    // 'assigned_load' => $t->assigned_load,
-                    // 'workload_percent' => $t->workload_percent,
+                    /**
+                     * WORKLOAD DATA
+                     */
+                    'assigned_load' => round($assignedLoad, 1),
 
-                    'availability_full' => $t->availability_days ?? [],
+                    'workload_percent' => $workloadPercent,
+
+                    /**
+                     * EXTRA UI DATA
+                     */
+                    'availability_full' =>
+                    $t->availability_days ?? [],
+
                     'schedule_full' => [],
+
                     'subjects' => [],
                 ];
             }),

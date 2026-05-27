@@ -1,7 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { saveAs } from 'file-saver';
+import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
+import html2canvas from 'html2canvas-pro';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { Head, router } from '@inertiajs/react';
@@ -19,6 +21,8 @@ const breadcrumbs = [
 
 export default function ScheduleViewer({
     activeVersion,
+    semester,
+    academicYear,
     schedules = [],
     rooms = [],
     teachers = [],
@@ -33,7 +37,7 @@ export default function ScheduleViewer({
     const [selectedSection, setSelectedSection] = useState(null);
     const [selectedTeacher, setSelectedTeacher] = useState(null);
     const [sectionSet, setSectionSet] = useState('Set A');
-
+    const printRef = React.useRef();
     const handleSetChange = (newSet) => {
         setSectionSet(newSet);
     };
@@ -62,6 +66,37 @@ export default function ScheduleViewer({
         (s) => s.timeslot?.day === 'Sunday',
     );
 
+    const downloadJPEG = async () => {
+        const element = printRef.current;
+
+        const canvas = await html2canvas(element, {
+            scale: 2,
+        });
+
+        canvas.toBlob((blob) => {
+            if (blob) {
+                saveAs(blob, 'schedule.jpeg');
+            }
+        });
+    };
+    const downloadPDF = async (data, type) => {
+        const element = printRef.current;
+
+        const canvas = await html2canvas(element, {
+            scale: 2,
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+
+        const pdf = new jsPDF('landscape', 'mm', 'a4');
+
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
+
+        pdf.save(`${data.name}_schedule.pdf`);
+    };
     const DAYS = hasSundaySchedule
         ? [
               'Monday',
@@ -265,14 +300,29 @@ export default function ScheduleViewer({
         setDraggedItem(scheduleId);
 
         e.dataTransfer.setData('scheduleId', scheduleId);
+        toast.loading('Moving schedule...', {
+            id: 'drag-toast',
+        });
     };
+    const programColors = {
+        BC: 'bg-blue-100 border-blue-500 text-blue-900', // Computer Science
+        BT: 'bg-green-100 border-green-500 text-green-900', // Tourism
+        BP: 'bg-red-100 border-red-500 text-red-900', // Criminology
+        BA: 'bg-yellow-100 border-yellow-500 text-yellow-900', // Accountancy
+        BO: 'bg-purple-100 border-purple-500 text-purple-900', // Office Admin
+    };
+    const getProgramColor = (program) => {
+        const code = program?.code; // THIS is the key
 
+        return (
+            programColors[code] || 'bg-gray-100 border-gray-400 text-gray-800'
+        );
+    };
     const handleDrop = (e, targetRoomId, targetTime, targetDay) => {
         e.preventDefault();
 
         const scheduleId = e.dataTransfer.getData('scheduleId');
 
-        // Find matching timeslot
         const matchingSchedule = schedules.find((s) => {
             if (!s.timeslot) return false;
 
@@ -287,10 +337,21 @@ export default function ScheduleViewer({
             );
         });
 
+        // ❌ NO MATCH = conflict (invalid slot)
         if (!matchingSchedule?.timeslot_id) {
-            alert('No matching timeslot found.');
+            toast.error(
+                'Failed to move schedule: conflicting or invalid timeslot',
+                {
+                    id: 'drag-toast',
+                },
+            );
+
             return;
         }
+
+        toast.loading('Moving schedule...', {
+            id: 'drag-toast',
+        });
 
         router.put(
             `/schedules/${scheduleId}`,
@@ -300,6 +361,18 @@ export default function ScheduleViewer({
             },
             {
                 preserveScroll: true,
+
+                onSuccess: () => {
+                    toast.success('Schedule moved successfully!', {
+                        id: 'drag-toast',
+                    });
+                },
+
+                onError: () => {
+                    toast.error('Failed to move schedule (conflict detected)', {
+                        id: 'drag-toast',
+                    });
+                },
             },
         );
     };
@@ -599,6 +672,7 @@ export default function ScheduleViewer({
                                             <th className="w-48 border-2 border-black bg-gray-100 p-3 text-sm font-black tracking-widest text-gray-900 uppercase">
                                                 {shiftName}
                                             </th>
+
                                             {displayRooms.map((room) => (
                                                 <th
                                                     key={room.id}
@@ -609,6 +683,7 @@ export default function ScheduleViewer({
                                             ))}
                                         </tr>
                                     </thead>
+
                                     <tbody>
                                         {times.map((time) => (
                                             <tr
@@ -616,9 +691,9 @@ export default function ScheduleViewer({
                                                 className="transition-colors hover:bg-blue-50"
                                             >
                                                 <td className="border-2 border-black bg-white p-2 font-bold whitespace-nowrap text-gray-800">
-                                                    {time.split(' - ')[0]}{' '}
-                                                    {/* Formats to just '07:00 am' */}
+                                                    {time.split(' - ')[0]}
                                                 </td>
+
                                                 {displayRooms.map((room) => {
                                                     const sched =
                                                         getMasterGridSchedule(
@@ -626,6 +701,7 @@ export default function ScheduleViewer({
                                                             room.id,
                                                             filters.day,
                                                         );
+
                                                     return (
                                                         <td
                                                             key={`${time}-${room.id}`}
@@ -640,7 +716,15 @@ export default function ScheduleViewer({
                                                                     filters.day,
                                                                 )
                                                             }
-                                                            className={`h-16 border-2 border-black p-2 align-middle transition-all ${!sched ? 'hover:bg-blue-50/30' : ''} ${sched?.is_fallback ? 'bg-orange-50' : 'bg-white'} `}
+                                                            className={`h-16 border-2 border-black p-2 align-middle transition-all ${
+                                                                !sched
+                                                                    ? 'hover:bg-blue-50/30'
+                                                                    : ''
+                                                            } ${
+                                                                sched?.is_fallback
+                                                                    ? 'bg-orange-50'
+                                                                    : 'bg-white'
+                                                            }`}
                                                         >
                                                             {sched ? (
                                                                 <div
@@ -658,11 +742,15 @@ export default function ScheduleViewer({
                                                                             sched,
                                                                         )
                                                                     }
-                                                                    className={`flex h-full w-full cursor-move cursor-pointer flex-col justify-between rounded-xl p-3 transition-all ${
+                                                                    className={`flex h-full w-full cursor-move cursor-pointer flex-col justify-between rounded-xl border-2 p-3 transition-all ${
                                                                         sched.is_fallback
-                                                                            ? 'border-2 border-orange-400 bg-orange-50'
-                                                                            : 'border-2 border-gray-900 bg-white hover:-translate-y-1 hover:shadow-lg'
-                                                                    }`}
+                                                                            ? 'border-orange-400 bg-orange-50'
+                                                                            : getProgramColor(
+                                                                                  sched
+                                                                                      .section
+                                                                                      ?.program,
+                                                                              )
+                                                                    } hover:-translate-y-1 hover:shadow-lg`}
                                                                 >
                                                                     <div>
                                                                         <div className="text-[10px] font-black text-gray-400 uppercase">
@@ -805,11 +893,11 @@ export default function ScheduleViewer({
                         {selectedSection.name}
                     </h2>
                     <div className="mt-1 text-sm text-gray-600 uppercase">
-                        <div>Dept: Assigned Department</div>
+                        {/* <div>Dept: Assigned Department</div>
                         <div>
                             Capacity: {selectedSection.student_count || 0}{' '}
                             Students
-                        </div>
+                        </div> */}
                     </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
@@ -822,7 +910,7 @@ export default function ScheduleViewer({
                                     : 'text-gray-400 hover:text-gray-600'
                             }`}
                         >
-                            SET A (FTF1)
+                            SET A
                         </button>
                         <button
                             onClick={() => handleSetChange('Set B')} // Changed this
@@ -832,17 +920,33 @@ export default function ScheduleViewer({
                                     : 'text-gray-400 hover:text-gray-600'
                             }`}
                         >
-                            SET B (ONLINE)
+                            SET B
                         </button>
                     </div>
                     <div className="flex gap-2">
-                        <button
+                        {/* <button
                             onClick={() =>
                                 downloadExcelJS(selectedSection, 'section')
                             }
                             className="rounded bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700"
                         >
                             Excel
+                        </button> */}
+
+                        <button
+                            onClick={() =>
+                                downloadPDF(selectedSection, 'section')
+                            }
+                            className="rounded bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700"
+                        >
+                            PDF
+                        </button>
+
+                        <button
+                            onClick={downloadJPEG}
+                            className="rounded bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+                        >
+                            JPEG
                         </button>
 
                         {/* <button
@@ -970,7 +1074,7 @@ export default function ScheduleViewer({
                                 : 'text-gray-400 hover:text-gray-600'
                         }`}
                     >
-                        SET A (FTF1)
+                        SET A
                     </button>
                     <button
                         onClick={() => handleSetChange('Set B')} // Changed this
@@ -980,15 +1084,28 @@ export default function ScheduleViewer({
                                 : 'text-gray-400 hover:text-gray-600'
                         }`}
                     >
-                        SET B (ONLINE)
+                        SET B
                     </button>
-                    <button
+                    {/* <button
                         onClick={() =>
                             downloadExcelJS(selectedTeacher, 'teacher')
                         }
                         className="rounded bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700"
                     >
                         Excel
+                    </button> */}
+                    <button
+                        onClick={() => downloadPDF(selectedTeacher, 'teacher')}
+                        className="rounded bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700"
+                    >
+                        PDF
+                    </button>
+
+                    <button
+                        onClick={downloadJPEG}
+                        className="rounded bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+                    >
+                        JPEG
                     </button>
 
                     {/* <button
@@ -1078,6 +1195,588 @@ export default function ScheduleViewer({
             </div>
         </div>
     );
+
+    const PrintableSchedule = React.forwardRef(({ data, type }, ref) => {
+        if (!data) return null;
+
+        const teacherSchedules = schedules.filter(
+            (s) => s.teacher_id === data?.id,
+        );
+
+        const summarySubjects = [];
+
+        teacherSchedules.forEach((s) => {
+            const existing = summarySubjects.find(
+                (x) => x.code === s.subject?.code,
+            );
+
+            if (existing) {
+                existing.sections += 1;
+                existing.hours += s.subject?.units || 3;
+            } else {
+                summarySubjects.push({
+                    code: s.subject?.code,
+                    description: s.subject?.name,
+                    units: s.subject?.units || 3,
+                    sections: 1,
+                    hours: s.subject?.units || 3,
+                });
+            }
+        });
+
+        const allTimes = [
+            ...SHIFTS.Morning,
+            ...SHIFTS.Afternoon,
+            ...SHIFTS.Evening,
+        ];
+
+        const totalHours = teacherSchedules.length * 3;
+
+        const totalSections = summarySubjects.reduce(
+            (acc, curr) => acc + curr.sections,
+            0,
+        );
+
+        const dayTotals = DAYS.map((day) => {
+            return teacherSchedules.filter(
+                (s) => s.timeslot?.day?.toLowerCase() === day.toLowerCase(),
+            ).length;
+        });
+
+        return (
+            <div
+                ref={ref}
+                style={{
+                    width: '1800px',
+                    background: 'white',
+                    color: 'black',
+                    fontFamily: 'Arial Narrow, Arial, sans-serif',
+                    padding: '12px',
+                }}
+            >
+                <div
+                    style={{
+                        border: '2px solid black',
+                    }}
+                >
+                    {/* HEADER */}
+                    <div
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 260px',
+                            borderBottom: '2px solid black',
+                            minHeight: '150px',
+                        }}
+                    >
+                        {/* LEFT */}
+                        <div
+                            style={{
+                                padding: '12px',
+                                borderRight: '2px solid black',
+                            }}
+                        >
+                            <div
+                                style={{
+                                    fontSize: '26px',
+                                    fontWeight: 'bold',
+                                }}
+                            >
+                                AISAT College - Dasmariñas
+                            </div>
+
+                            <div
+                                style={{
+                                    marginTop: '4px',
+                                    fontSize: '15px',
+                                }}
+                            >
+                                Dasmariñas City, Cavite
+                            </div>
+
+                            <div
+                                style={{
+                                    marginTop: '10px',
+                                    fontSize: '17px',
+                                    fontWeight: 'bold',
+                                }}
+                            >
+                                {semester}, School Year {academicYear}
+                            </div>
+
+                            <div
+                                style={{
+                                    marginTop: '18px',
+                                    display: 'grid',
+                                    gridTemplateColumns:
+                                        type === 'teacher'
+                                            ? '140px 1fr 140px 140px'
+                                            : '120px 1fr',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                }}
+                            >
+                                {/* LABEL */}
+                                <div
+                                    style={{
+                                        fontWeight: 'bold',
+                                        fontSize: '16px',
+                                    }}
+                                >
+                                    {type === 'teacher'
+                                        ? 'Professor:'
+                                        : 'Section:'}
+                                </div>
+
+                                {/* NAME */}
+                                <div
+                                    style={{
+                                        fontWeight: 'bold',
+                                        fontStyle: 'italic',
+                                        fontSize: '28px',
+                                    }}
+                                >
+                                    {data?.name}
+                                </div>
+
+                                {/* TEACHER ONLY */}
+                                {type === 'teacher' && (
+                                    <>
+                                        <div
+                                            style={{
+                                                fontSize: '15px',
+                                            }}
+                                        >
+                                            <b>Faculty Code:</b>
+                                            <br />
+                                            {data?.code || 'N/A'}
+                                        </div>
+
+                                        <div
+                                            style={{
+                                                fontSize: '15px',
+                                            }}
+                                        >
+                                            <b>Total Hours:</b>
+                                            <br />
+                                            {totalHours}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* RIGHT */}
+                        <div
+                            style={{
+                                background: '#0b1f5e',
+                                color: 'white',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'space-between',
+                            }}
+                        >
+                            <div
+                                style={{
+                                    padding: '12px',
+                                    borderBottom: '2px solid white',
+                                    textAlign: 'center',
+                                    fontSize: '16px',
+                                    fontWeight: 'bold',
+                                }}
+                            >
+                                Effectivity:
+                                <br />
+                                {new Date().toLocaleDateString()}
+                            </div>
+
+                            <div
+                                style={{
+                                    flex: 1,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '48px',
+                                    fontWeight: '900',
+                                }}
+                            >
+                                SET {sectionSet === 'Set A' ? 'A' : 'B'}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* MAIN TABLE */}
+                    <table
+                        style={{
+                            width: '100%',
+                            borderCollapse: 'collapse',
+                            tableLayout: 'fixed',
+                        }}
+                    >
+                        <thead>
+                            <tr>
+                                <th
+                                    style={{
+                                        border: '2px solid black',
+                                        padding: '8px',
+                                        fontSize: '15px',
+                                        width: '160px',
+                                    }}
+                                >
+                                    TIME
+                                </th>
+
+                                {DAYS.map((day, index) => (
+                                    <th
+                                        key={day}
+                                        style={{
+                                            border: '2px solid black',
+                                            padding: '8px',
+                                            fontSize: '15px',
+                                        }}
+                                    >
+                                        {String(index + 1).padStart(2, '0')}_
+                                        {day}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {allTimes.map((time, rowIndex) => {
+                                const rowLetter = String.fromCharCode(
+                                    65 + rowIndex,
+                                );
+
+                                return (
+                                    <tr key={time}>
+                                        {/* TIME */}
+                                        <td
+                                            style={{
+                                                border: '2px solid black',
+                                                padding: '8px',
+                                                verticalAlign: 'top',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                            }}
+                                        >
+                                            <div>{rowLetter}_</div>
+
+                                            <div
+                                                style={{
+                                                    marginTop: '6px',
+                                                }}
+                                            >
+                                                {time}
+                                            </div>
+                                        </td>
+
+                                        {/* DAYS */}
+                                        {DAYS.map((day) => {
+                                            const sched =
+                                                type === 'section'
+                                                    ? getSchedule(
+                                                          time,
+                                                          null,
+                                                          day,
+                                                          null,
+                                                          data.id,
+                                                      )
+                                                    : getSchedule(
+                                                          time,
+                                                          null,
+                                                          day,
+                                                          data.id,
+                                                          null,
+                                                      );
+
+                                            return (
+                                                <td
+                                                    key={day + time}
+                                                    style={{
+                                                        border: '2px solid black',
+                                                        height: '95px',
+                                                        padding: '0',
+                                                        verticalAlign: 'top',
+                                                    }}
+                                                >
+                                                    {sched && (
+                                                        <div
+                                                            style={{
+                                                                height: '100%',
+                                                                display: 'grid',
+                                                                gridTemplateRows:
+                                                                    '32px 28px 1fr',
+                                                            }}
+                                                        >
+                                                            {/* SUBJECT */}
+                                                            <div
+                                                                style={{
+                                                                    borderBottom:
+                                                                        '2px solid black',
+                                                                    display:
+                                                                        'flex',
+                                                                    alignItems:
+                                                                        'center',
+                                                                    justifyContent:
+                                                                        'center',
+                                                                    fontWeight:
+                                                                        'bold',
+                                                                    fontSize:
+                                                                        '15px',
+                                                                }}
+                                                            >
+                                                                {
+                                                                    sched
+                                                                        .subject
+                                                                        ?.code
+                                                                }
+                                                            </div>
+
+                                                            {/* ROOM */}
+                                                            <div
+                                                                style={{
+                                                                    background:
+                                                                        '#00a651',
+                                                                    borderBottom:
+                                                                        '2px solid black',
+                                                                    display:
+                                                                        'flex',
+                                                                    alignItems:
+                                                                        'center',
+                                                                    justifyContent:
+                                                                        'center',
+                                                                    fontSize:
+                                                                        '13px',
+                                                                    fontWeight:
+                                                                        'bold',
+                                                                }}
+                                                            >
+                                                                {getDisplayRoom(
+                                                                    sched,
+                                                                    type,
+                                                                )}
+                                                            </div>
+
+                                                            {/* SECTION / TEACHER */}
+                                                            <div
+                                                                style={{
+                                                                    background:
+                                                                        '#fff45c',
+                                                                    display:
+                                                                        'flex',
+                                                                    alignItems:
+                                                                        'center',
+                                                                    justifyContent:
+                                                                        'center',
+                                                                    fontSize:
+                                                                        '13px',
+                                                                    fontWeight:
+                                                                        'bold',
+                                                                }}
+                                                            >
+                                                                {type ===
+                                                                'section'
+                                                                    ? sched
+                                                                          .teacher
+                                                                          ?.code ||
+                                                                      sched
+                                                                          .teacher
+                                                                          ?.name
+                                                                    : sched
+                                                                          .section
+                                                                          ?.name}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+
+                        {/* TOTALS - TEACHER ONLY */}
+                        {type === 'teacher' && (
+                            <tfoot>
+                                <tr>
+                                    <td
+                                        style={{
+                                            border: '2px solid black',
+                                            padding: '8px',
+                                            fontWeight: 'bold',
+                                            fontSize: '15px',
+                                        }}
+                                    >
+                                        TOTAL ({totalHours})
+                                    </td>
+
+                                    {dayTotals.map((total, index) => (
+                                        <td
+                                            key={index}
+                                            style={{
+                                                border: '2px solid black',
+                                                textAlign: 'center',
+                                                fontWeight: 'bold',
+                                                fontSize: '15px',
+                                            }}
+                                        >
+                                            {total}
+                                        </td>
+                                    ))}
+                                </tr>
+                            </tfoot>
+                        )}
+                    </table>
+
+                    {/* SUMMARY - TEACHER ONLY */}
+                    {type === 'teacher' && (
+                        <>
+                            <table
+                                style={{
+                                    width: '100%',
+                                    borderCollapse: 'collapse',
+                                    marginTop: '6px',
+                                }}
+                            >
+                                <thead>
+                                    <tr>
+                                        {[
+                                            'Subject Code',
+                                            'Subject Description',
+                                            'Unit',
+                                            'No. Sections',
+                                            'Total Hours',
+                                        ].map((head) => (
+                                            <th
+                                                key={head}
+                                                style={{
+                                                    border: '2px solid black',
+                                                    padding: '6px',
+                                                    fontSize: '14px',
+                                                    background: '#f3f3f3',
+                                                }}
+                                            >
+                                                {head}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {summarySubjects.map((sub, index) => (
+                                        <tr key={index}>
+                                            <td
+                                                style={{
+                                                    border: '1px solid black',
+                                                    padding: '6px',
+                                                    fontSize: '13px',
+                                                }}
+                                            >
+                                                {sub.code}
+                                            </td>
+
+                                            <td
+                                                style={{
+                                                    border: '1px solid black',
+                                                    padding: '6px',
+                                                    fontSize: '13px',
+                                                }}
+                                            >
+                                                {sub.description}
+                                            </td>
+
+                                            <td
+                                                style={{
+                                                    border: '1px solid black',
+                                                    textAlign: 'center',
+                                                    fontSize: '13px',
+                                                }}
+                                            >
+                                                {sub.units}
+                                            </td>
+
+                                            <td
+                                                style={{
+                                                    border: '1px solid black',
+                                                    textAlign: 'center',
+                                                    fontSize: '13px',
+                                                }}
+                                            >
+                                                {sub.sections}
+                                            </td>
+
+                                            <td
+                                                style={{
+                                                    border: '1px solid black',
+                                                    textAlign: 'center',
+                                                    fontSize: '13px',
+                                                }}
+                                            >
+                                                {sub.hours}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+
+                            {/* FOOTER */}
+                            {/* FOOTER */}
+                            <div
+                                style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '1fr 180px 180px',
+                                    borderTop: '2px solid black',
+                                    fontSize: '14px',
+                                    fontWeight: 'bold',
+                                }}
+                            >
+                                {/* LEFT */}
+                                <div
+                                    style={{
+                                        padding: '10px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                    }}
+                                >
+                                    Updated as of {new Date().toLocaleString()}
+                                </div>
+
+                                {/* TOTAL SECTIONS */}
+                                <div
+                                    style={{
+                                        borderLeft: '2px solid black',
+                                        padding: '10px',
+                                        textAlign: 'center',
+                                    }}
+                                >
+                                    TOTAL SECTIONS:
+                                    <br />
+                                    {summarySubjects.reduce(
+                                        (sum, sub) => sum + sub.sections,
+                                        0,
+                                    )}
+                                </div>
+
+                                {/* TOTAL HOURS */}
+                                <div
+                                    style={{
+                                        borderLeft: '2px solid black',
+                                        padding: '10px',
+                                        textAlign: 'center',
+                                    }}
+                                >
+                                    TOTAL HOURS:
+                                    <br />
+                                    {totalHours}
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+        );
+    });
 
     // --- MAIN LAYOUT RETURN ---
     return (
@@ -1169,7 +1868,7 @@ export default function ScheduleViewer({
                                         : 'text-gray-400 hover:text-gray-600'
                                 }`}
                             >
-                                SET A (FTF)
+                                SET A
                             </button>
                             <button
                                 onClick={() => handleSetChange('Set B')} // Changed this
@@ -1179,7 +1878,7 @@ export default function ScheduleViewer({
                                         : 'text-gray-400 hover:text-gray-600'
                                 }`}
                             >
-                                SET B (ONLINE)
+                                SET B
                             </button>
 
                             {/* BUILDING FILTER */}
@@ -1317,14 +2016,33 @@ export default function ScheduleViewer({
 
                         <select
                             className="mb-8 w-full rounded-xl border border-gray-200 p-3 font-bold"
-                            value={editingSchedule.teacher_id}
-                            onChange={(e) =>
-                                updateTeacher(
-                                    editingSchedule.id,
-                                    e.target.value,
-                                )
-                            }
+                            value={editingSchedule.teacher_id || ''}
+                            onChange={async (e) => {
+                                const newTeacherId = Number(e.target.value);
+
+                                // update UI instantly
+                                setEditingSchedule({
+                                    ...editingSchedule,
+                                    teacher_id: newTeacherId,
+                                });
+
+                                try {
+                                    // wait for backend update
+                                    await updateTeacher(
+                                        editingSchedule.id,
+                                        newTeacherId,
+                                    );
+
+                                    toast.success(
+                                        'Teacher updated successfully!',
+                                    );
+                                } catch (error) {
+                                    toast.error('Failed to update teacher.');
+                                }
+                            }}
                         >
+                            <option value="">Select Teacher</option>
+
                             {teachers.map((t) => (
                                 <option key={t.id} value={t.id}>
                                     {t.name}
@@ -1341,6 +2059,20 @@ export default function ScheduleViewer({
                     </div>
                 </div>
             )}
+
+            <div
+                style={{
+                    position: 'absolute',
+                    left: '-9999px',
+                    top: 0,
+                }}
+            >
+                <PrintableSchedule
+                    ref={printRef}
+                    data={selectedTeacher || selectedSection}
+                    type={selectedTeacher ? 'teacher' : 'section'}
+                />
+            </div>
         </AppLayout>
     );
 }

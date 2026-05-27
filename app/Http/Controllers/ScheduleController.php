@@ -30,10 +30,10 @@ class ScheduleController extends Controller
 
         // 3. Fetch schedules with your NEW filtering logic
         $schedules = Schedule::with([
-            'subject:id,code',
+            'subject:id,code,name',
             'teacher:id,name,code',
             'room:id,generated_name,capacity,building,floor',
-            'section:id,name,year_level,capacity',
+            'section.program:id,name,code',
             'timeslot:id,start_time,end_time,day'
         ])
             ->where('schedule_version_id', $versionId)
@@ -59,12 +59,14 @@ class ScheduleController extends Controller
 
         // 6. Return data to the untouched Viewer UI
         return Inertia::render('Schedules/Viewer', [
-            'activeVersion' => $versionName , // Updates the title text
+            'activeVersion' => $versionName, // Updates the title text
+            'semester' => $activeVersion?->semester,
+            'academicYear' => $activeVersion?->academic_year,
             'schedules' => $schedules,
             'rooms' => Room::orderBy('generated_name')->get(),
             'teachers' => $teachers,
             'sections' => Section::orderBy('name')->get(),
-          // Keeps the React state in sync
+            // Keeps the React state in sync
         ]);
     }
 
