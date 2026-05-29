@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { saveAs } from 'file-saver';
 import toast from 'react-hot-toast';
-import * as XLSX from 'xlsx';
-import ExcelJS from 'exceljs';
+
 import html2canvas from 'html2canvas-pro';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -21,6 +20,7 @@ const breadcrumbs = [
 
 export default function ScheduleViewer({
     activeVersion,
+    timeslots,
     semester,
     academicYear,
     schedules = [],
@@ -112,29 +112,91 @@ export default function ScheduleViewer({
         : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     // Fixed Time blocks for the template rows
-    const SHIFTS = {
-        Morning: [
-            '07:00 am - 08:00 am',
-            '08:00 am - 09:00 am',
-            '09:00 am - 10:00 am',
-            '10:00 am - 11:00 am',
-            '11:00 am - 12:00 pm',
-        ],
-        Afternoon: [
-            '12:00 pm - 01:00 pm',
-            '01:00 pm - 02:00 pm',
-            '02:00 pm - 03:00 pm',
-            '03:00 pm - 04:00 pm',
-            '04:00 pm - 05:00 pm',
-        ],
-        Evening: [
-            '05:00 pm - 06:00 pm',
-            '06:00 pm - 07:00 pm',
-            '07:00 pm - 08:00 pm',
-            '08:00 pm - 09:00 pm',
-            '09:00 pm - 10:00 pm',
-        ],
+    const formatTime = (time) => {
+        if (!time) return '';
+
+        return new Date(`1970-01-01T${time}`)
+            .toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+            })
+            .toLowerCase();
     };
+
+    const dynamicTimeslots = timeslots.map((slot) => ({
+        shift: slot.shift || 'Morning',
+
+        label: `${formatTime(slot.start_time)} - ${formatTime(slot.end_time)}`,
+
+        start: slot.start_time,
+    }));
+    const SHIFTS = dynamicTimeslots.reduce((acc, slot) => {
+        if (!acc[slot.shift]) {
+            acc[slot.shift] = [];
+        }
+
+        acc[slot.shift].push(slot.label);
+
+        return acc;
+    }, {});
+    Object.keys(SHIFTS).forEach((shift) => {
+        SHIFTS[shift] = [...new Set(SHIFTS[shift])];
+
+        SHIFTS[shift].sort((a, b) => {
+            const aStart = a.split(' - ')[0]; // Fixed Time blocks for the template rows
+            const formatTime = (time) => {
+                if (!time) return '';
+
+                return new Date(`1970-01-01T${time}`)
+                    .toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true,
+                    })
+                    .toLowerCase();
+            };
+
+            const dynamicTimeslots = schedules
+                .filter((s) => s.timeslot)
+                .map((s) => ({
+                    shift: s.timeslot.shift || 'Morning',
+
+                    label: `${formatTime(s.timeslot.start_time)} - ${formatTime(s.timeslot.end_time)}`,
+
+                    start: s.timeslot.start_time,
+                }));
+            const SHIFTS = dynamicTimeslots.reduce((acc, slot) => {
+                if (!acc[slot.shift]) {
+                    acc[slot.shift] = [];
+                }
+
+                acc[slot.shift].push(slot.label);
+
+                return acc;
+            }, {});
+            Object.keys(SHIFTS).forEach((shift) => {
+                SHIFTS[shift] = [...new Set(SHIFTS[shift])];
+
+                SHIFTS[shift].sort((a, b) => {
+                    const aStart = a.split(' - ')[0];
+                    const bStart = b.split(' - ')[0];
+
+                    return (
+                        new Date(`1970/01/01 ${aStart}`) -
+                        new Date(`1970/01/01 ${bStart}`)
+                    );
+                });
+            });
+
+            const bStart = b.split(' - ')[0];
+
+            return (
+                new Date(`1970/01/01 ${aStart}`) -
+                new Date(`1970/01/01 ${bStart}`)
+            );
+        });
+    });
 
     // If database has no rooms yet, use these to force the grid shape to appear.
     // =========================================
@@ -174,19 +236,6 @@ export default function ScheduleViewer({
                   { id: 't3', generated_name: 'ROOM 103' },
                   { id: 't4', generated_name: 'ROOM 104' },
               ];
-
-    // --- BULLETPROOF DATA FETCHER ---
-    const formatTime = (time) => {
-        if (!time) return '';
-
-        return new Date(`1970-01-01T${time}`)
-            .toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-            })
-            .toLowerCase();
-    };
 
     const scheduleMap = useMemo(() => {
         const map = {};
@@ -384,271 +433,6 @@ export default function ScheduleViewer({
         });
     };
 
-    const buildRows = (data, type) => {
-        return schedules
-            .filter((s) =>
-                type === 'section'
-                    ? s.section_id === data.id
-                    : s.teacher_id === data.id,
-            )
-            .map((s) => ({
-                Time: s.timeslot
-                    ? `${formatTime(s.timeslot.start_time)} - ${formatTime(
-                          s.timeslot.end_time,
-                      )}`
-                    : '',
-                Subject: s.subject?.code || '',
-                [type === 'section' ? 'Teacher' : 'Section']:
-                    type === 'section' ? s.teacher?.name : s.section?.name,
-                Room: s.room?.generated_name || s.room?.name,
-            }));
-    };
-
-    const buildTimeKey = (start, end) => {
-        return `${formatTime(start)}-${formatTime(end)}`
-            .replace(/\s/g, '')
-            .toLowerCase();
-    };
-
-    const downloadExcelJS = async (data, type) => {
-        const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet('Class Schedule');
-
-        const sectionName = data.name || 'Schedule';
-
-        // =========================================
-        // COLUMN SETUP
-        // =========================================
-
-        const columns = [{ width: 22 }];
-
-        for (let i = 0; i < 14; i++) {
-            columns.push({ width: 14 });
-        }
-
-        sheet.columns = columns;
-
-        // =========================================
-        // STYLES
-        // =========================================
-
-        const borderStyle = {
-            top: { style: 'thin' },
-            left: { style: 'thin' },
-            bottom: { style: 'thin' },
-            right: { style: 'thin' },
-        };
-
-        const headerFill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF002060' },
-        };
-
-        const roomFill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF00B050' },
-        };
-
-        const centerAlign = {
-            vertical: 'middle',
-            horizontal: 'center',
-            wrapText: true,
-        };
-
-        // =========================================
-        // SCHOOL HEADER
-        // =========================================
-
-        sheet.mergeCells('A1:O1');
-        sheet.getCell('A1').value = 'AISAT COLLEGE - DASMARIÑAS';
-        sheet.getCell('A1').font = {
-            bold: true,
-            size: 16,
-        };
-        sheet.getCell('A1').alignment = centerAlign;
-
-        sheet.mergeCells('A2:O2');
-        sheet.getCell('A2').value = activeVersion;
-        sheet.getCell('A2').alignment = centerAlign;
-
-        sheet.mergeCells('A3:O3');
-        sheet.getCell('A3').value = sectionName;
-        sheet.getCell('A3').font = {
-            bold: true,
-            size: 14,
-        };
-        sheet.getCell('A3').alignment = centerAlign;
-
-        // =========================================
-        // HEADER ROW
-        // =========================================
-
-        const headerRowIndex = 7;
-
-        sheet.getRow(headerRowIndex).height = 25;
-
-        const timeCell = sheet.getCell(headerRowIndex, 1);
-
-        timeCell.value = 'TIME';
-        timeCell.fill = headerFill;
-        timeCell.font = {
-            color: { argb: 'FFFFFFFF' },
-            bold: true,
-        };
-        timeCell.alignment = centerAlign;
-        timeCell.border = borderStyle;
-
-        let currentCol = 2;
-
-        DAYS.forEach((day) => {
-            sheet.mergeCells(
-                headerRowIndex,
-                currentCol,
-                headerRowIndex,
-                currentCol + 1,
-            );
-
-            const dayCell = sheet.getCell(headerRowIndex, currentCol);
-
-            dayCell.value = day.toUpperCase();
-            dayCell.fill = headerFill;
-            dayCell.font = {
-                color: { argb: 'FFFFFFFF' },
-                bold: true,
-            };
-
-            dayCell.alignment = centerAlign;
-            dayCell.border = borderStyle;
-
-            currentCol += 2;
-        });
-
-        // =========================================
-        // TIME BLOCKS
-        // =========================================
-
-        let currentRow = 8;
-
-        const allTimes = [
-            ...SHIFTS.Morning,
-            ...SHIFTS.Afternoon,
-            ...SHIFTS.Evening,
-        ];
-
-        allTimes.forEach((timeSlot) => {
-            // TIME CELL
-            sheet.mergeCells(currentRow, 1, currentRow + 1, 1);
-
-            const timeBlock = sheet.getCell(currentRow, 1);
-
-            timeBlock.value = timeSlot;
-            timeBlock.alignment = centerAlign;
-            timeBlock.border = borderStyle;
-            timeBlock.font = { bold: true };
-
-            // DAYS
-            let dayColIndex = 2;
-
-            DAYS.forEach((day) => {
-                const sched =
-                    type === 'section'
-                        ? getSchedule(timeSlot, null, day, null, data.id)
-                        : getSchedule(timeSlot, null, day, data.id, null);
-
-                // Apply borders
-                for (let r = currentRow; r <= currentRow + 1; r++) {
-                    for (let c = dayColIndex; c <= dayColIndex + 1; c++) {
-                        sheet.getCell(r, c).border = borderStyle;
-                    }
-                }
-
-                if (sched) {
-                    // SUBJECT
-                    sheet.mergeCells(
-                        currentRow,
-                        dayColIndex,
-                        currentRow,
-                        dayColIndex + 1,
-                    );
-
-                    const subjectCell = sheet.getCell(currentRow, dayColIndex);
-
-                    subjectCell.value = sched.subject?.code || 'NO SUBJECT';
-
-                    subjectCell.alignment = centerAlign;
-
-                    subjectCell.font = {
-                        bold: true,
-                        size: 11,
-                    };
-
-                    // ROOM
-                    const roomCell = sheet.getCell(currentRow + 1, dayColIndex);
-
-                    roomCell.value =
-                        sched.room?.generated_name ||
-                        sched.room?.name ||
-                        'ROOM';
-
-                    roomCell.alignment = centerAlign;
-
-                    roomCell.fill = roomFill;
-
-                    roomCell.font = {
-                        bold: true,
-                        color: { argb: 'FFFFFFFF' },
-                    };
-
-                    // TEACHER / SECTION
-                    const teacherCell = sheet.getCell(
-                        currentRow + 1,
-                        dayColIndex + 1,
-                    );
-
-                    teacherCell.value =
-                        type === 'section'
-                            ? sched.teacher?.code ||
-                              sched.teacher?.name ||
-                              'TBA'
-                            : sched.section?.name || 'TBA';
-
-                    teacherCell.alignment = centerAlign;
-                } else {
-                    // EMPTY BLOCK
-                    sheet.mergeCells(
-                        currentRow,
-                        dayColIndex,
-                        currentRow + 1,
-                        dayColIndex + 1,
-                    );
-
-                    const emptyCell = sheet.getCell(currentRow, dayColIndex);
-
-                    emptyCell.border = borderStyle;
-                }
-
-                dayColIndex += 2;
-            });
-
-            currentRow += 2;
-        });
-
-        // =========================================
-        // DOWNLOAD
-        // =========================================
-
-        const buffer = await workbook.xlsx.writeBuffer();
-
-        const blob = new Blob([buffer], {
-            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        });
-
-        saveAs(blob, `${sectionName}_Schedule.xlsx`);
-    };
-
-
     // --- RENDER: MASTER GRID TAB ---
     const renderMasterGrid = () => {
         return (
@@ -693,8 +477,8 @@ export default function ScheduleViewer({
                                                 key={time}
                                                 className="transition-colors hover:bg-blue-50"
                                             >
-                                                <td className="w-24 border-2 border-black bg-white px-2 py-1 font-bold whitespace-nowrap text-gray-800">
-                                                    {time.split(' - ')[0]}
+                                                <td className="w-40 border-2 border-black bg-white px-2 py-1 font-bold whitespace-nowrap text-gray-800">
+                                                    {time}
                                                 </td>
 
                                                 {displayRooms.map((room) => {
@@ -927,15 +711,6 @@ export default function ScheduleViewer({
                         </button>
                     </div>
                     <div className="flex gap-2">
-                        {/* <button
-                            onClick={() =>
-                                downloadExcelJS(selectedSection, 'section')
-                            }
-                            className="rounded bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700"
-                        >
-                            Excel
-                        </button> */}
-
                         <button
                             onClick={() =>
                                 downloadPDF(selectedSection, 'section')
@@ -992,9 +767,9 @@ export default function ScheduleViewer({
                                     key={time}
                                     className="transition-colors hover:bg-blue-50"
                                 >
-                                    <td className="border-2 border-black bg-white px-2 py-1 font-bold whitespace-nowrap text-gray-800">
-                                        {time.split(' - ')[0]}
-                                    </td>
+                                     <td className="w-40 border-2 border-black bg-white px-2 py-1 font-bold whitespace-nowrap text-gray-800">
+                                                    {time}
+                                                </td>
                                     {DAYS.map((day) => {
                                         const sched = getSchedule(
                                             time,
@@ -1089,14 +864,7 @@ export default function ScheduleViewer({
                     >
                         SET B
                     </button>
-                    {/* <button
-                        onClick={() =>
-                            downloadExcelJS(selectedTeacher, 'teacher')
-                        }
-                        className="rounded bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700"
-                    >
-                        Excel
-                    </button> */}
+
                     <button
                         onClick={() => downloadPDF(selectedTeacher, 'teacher')}
                         className="rounded bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700"
@@ -1150,9 +918,9 @@ export default function ScheduleViewer({
                                     key={time}
                                     className="transition-colors hover:bg-blue-50"
                                 >
-                                    <td className="border-2 border-black bg-white p-2 font-bold whitespace-nowrap text-gray-800">
-                                        {time.split(' - ')[0]}
-                                    </td>
+                                      <td className="w-40 border-2 border-black bg-white px-2 py-1 font-bold whitespace-nowrap text-gray-800">
+                                                    {time}
+                                                </td>
                                     {DAYS.map((day) => {
                                         const sched = getSchedule(
                                             time,

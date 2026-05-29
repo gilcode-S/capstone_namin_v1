@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\Schedule;
 use App\Models\ScheduleVersion;
 use App\Models\Room;
+use App\Models\TimeSlot;
 use App\Models\Teacher;
 use App\Models\Section;
 use Inertia\Inertia;
@@ -34,7 +35,7 @@ class ScheduleController extends Controller
             'teacher:id,name,code',
             'room:id,generated_name,capacity,building,floor',
             'section.program:id,name,code',
-            'timeslot:id,start_time,end_time,day'
+            'timeslot:id,start_time,end_time,day,shift'
         ])
             ->where('schedule_version_id', $versionId)
             ->get();
@@ -66,6 +67,7 @@ class ScheduleController extends Controller
             'rooms' => Room::orderBy('generated_name')->get(),
             'teachers' => $teachers,
             'sections' => Section::orderBy('name')->get(),
+            'timeslots' => TimeSlot::orderBy('start_time')->get(),
             // Keeps the React state in sync
         ]);
     }
