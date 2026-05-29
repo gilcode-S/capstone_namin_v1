@@ -87,6 +87,10 @@ export default function SubjectIndex({ subjects, programs, domains, teachers, ro
         filters?.department || ''
     )
 
+    const [yearLevelFilter, setYearLevelFilter] = useState(
+        filters?.year_level || ''
+    )
+
     // Dynamically filter prerequisites: Only show Major subjects that belong to the selected Program
     const validPrerequisites = allSubjects.filter(sub => {
 
@@ -196,6 +200,7 @@ export default function SubjectIndex({ subjects, programs, domains, teachers, ro
 
             type: typeFilter,
             department: departmentFilter,
+            year_level: yearLevelFilter,
 
             ...newFilters
 
@@ -369,60 +374,80 @@ export default function SubjectIndex({ subjects, programs, domains, teachers, ro
                 </div>
                 <div className="flex flex-wrap gap-3 mb-4">
 
-    {/* TYPE FILTER */}
-    <select
-        value={typeFilter}
-        onChange={(e) => {
+                    {/* TYPE FILTER */}
+                    <select
+                        value={typeFilter}
+                        onChange={(e) => {
 
-            setTypeFilter(e.target.value)
+                            setTypeFilter(e.target.value)
 
-            applyFilters({
-                type: e.target.value
-            })
-        }}
-        className="border rounded-lg px-3 py-2 text-sm"
-    >
-        <option value="">All Types</option>
-        <option value="Major">Major</option>
-        <option value="Minor">Minor</option>
-    </select>
+                            applyFilters({
+                                type: e.target.value
+                            })
+                        }}
+                        className="border rounded-lg px-3 py-2 text-sm"
+                    >
+                        <option value="">All Types</option>
+                        <option value="Major">Major</option>
+                        <option value="Minor">Minor</option>
+                    </select>
 
-    {/* DEPARTMENT FILTER */}
-    <select
-        value={departmentFilter}
-        onChange={(e) => {
+                    {/* DEPARTMENT FILTER */}
+                    <select
+                        value={departmentFilter}
+                        onChange={(e) => {
 
-            setDepartmentFilter(e.target.value)
+                            setDepartmentFilter(e.target.value)
 
-            applyFilters({
-                department: e.target.value
-            })
-        }}
-        className="border rounded-lg px-3 py-2 text-sm"
-    >
-        <option value="">All Departments</option>
+                            applyFilters({
+                                department: e.target.value
+                            })
+                        }}
+                        className="border rounded-lg px-3 py-2 text-sm"
+                    >
+                        <option value="">All Departments</option>
 
-        {[
-            ...new Map(
-                programs
-                    .filter(p => p.department)
-                    .map(p => [
-                        p.department.id,
-                        p.department
-                    ])
-            ).values()
-        ].map((dept) => (
+                        {[
+                            ...new Map(
+                                programs
+                                    .filter(p => p.department)
+                                    .map(p => [
+                                        p.department.id,
+                                        p.department
+                                    ])
+                            ).values()
+                        ].map((dept) => (
 
-            <option
-                key={dept.id}
-                value={dept.id}
-            >
-                {dept.name}
-            </option>
-        ))}
-    </select>
+                            <option
+                                key={dept.id}
+                                value={dept.id}
+                            >
+                                {dept.name}
+                            </option>
+                        ))}
+                    </select>
 
-</div>
+                    {/* YEAR LEVEL FILTER */}
+                    <select
+                        value={yearLevelFilter}
+                        onChange={(e) => {
+
+                            setYearLevelFilter(e.target.value)
+
+                            applyFilters({
+                                year_level: e.target.value
+                            })
+                        }}
+                        className="border rounded-lg px-3 py-2 text-sm"
+                    >
+                        <option value="">All Year Levels</option>
+                        <option value="1">1st Year</option>
+                        <option value="2">2nd Year</option>
+                        <option value="3">3rd Year</option>
+                        <option value="4">4th Year</option>
+                    </select>
+
+                </div>
 
                 {/* Existing Subjects Table */}
                 <div className="bg-white p-6 rounded-lg shadow-md">

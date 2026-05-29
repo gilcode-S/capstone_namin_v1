@@ -51,6 +51,10 @@ class SubjectController extends Controller
                 $q->where('id', $request->department);
             });
         }
+        if ($request->filled('year_level')) {
+
+            $query->where('year_level', $request->year_level);
+        }
     
         /**
          * SUBJECTS
@@ -88,6 +92,7 @@ class SubjectController extends Controller
             'filters' => [
                 'type' => $request->type,
                 'department' => $request->department,
+                'year_level' => $request->year_level,
             ],
         ]);
     }
