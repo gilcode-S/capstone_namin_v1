@@ -160,7 +160,8 @@ class ScheduleGeneratorService
      */
     public function generateScheduleForSection(
         Section $section,
-        $versionId
+        $versionId,
+        $semester
     ) {
 
         DB::beginTransaction();
@@ -201,10 +202,14 @@ class ScheduleGeneratorService
                 )
                 ->where(
                     'semester',
-                    $section->semester
+                    $semester
                 )
                 ->with('subject.program')
                 ->get();
+
+            if ($curriculumSubjects->isEmpty()) {
+                return false;
+            }
 
             /**
              * AVAILABLE TIMESLOTS

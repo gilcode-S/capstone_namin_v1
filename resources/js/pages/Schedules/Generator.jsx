@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, router } from '@inertiajs/react';
+import toast from 'react-hot-toast';
+import { usePage } from '@inertiajs/react';
 import { Head } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 const breadcrumbs = [
@@ -22,28 +24,74 @@ export default function GeneratorDashboard({
         academic_year: '2026-2027',
         semester: '1st Semester',
     });
-
     const hasErrors = warnings && warnings.length > 0;
+    const { props } = usePage();
+    useEffect(() => {
+        if (props.flash?.success) {
+            toast.success(props.flash.success);
+        }
+
+        if (props.errors?.generation) {
+            toast.error(props.errors.generation);
+        }
+    }, [props.flash, props.errors]);
 
     const handleGenerate = (e) => {
         e.preventDefault();
-        if (hasErrors) return; // Failsafe
-        post('/schedules/generate');
+
+        if (hasErrors) {
+            toast.error('Fix curriculum validation errors first.');
+            return;
+        }
+
+        const loadingToast = toast.loading('Running optimization algorithm...');
+
+        post('/schedules/generate', {
+            onSuccess: () => {
+                toast.dismiss(loadingToast);
+            },
+
+            onError: () => {
+                toast.dismiss(loadingToast);
+            },
+        });
     };
 
     const handleReset = () => {
         if (
-            confirm(
+            !confirm(
                 `Are you sure you want to reset schedules for ${data.academic_year} ${data.semester}?`,
             )
         ) {
-            router.delete('/schedules/reset', {
-                data: {
-                    academic_year: data.academic_year,
-                    semester: data.semester,
-                },
-            });
+            return;
         }
+
+        const loadingToast = toast.loading('Resetting schedules...');
+
+        router.delete('/schedules/reset', {
+            data: {
+                academic_year: data.academic_year,
+                semester: data.semester,
+            },
+
+            onSuccess: () => {
+                toast.dismiss(loadingToast);
+
+                toast.success(
+                    `Schedules for ${data.semester} successfully reset.`,
+                );
+            },
+
+            onError: (errors) => {
+                toast.dismiss(loadingToast);
+
+                if (errors?.generation) {
+                    toast.error(errors.generation);
+                } else {
+                    toast.error('Failed to reset schedules.');
+                }
+            },
+        });
     };
 
     return (

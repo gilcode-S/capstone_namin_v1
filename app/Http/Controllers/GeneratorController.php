@@ -87,51 +87,88 @@ class GeneratorController extends Controller
         Request $request,
         ScheduleGeneratorService $generator
     ) {
-
+    
         /**
          * VALIDATE REQUEST
          */
         $validated = $request->validate([
             'academic_year' => 'required|string',
-
             'semester' => 'required|string',
         ]);
-
+    
         /**
          * PRE-FLIGHT CHECKS
          */
         if (Teacher::count() === 0) {
-
+    
             return back()->withErrors([
                 'generation' =>
                 'No teachers found.'
             ]);
         }
-
+    
         if (Room::count() === 0) {
-
+    
             return back()->withErrors([
                 'generation' =>
                 'No rooms found.'
             ]);
         }
-
+    
         if (Timeslot::count() === 0) {
-
+    
             return back()->withErrors([
                 'generation' =>
                 'No timeslots found.'
             ]);
         }
-
+    
         if (Section::count() === 0) {
-
+    
             return back()->withErrors([
                 'generation' =>
                 'No sections found.'
             ]);
         }
-
+    
+        /**
+         * CHECK SECTION FOR SEMESTER
+         */
+        $sections = Section::where(
+            'semester',
+            $validated['semester']
+        )
+            ->orderBy('year_level')
+            ->orderBy('shift')
+            ->get();
+    
+        if ($sections->isEmpty()) {
+    
+            return back()->withErrors([
+                'generation' =>
+                'No sections found for ' . $validated['semester']
+            ]);
+        }
+    
+        /**
+         * CHECK CURRICULUM SUBJECTS
+         */
+        $hasCurriculumSubjects = DB::table('curriculum_subjects')
+            ->where(
+                'semester',
+                $validated['semester']
+            )
+            ->exists();
+    
+        if (!$hasCurriculumSubjects) {
+    
+            return back()->withErrors([
+                'generation' =>
+                'No curriculum subjects found for ' .
+                    $validated['semester']
+            ]);
+        }
+    
         /**
          * PREVENT DUPLICATE ACTIVE SCHEDULES
          */
@@ -148,15 +185,15 @@ class GeneratorController extends Controller
                 'Active'
             )
             ->exists();
-
+    
         if ($existingSchedules) {
-
+    
             return back()->withErrors([
                 'generation' =>
                 'An active schedule already exists for this semester.'
             ]);
         }
-
+    
         /**
          * ARCHIVE OLD ACTIVE VERSIONS
          */
@@ -166,7 +203,7 @@ class GeneratorController extends Controller
         )->update([
             'status' => 'Archived'
         ]);
-
+    
         /**
          * NEXT VERSION NUMBER
          */
@@ -179,10 +216,10 @@ class GeneratorController extends Controller
                 $validated['semester']
             )
             ->max('version_number');
-
+    
         $nextVersion =
             ($latestVersion ?? 0) + 1;
-
+    
         /**
          * CREATE VERSION
          */
@@ -193,51 +230,44 @@ class GeneratorController extends Controller
                     $validated['semester']
                     . ' SEMESTER'
             ),
-
+    
             'academic_year' =>
             $validated['academic_year'],
-
+    
             'semester' =>
             $validated['semester'],
-
+    
             'version_number' =>
             $nextVersion,
-
+    
             'status' => 'Active',
-
+    
             'effective_date' =>
             now()->addWeeks(2),
         ]);
-
-        /**
-         * ORDER SECTIONS
-         * PRIORITIZE LOWER YEARS FIRST
-         */
-        $sections = Section::orderBy('year_level')
-            ->orderBy('shift')
-            ->get();
-
+    
         /**
          * FULL GENERATION TRANSACTION
          */
         DB::beginTransaction();
-
+    
         try {
-
+    
             foreach ($sections as $section) {
-
+    
                 $generator->generateScheduleForSection(
                     $section,
-                    $version->id
+                    $version->id,
+                    $validated['semester']
                 );
             }
-
+    
             DB::commit();
-
+    
         } catch (\Exception $e) {
-
+    
             DB::rollBack();
-
+    
             /**
              * CLEAN FAILED VERSION
              */
@@ -245,23 +275,23 @@ class GeneratorController extends Controller
                 'schedule_version_id',
                 $version->id
             )->delete();
-
+    
             $version->delete();
-
+    
             return back()->withErrors([
                 'generation' =>
                 $e->getMessage()
             ]);
         }
-
+    
         /**
          * AUDIT LOG
          */
         AuditLogService::custom(
             'Generate Schedule',
-
+    
             'Scheduler',
-
+    
             'Generated schedule version #' .
                 $version->version_number .
                 ' for ' .
@@ -269,7 +299,7 @@ class GeneratorController extends Controller
                 ' ' .
                 $version->semester
         );
-
+    
         /**
          * REDIRECT
          */
