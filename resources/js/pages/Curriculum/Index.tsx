@@ -8,8 +8,8 @@ const breadcrumbs = [
         href: '/dashboard',
     },
     {
-        title: 'Generator',
-        href: '/schedules/generator',
+        title: 'Curriculum',
+        href: '/curriculum',
     },
 ];
 
@@ -81,6 +81,23 @@ export default function CurriculumIndex({ programs, selectedProgram, curriculum 
     const years = [1, 2, 3, 4];
     const semesters = [1, 2];
 
+    const calculateAcademicUnits = (subjects) => {
+
+        return subjects.reduce((total, c) => {
+
+            const code = c.subject.code?.toUpperCase() || '';
+
+            const isNonAcademic =
+                code.includes('NSTP') ||
+                code.includes('CWTS') ||
+                code.includes('ROTC') ||
+                code.includes('LTS');
+
+            return total + (isNonAcademic ? 0 : c.subject.units);
+
+        }, 0);
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Curriculum" />
@@ -126,7 +143,7 @@ export default function CurriculumIndex({ programs, selectedProgram, curriculum 
                                                 <h3 className="font-bold text-gray-700 mb-4 flex justify-between items-center">
                                                     <span>Semester {sem}</span>
                                                     <span className="text-xs bg-gray-200 px-2 py-1 rounded">
-                                                        {mappedSubjects.reduce((total, c) => total + c.subject.units, 0)} Units Total
+                                                        {calculateAcademicUnits(mappedSubjects)} Units Total
                                                     </span>
                                                 </h3>
 
@@ -145,7 +162,24 @@ export default function CurriculumIndex({ programs, selectedProgram, curriculum 
                                                             </div>
                                                             <div className="flex items-center space-x-3">
                                                                 <span className="text-sm font-semibold">
-                                                                    {c.subject.units} unit{c.subject.units > 1 ? 's' : ''}
+                                                                    {(() => {
+
+                                                                        const code = c.subject.code?.toUpperCase() || '';
+
+                                                                        const isNonAcademic =
+                                                                            code.includes('NSTP') ||
+                                                                            code.includes('CWTS') ||
+                                                                            code.includes('ROTC') ||
+                                                                            code.includes('LTS');
+
+                                                                        const label =
+                                                                            `${c.subject.units} unit${c.subject.units > 1 ? 's' : ''}`;
+
+                                                                        return isNonAcademic
+                                                                            ? `(${label})`
+                                                                            : label;
+
+                                                                    })()}
                                                                 </span>
 
                                                                 {!isReadOnly && (
