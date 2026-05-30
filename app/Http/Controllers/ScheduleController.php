@@ -19,15 +19,27 @@ class ScheduleController extends Controller
 {
     public function index(Request $request) // Added Request $request here
     {
+
+
         // 1. Detect which Set we are viewing (Default to Set A)
 
 
         // 2. Get the Active Version
-        $activeVersion = ScheduleVersion::where('status', 'Active')->first()
-            ?? ScheduleVersion::latest()->first();
+        $versionId = $request->version;
+
+        if ($versionId) {
+            $activeVersion = ScheduleVersion::findOrFail($versionId);
+        } else {
+            $activeVersion = ScheduleVersion::where('status', 'Active')->first()
+                ?? ScheduleVersion::latest()->first();
+        }
+
+        $versionId = $activeVersion?->id;
 
         $versionId = $activeVersion ? $activeVersion->id : null;
-        $versionName = $activeVersion ? "{$activeVersion->academic_year} - {$activeVersion->semester}" : "Draft Schedule";
+        $versionName = $activeVersion
+            ? "#{$activeVersion->version_number} - {$activeVersion->status}"
+            : "Draft Schedule";
 
         // 3. Fetch schedules with your NEW filtering logic
         $schedules = Schedule::with([
@@ -61,6 +73,7 @@ class ScheduleController extends Controller
         // 6. Return data to the untouched Viewer UI
         return Inertia::render('Schedules/Viewer', [
             'activeVersion' => $versionName, // Updates the title text
+            'activeVersionId' => $versionId,
             'semester' => $activeVersion?->semester,
             'academicYear' => $activeVersion?->academic_year,
             'schedules' => $schedules,
@@ -68,6 +81,7 @@ class ScheduleController extends Controller
             'teachers' => $teachers,
             'sections' => Section::orderBy('name')->get(),
             'timeslots' => TimeSlot::orderBy('start_time')->get(),
+            'versions' => ScheduleVersion::orderByDesc('created_at')->get(),
             // Keeps the React state in sync
         ]);
     }

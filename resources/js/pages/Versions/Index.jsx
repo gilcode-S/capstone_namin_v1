@@ -120,6 +120,11 @@ export default function VersionHistory({ versions, filters }) {
                                             Draft
                                         </span>
                                     )}
+                                    {version.status === 'Archived' && (
+                                        <span className="rounded bg-gray-100 px-2.5 py-0.5 text-xs font-bold tracking-wider text-gray-800 uppercase">
+                                            Archived
+                                        </span>
+                                    )}
                                 </div>
 
                                 <div className="flex flex-wrap items-center gap-y-2 text-sm text-gray-600">
@@ -184,14 +189,25 @@ export default function VersionHistory({ versions, filters }) {
                                 <button
                                     onClick={() =>
                                         router.get('/schedules/viewer', {
-                                            version_id: version.id,
+                                            version: version.id,
                                         })
                                     }
                                     className="rounded-lg bg-black px-6 py-2.5 text-sm font-bold whitespace-nowrap text-white transition hover:bg-gray-800"
                                 >
                                     View Schedule
-                                </button>
-
+                                </button>{' '}
+                             {version.status !== 'Active' && (
+                                   <button
+                                   onClick={() =>
+                                       router.get('/schedules/viewer', {
+                                           version: version.id,
+                                       })
+                                   }
+                                   className="rounded-lg bg-black px-6 py-2.5 text-sm font-bold whitespace-nowrap text-white transition hover:bg-gray-800"
+                               >
+                                   Restore Schedule
+                               </button>
+                             )}
                                 {/* Uses router.get to navigate to the Audit Logs (Page 12), filtering by this specific version/timeframe */}
                                 <button
                                     onClick={() => router.get('/audit-logs')}
@@ -199,6 +215,24 @@ export default function VersionHistory({ versions, filters }) {
                                 >
                                     View Logs
                                 </button>
+                                {version.status !== 'Active' && (
+                                    <button
+                                        onClick={() => {
+                                            if (
+                                                confirm(
+                                                    'Set this version as the active schedule?',
+                                                )
+                                            ) {
+                                                router.post(
+                                                    `/version-history/${version.id}/activate`,
+                                                );
+                                            }
+                                        }}
+                                        className="rounded-lg bg-green-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-green-700"
+                                    >
+                                        Set Active
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}

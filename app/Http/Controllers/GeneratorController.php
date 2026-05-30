@@ -169,30 +169,8 @@ class GeneratorController extends Controller
             ]);
         }
     
-        /**
-         * PREVENT DUPLICATE ACTIVE SCHEDULES
-         */
-        $existingSchedules = ScheduleVersion::where(
-            'academic_year',
-            $validated['academic_year']
-        )
-            ->where(
-                'semester',
-                $validated['semester']
-            )
-            ->where(
-                'status',
-                'Active'
-            )
-            ->exists();
     
-        if ($existingSchedules) {
     
-            return back()->withErrors([
-                'generation' =>
-                'An active schedule already exists for this semester.'
-            ]);
-        }
     
         /**
          * ARCHIVE OLD ACTIVE VERSIONS
@@ -240,7 +218,7 @@ class GeneratorController extends Controller
             'version_number' =>
             $nextVersion,
     
-            'status' => 'Active',
+            'status' => 'Draft',
     
             'effective_date' =>
             now()->addWeeks(2),
@@ -360,4 +338,33 @@ class GeneratorController extends Controller
                 'Schedule Reset successfully!'
             );
     }
+
+
+    public function saveVersion($versionId)
+{
+    $version = ScheduleVersion::findOrFail($versionId);
+
+    DB::transaction(function () use ($version) {
+
+        ScheduleVersion::where('status', 'Active')
+            ->update([
+                'status' => 'Archived'
+            ]);
+
+        $version->update([
+            'status' => 'Active'
+        ]);
+    });
+
+    AuditLogService::custom(
+        'Save Schedule Version',
+        'Scheduler',
+        'Activated version #' . $version->version_number
+    );
+
+    return back()->with(
+        'success',
+        'Schedule version activated successfully.'
+    );
+}
 }

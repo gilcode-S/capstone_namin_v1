@@ -51,7 +51,7 @@ export const sidebarConfig = {
       label: "Scheduling",
       items: [
  
-        // { title: "Schedule Versions", href: "/version-history", icon: Calendar },
+        { title: "Schedule Versions", href: "/version-history", icon: Calendar },
         { title: "View Schedule", href: '/schedules/viewer', icon: ScanHeart },
         { title: "Generate Schedule", href: '/schedules/generator', icon: PlusCircle },
         { title: "Conflict Detection", href: "/conflicts", icon: AlertCircle } // ✅ FIXED

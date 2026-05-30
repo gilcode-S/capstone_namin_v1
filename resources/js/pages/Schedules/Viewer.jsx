@@ -20,6 +20,8 @@ const breadcrumbs = [
 
 export default function ScheduleViewer({
     activeVersion,
+    activeVersionId,
+    versions = [],
     timeslots,
     semester,
     academicYear,
@@ -28,6 +30,8 @@ export default function ScheduleViewer({
     teachers = [],
     sections = [],
 }) {
+    console.log('ACTIVE VERSION ID:', activeVersionId);
+    console.log('VERSIONS:', versions);
     console.log(schedules);
     const [activeTab, setActiveTab] = useState('grid');
     const [editingSchedule, setEditingSchedule] = useState(null);
@@ -964,6 +968,25 @@ export default function ScheduleViewer({
                     <p className="mt-1 text-sm font-semibold text-gray-500 uppercase">
                         Viewing: {activeVersion}
                     </p>
+                    <div className="mt-3">
+                        <select
+                            className="rounded-lg border p-2 text-sm font-medium"
+                            value={activeVersionId || ''}
+                            onChange={(e) => {
+                                router.get('/schedules/viewer', {
+                                    version: e.target.value,
+                                });
+                            }}
+                        >
+                            {versions.map((version) => (
+                                <option key={version.id} value={version.id}>
+                                    #{version.version_number} • {version.status}{' '}
+                                    • {version.academic_year} •{' '}
+                                    {version.semester}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 {/* Top Navigation Pill */}

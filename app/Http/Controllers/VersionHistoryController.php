@@ -23,11 +23,30 @@ class VersionHistoryController extends Controller
         $versions = $query->get();
 
         // If DB is empty, let's inject mock data so your UI matches the mockup immediately
-       
+
 
         return Inertia::render('Versions/Index', [
             'versions' => $versions,
             'filters' => $request->only(['academic_year', 'semester'])
         ]);
+    }
+
+    public function activate(ScheduleVersion $version)
+    {
+        // Remove active status from all versions
+        ScheduleVersion::where('status', 'Active')
+            ->update([
+                'status' => 'Archived'
+            ]);
+
+        // Activate selected version
+        $version->update([
+            'status' => 'Active'
+        ]);
+
+        return back()->with(
+            'success',
+            'Version activated successfully.'
+        );
     }
 }

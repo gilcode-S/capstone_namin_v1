@@ -107,6 +107,10 @@ Route::middleware(['auth', 'role:staff,super admin'])->group(function () {
 
 
     Route::get('/version-history', [VersionHistoryController::class, 'index'])->name('versions.index');
+    Route::post(
+        '/version-history/{version}/activate',
+        [VersionHistoryController::class, 'activate']
+    )->name('versions.activate');
 
     // RESOLVE CONFLICTS
     // Route::post('/conflicts/{versionId}/resolve', [ConflictController::class, 'resolve'])
@@ -125,6 +129,10 @@ Route::middleware(['auth', 'role:super admin,staff'])->group(function () {
     Route::get('/schedules/viewer', [ScheduleController::class, 'index'])->name('schedules.viewer');
     Route::delete('/schedules/reset', [GeneratorController::class, 'reset'])
         ->name('schedules.reset');
+    Route::post(
+        '/schedule-versions/{version}/activate',
+        [GeneratorController::class, 'saveVersion']
+    )->name('schedule-versions.activate');
     Route::put('/schedules/{schedule}', [ScheduleController::class, 'update'])
         ->name('schedules.update');
 
