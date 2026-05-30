@@ -47,13 +47,17 @@ export default function ScheduleViewer({
     const [sectionSearch, setSectionSearch] = useState('');
     const [teacherSearch, setTeacherSearch] = useState('');
 
-    const filteredSections = sections.filter((s) =>
-        s.name?.toLowerCase().includes(sectionSearch.toLowerCase()),
-    );
+    const filteredSections = useMemo(() => {
+        return sections.filter((s) =>
+            s.name?.toLowerCase().includes(sectionSearch.toLowerCase()),
+        );
+    }, [sections, sectionSearch]);
 
-    const filteredTeachers = teachers.filter((t) =>
-        t.name?.toLowerCase().includes(teacherSearch.toLowerCase()),
-    );
+    const filteredTeachers = useMemo(() => {
+        return teachers.filter((t) =>
+            t.name?.toLowerCase().includes(teacherSearch.toLowerCase()),
+        );
+    }, [teachers, teacherSearch]);
 
     // Filters for Grid View
     const [filters, setFilters] = useState({
@@ -170,21 +174,23 @@ export default function ScheduleViewer({
     ];
 
     // Filtered rooms for grid
-    const filteredRooms = rooms.filter((room) => {
-        const buildingMatch =
-            filters.building === 'All Building' ||
-            room.building === filters.building;
+    const filteredRooms = useMemo(() => {
+        return rooms.filter((room) => {
+            const buildingMatch =
+                filters.building === 'All Building' ||
+                room.building === filters.building;
 
-        const floorMatch =
-            filters.floor === 'All Floor' ||
-            String(room.floor) === String(filters.floor);
+            const floorMatch =
+                filters.floor === 'All Floor' ||
+                String(room.floor) === String(filters.floor);
 
-        return buildingMatch && floorMatch;
-    });
+            return buildingMatch && floorMatch;
+        });
+    }, [rooms, filters.building, filters.floor]);
 
     // fallback if no rooms exist
-    const displayRooms =
-        filteredRooms && filteredRooms.length > 0
+    const displayRooms = useMemo(() => {
+        return filteredRooms.length > 0
             ? filteredRooms
             : [
                   { id: 't1', generated_name: 'ROOM 101' },
@@ -192,6 +198,7 @@ export default function ScheduleViewer({
                   { id: 't3', generated_name: 'ROOM 103' },
                   { id: 't4', generated_name: 'ROOM 104' },
               ];
+    }, [filteredRooms]);
     const roomScheduleMap = useMemo(() => {
         const map = new Map();
 
@@ -203,9 +210,24 @@ export default function ScheduleViewer({
 
         return map;
     }, [schedules]);
-    const getRoomSchedule = (timeslotId, roomId) => {
-        return roomScheduleMap.get(`${timeslotId}-${roomId}`);
-    };
+    const timeslotLookup = useMemo(() => {
+        const map = {};
+
+        schedules.forEach((s) => {
+            if (!s.timeslot) return;
+
+            const key =
+                `${formatTime(s.timeslot.start_time)} - ${formatTime(s.timeslot.end_time)}`
+                    .replace(/\s/g, '')
+                    .toLowerCase() +
+                '|' +
+                s.timeslot.day.toLowerCase();
+
+            map[key] = s.timeslot_id;
+        });
+
+        return map;
+    }, [schedules]);
     const scheduleMap = useMemo(() => {
         const map = {};
 
@@ -339,28 +361,20 @@ export default function ScheduleViewer({
         );
     };
 
-
     const handleDrop = (e, targetRoomId, targetTime, targetDay) => {
         e.preventDefault();
 
         const scheduleId = e.dataTransfer.getData('scheduleId');
 
-        const matchingSchedule = schedules.find((s) => {
-            if (!s.timeslot) return false;
+        const lookupKey =
+            targetTime.replace(/\s/g, '').toLowerCase() +
+            '|' +
+            targetDay.toLowerCase();
 
-            const formatted =
-                `${formatTime(s.timeslot.start_time)} - ${formatTime(s.timeslot.end_time)}`
-                    .replace(/\s/g, '')
-                    .toLowerCase();
-
-            return (
-                formatted === targetTime.replace(/\s/g, '').toLowerCase() &&
-                s.timeslot.day.toLowerCase() === targetDay.toLowerCase()
-            );
-        });
+        const targetTimeslotId = timeslotLookup[lookupKey];
 
         // ❌ NO MATCH = conflict (invalid slot)
-        if (!matchingSchedule?.timeslot_id) {
+        if (!targetTimeslotId) {
             toast.error(
                 'Failed to move schedule: conflicting or invalid timeslot',
                 {
@@ -379,7 +393,7 @@ export default function ScheduleViewer({
             `/schedules/${scheduleId}`,
             {
                 room_id: targetRoomId,
-                timeslot_id: matchingSchedule.timeslot_id,
+                timeslot_id: targetTimeslotId,
             },
             {
                 preserveScroll: true,
