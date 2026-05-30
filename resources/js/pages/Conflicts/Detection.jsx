@@ -18,6 +18,7 @@ export default function ConflictDetection({
     unresolvedList,
     resolvedList,
     analysis,
+    activeVersion,
 }) {
     const { message } = usePage().props;
     const [activeTab, setActiveTab] = useState('unresolved');
@@ -45,7 +46,17 @@ export default function ConflictDetection({
                 <div className="mb-8 flex items-center justify-between">
                     <h1 className="text-3xl font-black italic">
                         CONFLICT DETECTION
+                        <div className="mb-6">
+                            <p className="text-sm font-semibold text-gray-500 uppercase">
+                                Active Schedule Version
+                            </p>
+
+                            <div className="mt-1 rounded-xl bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700">
+                                {activeVersion?.name ?? 'No Active Version'}
+                            </div>
+                        </div>
                     </h1>
+
                     <div className="flex gap-3">
                         <button
                             onClick={handleScan}
@@ -199,7 +210,7 @@ export default function ConflictDetection({
                                                         <button
                                                             onClick={() =>
                                                                 (window.location.href =
-                                                                    '/schedules')
+                                                                    '/schedules/viewer')
                                                             }
                                                             className="rounded-xl bg-black px-4 py-2 text-[11px] font-black text-white uppercase transition hover:opacity-90"
                                                         >
@@ -212,10 +223,16 @@ export default function ConflictDetection({
                                             <tr>
                                                 <td
                                                     colSpan={6}
-                                                    className="px-6 py-10 text-center text-sm font-bold text-gray-400"
+                                                    className="px-6 py-10 text-center"
                                                 >
-                                                    No unresolved conflicts
-                                                    found.
+                                                    <div className="text-lg font-black text-green-600">
+                                                        ✓ No Conflicts Detected
+                                                    </div>
+
+                                                    <div className="mt-2 text-sm text-gray-500">
+                                                        Active schedule version
+                                                        passed validation.
+                                                    </div>
                                                 </td>
                                             </tr>
                                         )}
@@ -316,10 +333,17 @@ export default function ConflictDetection({
                                         ) : (
                                             <tr>
                                                 <td
-                                                    colSpan={5}
-                                                    className="px-6 py-10 text-center text-sm font-bold text-gray-400"
+                                                    colSpan={6}
+                                                    className="px-6 py-10 text-center"
                                                 >
-                                                    No resolved conflicts yet.
+                                                    <div className="text-lg font-black text-green-600">
+                                                        ✓ No Conflicts Detected
+                                                    </div>
+
+                                                    <div className="mt-2 text-sm text-gray-500">
+                                                        Active schedule version
+                                                        passed validation.
+                                                    </div>
                                                 </td>
                                             </tr>
                                         )}
