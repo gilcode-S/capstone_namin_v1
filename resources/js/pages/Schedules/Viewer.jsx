@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { saveAs } from 'file-saver';
 import toast from 'react-hot-toast';
-
+import PrintableSchedule from '@/components/schedules/PrintableSchedule';
 import html2canvas from 'html2canvas-pro';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -144,51 +144,7 @@ export default function ScheduleViewer({
         SHIFTS[shift] = [...new Set(SHIFTS[shift])];
 
         SHIFTS[shift].sort((a, b) => {
-            const aStart = a.split(' - ')[0]; // Fixed Time blocks for the template rows
-            const formatTime = (time) => {
-                if (!time) return '';
-
-                return new Date(`1970-01-01T${time}`)
-                    .toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: true,
-                    })
-                    .toLowerCase();
-            };
-
-            const dynamicTimeslots = schedules
-                .filter((s) => s.timeslot)
-                .map((s) => ({
-                    shift: s.timeslot.shift || 'Morning',
-
-                    label: `${formatTime(s.timeslot.start_time)} - ${formatTime(s.timeslot.end_time)}`,
-
-                    start: s.timeslot.start_time,
-                }));
-            const SHIFTS = dynamicTimeslots.reduce((acc, slot) => {
-                if (!acc[slot.shift]) {
-                    acc[slot.shift] = [];
-                }
-
-                acc[slot.shift].push(slot.label);
-
-                return acc;
-            }, {});
-            Object.keys(SHIFTS).forEach((shift) => {
-                SHIFTS[shift] = [...new Set(SHIFTS[shift])];
-
-                SHIFTS[shift].sort((a, b) => {
-                    const aStart = a.split(' - ')[0];
-                    const bStart = b.split(' - ')[0];
-
-                    return (
-                        new Date(`1970/01/01 ${aStart}`) -
-                        new Date(`1970/01/01 ${bStart}`)
-                    );
-                });
-            });
-
+            const aStart = a.split(' - ')[0];
             const bStart = b.split(' - ')[0];
 
             return (
@@ -236,7 +192,20 @@ export default function ScheduleViewer({
                   { id: 't3', generated_name: 'ROOM 103' },
                   { id: 't4', generated_name: 'ROOM 104' },
               ];
+    const roomScheduleMap = useMemo(() => {
+        const map = new Map();
 
+        schedules.forEach((s) => {
+            if (!s.timeslot_id || !s.room_id) return;
+
+            map.set(`${s.timeslot_id}-${s.room_id}`, s);
+        });
+
+        return map;
+    }, [schedules]);
+    const getRoomSchedule = (timeslotId, roomId) => {
+        return roomScheduleMap.get(`${timeslotId}-${roomId}`);
+    };
     const scheduleMap = useMemo(() => {
         const map = {};
 
@@ -369,6 +338,8 @@ export default function ScheduleViewer({
             programColors[code] || 'bg-gray-100 border-gray-400 text-gray-800'
         );
     };
+
+
     const handleDrop = (e, targetRoomId, targetTime, targetDay) => {
         e.preventDefault();
 
@@ -767,9 +738,9 @@ export default function ScheduleViewer({
                                     key={time}
                                     className="transition-colors hover:bg-blue-50"
                                 >
-                                     <td className="w-40 border-2 border-black bg-white px-2 py-1 font-bold whitespace-nowrap text-gray-800">
-                                                    {time}
-                                                </td>
+                                    <td className="w-40 border-2 border-black bg-white px-2 py-1 font-bold whitespace-nowrap text-gray-800">
+                                        {time}
+                                    </td>
                                     {DAYS.map((day) => {
                                         const sched = getSchedule(
                                             time,
@@ -918,9 +889,9 @@ export default function ScheduleViewer({
                                     key={time}
                                     className="transition-colors hover:bg-blue-50"
                                 >
-                                      <td className="w-40 border-2 border-black bg-white px-2 py-1 font-bold whitespace-nowrap text-gray-800">
-                                                    {time}
-                                                </td>
+                                    <td className="w-40 border-2 border-black bg-white px-2 py-1 font-bold whitespace-nowrap text-gray-800">
+                                        {time}
+                                    </td>
                                     {DAYS.map((day) => {
                                         const sched = getSchedule(
                                             time,
@@ -965,639 +936,6 @@ export default function ScheduleViewer({
                 </table>
             </div>
         </div>
-    );
-
-    const PrintableSchedule = React.memo(
-        React.forwardRef(({ data, type }, ref) => {
-            if (!data) return null;
-
-            const teacherSchedules = schedules.filter(
-                (s) => s.teacher_id === data?.id,
-            );
-
-            const summarySubjects = [];
-
-            teacherSchedules.forEach((s) => {
-                const existing = summarySubjects.find(
-                    (x) => x.code === s.subject?.code,
-                );
-
-                if (existing) {
-                    existing.sections += 1;
-                    existing.hours += s.subject?.units || 3;
-                } else {
-                    summarySubjects.push({
-                        code: s.subject?.code,
-                        description: s.subject?.name,
-                        units: s.subject?.units || 3,
-                        sections: 1,
-                        hours: s.subject?.units || 3,
-                    });
-                }
-            });
-
-            const allTimes = [
-                ...SHIFTS.Morning,
-                ...SHIFTS.Afternoon,
-                ...SHIFTS.Evening,
-            ];
-
-            const totalHours = teacherSchedules.length * 3;
-
-            const dayTotals = DAYS.map((day) => {
-                return teacherSchedules.filter(
-                    (s) => s.timeslot?.day?.toLowerCase() === day.toLowerCase(),
-                ).length;
-            });
-
-            return (
-                <div
-                    ref={ref}
-                    style={{
-                        width: '1800px',
-                        background: 'white',
-                        color: 'black',
-                        fontFamily: 'Arial Narrow, Arial, sans-serif',
-                        padding: '12px',
-                    }}
-                >
-                    <div
-                        style={{
-                            border: '2px solid black',
-                        }}
-                    >
-                        {/* HEADER */}
-                        <div
-                            style={{
-                                display: 'grid',
-                                gridTemplateColumns: '1fr 260px',
-                                borderBottom: '2px solid black',
-                                minHeight: '150px',
-                            }}
-                        >
-                            {/* LEFT */}
-                            <div
-                                style={{
-                                    padding: '12px',
-                                    borderRight: '2px solid black',
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        fontSize: '26px',
-                                        fontWeight: 'bold',
-                                    }}
-                                >
-                                    AISAT College - Dasmariñas
-                                </div>
-
-                                <div
-                                    style={{
-                                        marginTop: '4px',
-                                        fontSize: '15px',
-                                    }}
-                                >
-                                    Dasmariñas City, Cavite
-                                </div>
-
-                                <div
-                                    style={{
-                                        marginTop: '10px',
-                                        fontSize: '17px',
-                                        fontWeight: 'bold',
-                                    }}
-                                >
-                                    {semester}, School Year {academicYear}
-                                </div>
-
-                                <div
-                                    style={{
-                                        marginTop: '18px',
-                                        display: 'grid',
-                                        gridTemplateColumns:
-                                            type === 'teacher'
-                                                ? '140px 1fr 140px 140px'
-                                                : '120px 1fr',
-                                        alignItems: 'center',
-                                        gap: '10px',
-                                    }}
-                                >
-                                    <div
-                                        style={{
-                                            fontWeight: 'bold',
-                                            fontSize: '16px',
-                                        }}
-                                    >
-                                        {type === 'teacher'
-                                            ? 'Professor:'
-                                            : 'Section:'}
-                                    </div>
-
-                                    <div
-                                        style={{
-                                            fontWeight: 'bold',
-                                            fontStyle: 'italic',
-                                            fontSize: '28px',
-                                        }}
-                                    >
-                                        {data?.name}
-                                    </div>
-
-                                    {type === 'teacher' && (
-                                        <>
-                                            <div
-                                                style={{
-                                                    fontSize: '15px',
-                                                }}
-                                            >
-                                                <b>Faculty Code:</b>
-                                                <br />
-                                                {data?.code || 'N/A'}
-                                            </div>
-
-                                            <div
-                                                style={{
-                                                    fontSize: '15px',
-                                                }}
-                                            >
-                                                <b>Total Hours:</b>
-                                                <br />
-                                                {totalHours}
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* RIGHT */}
-                            <div
-                                style={{
-                                    background: '#0b1f5e',
-                                    color: 'white',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    justifyContent: 'space-between',
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        padding: '12px',
-                                        borderBottom: '2px solid white',
-                                        textAlign: 'center',
-                                        fontSize: '16px',
-                                        fontWeight: 'bold',
-                                    }}
-                                >
-                                    Effectivity:
-                                    <br />
-                                    {new Date().toLocaleDateString()}
-                                </div>
-
-                                <div
-                                    style={{
-                                        flex: 1,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '48px',
-                                        fontWeight: '900',
-                                    }}
-                                >
-                                    SET {sectionSet === 'Set A' ? 'A' : 'B'}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* MAIN TABLE */}
-                        <table
-                            style={{
-                                width: '100%',
-                                borderCollapse: 'collapse',
-                                tableLayout: 'fixed',
-                            }}
-                        >
-                            <thead>
-                                <tr>
-                                    <th
-                                        style={{
-                                            border: '2px solid black',
-                                            padding: '8px',
-                                            fontSize: '15px',
-                                            width: '160px',
-                                        }}
-                                    >
-                                        TIME
-                                    </th>
-
-                                    {DAYS.map((day, index) => (
-                                        <th
-                                            key={day}
-                                            style={{
-                                                border: '2px solid black',
-                                                padding: '8px',
-                                                fontSize: '15px',
-                                            }}
-                                        >
-                                            {String(index + 1).padStart(2, '0')}
-                                            _{day}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {allTimes.map((time, rowIndex) => {
-                                    const rowLetter = String.fromCharCode(
-                                        65 + rowIndex,
-                                    );
-
-                                    return (
-                                        <tr key={time}>
-                                            {/* TIME */}
-                                            <td
-                                                style={{
-                                                    border: '2px solid black',
-                                                    padding: '8px',
-                                                    verticalAlign: 'top',
-                                                    fontSize: '14px',
-                                                    fontWeight: 'bold',
-                                                }}
-                                            >
-                                                <div>{rowLetter}_</div>
-
-                                                <div
-                                                    style={{
-                                                        marginTop: '6px',
-                                                    }}
-                                                >
-                                                    {time}
-                                                </div>
-                                            </td>
-
-                                            {/* DAYS */}
-                                            {DAYS.map((day) => {
-                                                const sched =
-                                                    type === 'section'
-                                                        ? getSchedule(
-                                                              time,
-                                                              null,
-                                                              day,
-                                                              null,
-                                                              data.id,
-                                                          )
-                                                        : getSchedule(
-                                                              time,
-                                                              null,
-                                                              day,
-                                                              data.id,
-                                                              null,
-                                                          );
-
-                                                return (
-                                                    <td
-                                                        key={day + time}
-                                                        style={{
-                                                            border: '2px solid black',
-                                                            height: '105px',
-                                                            padding: '0',
-                                                            verticalAlign:
-                                                                'top',
-                                                        }}
-                                                    >
-                                                        {sched && (
-                                                            <div
-                                                                style={{
-                                                                    height: '100%',
-                                                                    display:
-                                                                        'grid',
-                                                                    gridTemplateRows:
-                                                                        '42px 1fr',
-                                                                }}
-                                                            >
-                                                                {/* SUBJECT */}
-                                                                <div
-                                                                    style={{
-                                                                        borderBottom:
-                                                                            '2px solid black',
-
-                                                                        display:
-                                                                            'flex',
-                                                                        alignItems:
-                                                                            'center',
-                                                                        justifyContent:
-                                                                            'center',
-
-                                                                        background:
-                                                                            '#ffffff',
-
-                                                                        fontWeight:
-                                                                            '900',
-                                                                        fontSize:
-                                                                            '18px',
-
-                                                                        letterSpacing:
-                                                                            '0.5px',
-
-                                                                        textTransform:
-                                                                            'uppercase',
-                                                                    }}
-                                                                >
-                                                                    {
-                                                                        sched
-                                                                            .subject
-                                                                            ?.code
-                                                                    }
-                                                                </div>
-
-                                                                {/* LOWER INFO */}
-                                                                <div
-                                                                    style={{
-                                                                        display:
-                                                                            'grid',
-                                                                        gridTemplateColumns:
-                                                                            '1fr 1fr',
-
-                                                                        height: '100%',
-                                                                    }}
-                                                                >
-                                                                    {/* ROOM / ONLINE */}
-                                                                    <div
-                                                                        style={{
-                                                                            background:
-                                                                                getDisplayRoom(
-                                                                                    sched,
-                                                                                    type,
-                                                                                )
-                                                                                    ?.toUpperCase()
-                                                                                    ?.includes(
-                                                                                        'ONLINE',
-                                                                                    )
-                                                                                    ? '#fff176'
-                                                                                    : '#b9f6ca',
-
-                                                                            borderRight:
-                                                                                '2px solid black',
-
-                                                                            display:
-                                                                                'flex',
-                                                                            alignItems:
-                                                                                'center',
-                                                                            justifyContent:
-                                                                                'center',
-
-                                                                            textAlign:
-                                                                                'center',
-
-                                                                            fontSize:
-                                                                                '15px',
-                                                                            fontWeight:
-                                                                                'bold',
-
-                                                                            padding:
-                                                                                '4px',
-
-                                                                            lineHeight:
-                                                                                '1.1',
-
-                                                                            textTransform:
-                                                                                'uppercase',
-                                                                        }}
-                                                                    >
-                                                                        {getDisplayRoom(
-                                                                            sched,
-                                                                            type,
-                                                                        )}
-                                                                    </div>
-
-                                                                    {/* SECTION / TEACHER */}
-                                                                    <div
-                                                                        style={{
-                                                                            background:
-                                                                                '#f8fafc',
-
-                                                                            display:
-                                                                                'flex',
-                                                                            alignItems:
-                                                                                'center',
-                                                                            justifyContent:
-                                                                                'center',
-
-                                                                            textAlign:
-                                                                                'center',
-
-                                                                            fontSize:
-                                                                                '15px',
-                                                                            fontWeight:
-                                                                                'bold',
-
-                                                                            padding:
-                                                                                '4px',
-
-                                                                            lineHeight:
-                                                                                '1.1',
-                                                                        }}
-                                                                    >
-                                                                        {type ===
-                                                                        'section'
-                                                                            ? sched
-                                                                                  .teacher
-                                                                                  ?.code ||
-                                                                              sched
-                                                                                  .teacher
-                                                                                  ?.name
-                                                                            : sched
-                                                                                  .section
-                                                                                  ?.name}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                );
-                                            })}
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-
-                            {/* TOTALS */}
-                            {type === 'teacher' && (
-                                <tfoot>
-                                    <tr>
-                                        <td
-                                            style={{
-                                                border: '2px solid black',
-                                                padding: '10px',
-                                                fontWeight: 'bold',
-                                                fontSize: '16px',
-                                            }}
-                                        >
-                                            TOTAL ({totalHours})
-                                        </td>
-
-                                        {dayTotals.map((total, index) => (
-                                            <td
-                                                key={index}
-                                                style={{
-                                                    border: '2px solid black',
-                                                    textAlign: 'center',
-                                                    fontWeight: 'bold',
-                                                    fontSize: '16px',
-                                                }}
-                                            >
-                                                {total}
-                                            </td>
-                                        ))}
-                                    </tr>
-                                </tfoot>
-                            )}
-                        </table>
-
-                        {/* SUMMARY */}
-                        {type === 'teacher' && (
-                            <>
-                                <table
-                                    style={{
-                                        width: '100%',
-                                        borderCollapse: 'collapse',
-                                        marginTop: '6px',
-                                    }}
-                                >
-                                    <thead>
-                                        <tr>
-                                            {[
-                                                'Subject Code',
-                                                'Subject Description',
-                                                'Unit',
-                                                'No. Sections',
-                                                'Total Hours',
-                                            ].map((head) => (
-                                                <th
-                                                    key={head}
-                                                    style={{
-                                                        border: '2px solid black',
-                                                        padding: '8px',
-                                                        fontSize: '15px',
-                                                        background: '#f3f3f3',
-                                                    }}
-                                                >
-                                                    {head}
-                                                </th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-
-                                    <tbody>
-                                        {summarySubjects.map((sub, index) => (
-                                            <tr key={index}>
-                                                <td
-                                                    style={{
-                                                        border: '1px solid black',
-                                                        padding: '8px',
-                                                        fontSize: '14px',
-                                                    }}
-                                                >
-                                                    {sub.code}
-                                                </td>
-
-                                                <td
-                                                    style={{
-                                                        border: '1px solid black',
-                                                        padding: '8px',
-                                                        fontSize: '14px',
-                                                    }}
-                                                >
-                                                    {sub.description}
-                                                </td>
-
-                                                <td
-                                                    style={{
-                                                        border: '1px solid black',
-                                                        textAlign: 'center',
-                                                        fontSize: '14px',
-                                                    }}
-                                                >
-                                                    {sub.units}
-                                                </td>
-
-                                                <td
-                                                    style={{
-                                                        border: '1px solid black',
-                                                        textAlign: 'center',
-                                                        fontSize: '14px',
-                                                    }}
-                                                >
-                                                    {sub.sections}
-                                                </td>
-
-                                                <td
-                                                    style={{
-                                                        border: '1px solid black',
-                                                        textAlign: 'center',
-                                                        fontSize: '14px',
-                                                    }}
-                                                >
-                                                    {sub.hours}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-
-                                {/* FOOTER */}
-                                <div
-                                    style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: '1fr 220px 220px',
-                                        borderTop: '2px solid black',
-                                        fontSize: '16px',
-                                        fontWeight: 'bold',
-                                    }}
-                                >
-                                    <div
-                                        style={{
-                                            padding: '14px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                        }}
-                                    >
-                                        Updated as of{' '}
-                                        {new Date().toLocaleString()}
-                                    </div>
-
-                                    <div
-                                        style={{
-                                            borderLeft: '2px solid black',
-                                            padding: '14px',
-                                            textAlign: 'center',
-                                        }}
-                                    >
-                                        TOTAL SECTIONS:
-                                        <br />
-                                        {summarySubjects.reduce(
-                                            (sum, sub) => sum + sub.sections,
-                                            0,
-                                        )}
-                                    </div>
-
-                                    <div
-                                        style={{
-                                            borderLeft: '2px solid black',
-                                            padding: '14px',
-                                            textAlign: 'center',
-                                        }}
-                                    >
-                                        TOTAL HOURS:
-                                        <br />
-                                        {totalHours}
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </div>
-            );
-        }),
     );
 
     // --- MAIN LAYOUT RETURN ---
@@ -1930,6 +1268,14 @@ export default function ScheduleViewer({
                     ref={printRef}
                     data={selectedTeacher || selectedSection}
                     type={selectedTeacher ? 'teacher' : 'section'}
+                    schedules={schedules}
+                    SHIFTS={SHIFTS}
+                    DAYS={DAYS}
+                    semester={semester}
+                    academicYear={academicYear}
+                    sectionSet={sectionSet}
+                    getSchedule={getSchedule}
+                    getDisplayRoom={getDisplayRoom}
                 />
             </div>
         </AppLayout>
