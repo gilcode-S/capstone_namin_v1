@@ -19,16 +19,33 @@ class AnalyticsController extends Controller
      */
     private function calculateTeacherHours($teacherId, $set)
     {
+        $activeVersion = \App\Models\ScheduleVersion::where(
+            'status',
+            'active'
+        )->first();
+        if (!$activeVersion) {
+            return 0;
+        }
+
         return Schedule::where('teacher_id', $teacherId)
             ->where('set', $set)
+            ->where('schedule_version_id', $activeVersion->id)
             ->with('timeslot')
             ->get()
             ->sum(function ($s) {
-                if (!$s->timeslot) return 0;
-                // Calculate duration in hours
-                return (strtotime($s->timeslot->end_time) - strtotime($s->timeslot->start_time)) / 3600;
+
+                if (!$s->timeslot) {
+                    return 0;
+                }
+
+                return (
+                    strtotime($s->timeslot->end_time)
+                    -
+                    strtotime($s->timeslot->start_time)
+                ) / 3600;
             });
     }
+
 
     public function index(Request $request)
     {
@@ -127,31 +144,31 @@ class AnalyticsController extends Controller
     }
 
     private function getRoomUtilizationData($set)
-{
-    return Room::all()->map(function ($room) use ($set) {
+    {
+        return Room::all()->map(function ($room) use ($set) {
 
-        $hours = Schedule::where('set', $set)
-            ->where('room_id', $room->id)
-            ->with('timeslot')
-            ->get()
-            ->sum(function ($s) {
+            $hours = Schedule::where('set', $set)
+                ->where('room_id', $room->id)
+                ->with('timeslot')
+                ->get()
+                ->sum(function ($s) {
 
-                if (!$s->timeslot) return 0;
+                    if (!$s->timeslot) return 0;
 
-                return (
-                    strtotime($s->timeslot->end_time) -
-                    strtotime($s->timeslot->start_time)
-                ) / 3600;
-            });
+                    return (
+                        strtotime($s->timeslot->end_time) -
+                        strtotime($s->timeslot->start_time)
+                    ) / 3600;
+                });
 
-        return [
-            'room' => $room->generated_name,
-            'utilization' => min(
-                100,
-                round(($hours / 60) * 100)
-            ),
-            'hours' => round($hours, 1),
-        ];
-    });
-}
+            return [
+                'room' => $room->generated_name,
+                'utilization' => min(
+                    100,
+                    round(($hours / 60) * 100)
+                ),
+                'hours' => round($hours, 1),
+            ];
+        });
+    }
 }
