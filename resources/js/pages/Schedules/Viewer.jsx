@@ -29,18 +29,22 @@ export default function ScheduleViewer({
     rooms = [],
     teachers = [],
     sections = [],
+    subjects = [],
+    curriculumSubjects = [],
+    versionStatus,
 }) {
     console.log('ACTIVE VERSION ID:', activeVersionId);
     console.log('VERSIONS:', versions);
     console.log(schedules);
     const [activeTab, setActiveTab] = useState('grid');
     const [editingSchedule, setEditingSchedule] = useState(null);
+    const [showAddModal, setShowAddModal] = useState(false);
     const [draggedItem, setDraggedItem] = useState(null);
     // const [viewSet, setViewSet] = useState('Set A');
     // View States for clicking cards
     const [selectedSection, setSelectedSection] = useState(null);
     const [updatingTeacher, setUpdatingTeacher] = useState(false);
-
+    const [saving, setSaving] = useState(false);
     const [selectedTeacher, setSelectedTeacher] = useState(null);
     const [sectionSet, setSectionSet] = useState('Set A');
     const printRef = React.useRef();
@@ -72,6 +76,111 @@ export default function ScheduleViewer({
         floor: 'All Floor',
         shift: 'All Shift',
     });
+
+    const [newSchedule, setNewSchedule] = useState({
+        section_id: '',
+        subject_id: '',
+        teacher_id: '',
+        room_id: '',
+        timeslot_id: '',
+        schedule_version_id: activeVersionId,
+    });
+
+    /**
+     * SELECTED VALUES
+     */
+    const selectedSection1 = useMemo(
+        () => sections.find((s) => s.id == newSchedule.section_id),
+        [newSchedule.section_id],
+    );
+
+    const selectedSubject = useMemo(
+        () => subjects.find((s) => s.id == newSchedule.subject_id),
+        [newSchedule.subject_id],
+    );
+
+    const selectedTeacher1 = useMemo(
+        () => teachers.find((t) => t.id == newSchedule.teacher_id),
+        [newSchedule.teacher_id],
+    );
+
+    /**
+     * 1. FILTER SUBJECTS BY SECTION (SMART FILTER)
+     */
+    console.log('Semester:', semester);
+    console.log('Selected Section:', selectedSection1);
+    console.log('Curriculum Subjects:', curriculumSubjects);
+
+    const currentSemester =
+        semester === '1st Semester'
+            ? 1
+            : semester === '2nd Semester'
+              ? 2
+              : semester;
+    const filteredSubjects = useMemo(() => {
+        if (!selectedSection1) return [];
+
+        return curriculumSubjects
+            .filter((curriculum) => {
+                return (
+                    curriculum.program_id == selectedSection1.program_id &&
+                    curriculum.year_level == selectedSection1.year_level &&
+                    curriculum.semester == currentSemester
+                );
+            })
+            .map((curriculum) => curriculum.subject);
+    }, [curriculumSubjects, selectedSection1, currentSemester]);
+
+    /**
+     * 2. AVAILABLE ROOMS (BASED ON TIMESLOT)
+     */
+    const availableRooms = useMemo(() => {
+        if (!newSchedule.timeslot_id) return rooms;
+
+        // simple conflict filter (UI only)
+        return rooms;
+    }, [newSchedule.timeslot_id, rooms]);
+
+    /**
+     * 3. TEACHER WORKLOAD (UI ONLY)
+     */
+    const getTeacherLoad = (teacher) => {
+        return teacher?.current_load ?? 0;
+    };
+
+    const saveManualSchedule = () => {
+        setSaving(true);
+
+        router.post('/schedules/manual-add', newSchedule, {
+            preserveScroll: true,
+
+            onSuccess: () => {
+                toast.success('Schedule added successfully!');
+
+                setShowAddModal(false);
+
+                setNewSchedule({
+                    section_id: '',
+                    subject_id: '',
+                    teacher_id: '',
+                    room_id: '',
+                    timeslot_id: '',
+                    schedule_version_id: activeVersionId,
+                });
+
+                setSaving(false);
+            },
+
+            onError: (errors) => {
+                Object.values(errors).forEach((message) => {
+                    toast.error(message);
+                });
+
+                setSaving(false);
+            },
+        });
+    };
+
     const hasSundaySchedule = schedules.some(
         (s) => s.timeslot?.day === 'Sunday',
     );
@@ -968,7 +1077,7 @@ export default function ScheduleViewer({
                     <p className="mt-1 text-sm font-semibold text-gray-500 uppercase">
                         Viewing: {activeVersion}
                     </p>
-                    <div className="mt-3">
+                    <div className="mt-3 flex items-center gap-3">
                         <select
                             className="rounded-lg border p-2 text-sm font-medium"
                             value={activeVersionId || ''}
@@ -986,6 +1095,15 @@ export default function ScheduleViewer({
                                 </option>
                             ))}
                         </select>
+
+                        {versionStatus === 'Draft' && (
+                            <button
+                                onClick={() => setShowAddModal(true)}
+                                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+                            >
+                                + Add Schedule
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -1290,6 +1408,196 @@ export default function ScheduleViewer({
                         >
                             Close
                         </button>
+                    </div>
+                </div>
+            )}
+            {showAddModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+                        {/* HEADER */}
+                        <div className="border-b px-8 py-6">
+                            <h2 className="text-2xl font-black">
+                                Manual Schedule Builder
+                            </h2>
+
+                            <p className="text-sm text-slate-500">
+                                Smart assignment with live validation
+                            </p>
+                        </div>
+
+                        {/* BODY */}
+                        <div className="grid grid-cols-1 gap-6 p-8 md:grid-cols-2">
+                            {/* SECTION */}
+                            <div>
+                                <label className="text-xs font-black text-slate-500 uppercase">
+                                    Section
+                                </label>
+
+                                <select
+                                    className="mt-2 w-full rounded-xl border p-3"
+                                    value={newSchedule.section_id}
+                                    onChange={(e) =>
+                                        setNewSchedule({
+                                            ...newSchedule,
+                                            section_id: e.target.value,
+                                        })
+                                    }
+                                >
+                                    <option value="">Select Section</option>
+
+                                    {sections.map((section) => (
+                                        <option
+                                            key={section.id}
+                                            value={section.id}
+                                        >
+                                            {section.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* SUBJECT (FILTERED) */}
+                            <div>
+                                <label className="text-xs font-black text-slate-500 uppercase">
+                                    Subject
+                                </label>
+
+                                <select
+                                    className="mt-2 w-full rounded-xl border p-3"
+                                    value={newSchedule.subject_id}
+                                    onChange={(e) =>
+                                        setNewSchedule({
+                                            ...newSchedule,
+                                            subject_id: e.target.value,
+                                        })
+                                    }
+                                >
+                                    <option value="">Select Subject</option>
+
+                                    {filteredSubjects.map((subject) => (
+                                        <option
+                                            key={subject.id}
+                                            value={subject.id}
+                                        >
+                                            {subject.code} - {subject.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* TEACHER */}
+                            <div>
+                                <label className="text-xs font-black text-slate-500 uppercase">
+                                    Teacher
+                                </label>
+
+                                <select
+                                    className="mt-2 w-full rounded-xl border p-3"
+                                    value={newSchedule.teacher_id}
+                                    onChange={(e) =>
+                                        setNewSchedule({
+                                            ...newSchedule,
+                                            teacher_id: e.target.value,
+                                        })
+                                    }
+                                >
+                                    <option value="">Select Teacher</option>
+
+                                    {teachers.map((teacher) => (
+                                        <option
+                                            key={teacher.id}
+                                            value={teacher.id}
+                                        >
+                                            {teacher.name}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                {/* WORKLOAD BADGE */}
+                                {selectedTeacher1 && (
+                                    <div className="mt-2 rounded-lg bg-slate-100 p-2 text-sm">
+                                        Load:
+                                        <span className="font-black">
+                                            {' '}
+                                            {getTeacherLoad(selectedTeacher1)}
+                                        </span>
+                                        {' / '}
+                                        {selectedTeacher1.max_hours}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ROOM */}
+                            <div>
+                                <label className="text-xs font-black text-slate-500 uppercase">
+                                    Room
+                                </label>
+
+                                <select
+                                    className="mt-2 w-full rounded-xl border p-3"
+                                    value={newSchedule.room_id}
+                                    onChange={(e) =>
+                                        setNewSchedule({
+                                            ...newSchedule,
+                                            room_id: e.target.value,
+                                        })
+                                    }
+                                >
+                                    <option value="">Select Room</option>
+
+                                    {availableRooms.map((room) => (
+                                        <option key={room.id} value={room.id}>
+                                            {room.generated_name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* TIMESLOT */}
+                            <div className="md:col-span-2">
+                                <label className="text-xs font-black text-slate-500 uppercase">
+                                    Timeslot
+                                </label>
+
+                                <select
+                                    className="mt-2 w-full rounded-xl border p-3"
+                                    value={newSchedule.timeslot_id}
+                                    onChange={(e) =>
+                                        setNewSchedule({
+                                            ...newSchedule,
+                                            timeslot_id: e.target.value,
+                                        })
+                                    }
+                                >
+                                    <option value="">Select Timeslot</option>
+
+                                    {timeslots.map((slot) => (
+                                        <option key={slot.id} value={slot.id}>
+                                            {slot.day} • {slot.start_time} -{' '}
+                                            {slot.end_time}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* FOOTER */}
+                        <div className="flex justify-end gap-3 border-t bg-slate-50 px-8 py-5">
+                            <button
+                                onClick={() => setShowAddModal(false)}
+                                className="rounded-xl border px-6 py-3 font-bold"
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                disabled={saving}
+                                onClick={saveManualSchedule}
+                                className="rounded-xl bg-blue-600 px-6 py-3 font-bold text-white disabled:opacity-50"
+                            >
+                                {saving ? 'Saving...' : 'Save'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

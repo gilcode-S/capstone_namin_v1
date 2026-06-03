@@ -11,6 +11,7 @@ use App\Http\Controllers\FacultyController;
 use App\Http\Controllers\GenerateController;
 use App\Http\Controllers\GeneratorController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ManualScheduleController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\SetupController;
@@ -127,6 +128,10 @@ Route::middleware(['auth', 'role:super admin,staff'])->group(function () {
 
     // Page 8: The Schedule Viewer
     Route::get('/schedules/viewer', [ScheduleController::class, 'index'])->name('schedules.viewer');
+    Route::post(
+        '/schedules/manual-add',
+        [ManualScheduleController::class, 'store']
+    )->name('schedules.manual-add');
     Route::delete('/schedules/reset', [GeneratorController::class, 'reset'])
         ->name('schedules.reset');
     Route::post(

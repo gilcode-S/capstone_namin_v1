@@ -959,7 +959,7 @@ export default function Index() {
               {/* HOURS */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Current Hours</Label>
+                  <Label>Minimum Hours</Label>
                   <Input
                     type="number"
                     name="current_hours"

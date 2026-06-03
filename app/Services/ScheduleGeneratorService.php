@@ -581,6 +581,236 @@ class ScheduleGeneratorService
             ->exists();
     }
 
+    public function generateSingleSubject(
+        Section $section,
+        Subject $subject,
+        $versionId
+    ) {
+
+        DB::beginTransaction();
+
+        try {
+
+            /**
+             * IN-MEMORY TEACHER LOAD TRACKER
+             */
+            $teacherLoads = [];
+
+            foreach (Teacher::all() as $teacher) {
+
+                $teacherLoads[$teacher->id] =
+                    DB::table('schedules')
+                    ->where(
+                        'schedule_version_id',
+                        $versionId
+                    )
+                    ->where(
+                        'teacher_id',
+                        $teacher->id
+                    )
+                    ->count();
+            }
+
+            /**
+             * AVAILABLE TIMESLOTS
+             */
+            $defaultGenerationDays = [
+                'Monday',
+                'Tuesday',
+                'Wednesday',
+                'Thursday',
+                'Friday',
+                'Saturday',
+            ];
+
+            $availableTimeslots = Timeslot::where(
+                'shift',
+                $section->shift
+            )
+                ->whereIn('day', $defaultGenerationDays)
+                ->get();
+
+            /**
+             * AVAILABLE ROOMS
+             */
+            $rooms = Room::where(
+                'type',
+                '!=',
+                'Online'
+            )->get();
+
+            $unitsToSchedule =
+                $subject->units;
+
+            /**
+             * GET RANKED TEACHERS
+             */
+            $rankedTeachers =
+                $this->rankTeachersForSubject(
+                    $subject,
+                    $section,
+                    $versionId,
+                    $teacherLoads
+                );
+
+            if ($rankedTeachers->isEmpty()) {
+
+                throw new \Exception(
+                    "No qualified teacher found for {$subject->name}"
+                );
+            }
+
+            $success = false;
+
+            /**
+             * SUBJECT-SPECIFIC TIMESLOTS
+             */
+            $subjectTimeslots = $availableTimeslots;
+
+            if ($subject->req_day) {
+
+                $subjectTimeslots = Timeslot::where(
+                    'shift',
+                    $section->shift
+                )
+                    ->where(
+                        'day',
+                        $subject->req_day
+                    )
+                    ->get();
+            }
+
+            foreach ($rankedTeachers as $teacher) {
+
+                $tempSchedules = [];
+
+                $scheduledUnits = 0;
+
+                $tempLoadAdded = 0;
+
+                foreach (
+                    $subjectTimeslots->shuffle()
+                    as $timeslot
+                ) {
+
+                    if (
+                        $scheduledUnits >=
+                        $unitsToSchedule
+                    ) {
+                        break;
+                    }
+
+                    if ($subject->req_day) {
+
+                        if (
+                            $timeslot->day !==
+                            $subject->req_day
+                        ) {
+                            continue;
+                        }
+                    }
+
+                    if (
+                        $this->hasConflict(
+                            $timeslot->id,
+                            $teacher->id,
+                            $section->id,
+                            $versionId
+                        )
+                    ) {
+                        continue;
+                    }
+
+                    $currentLoad =
+                        $teacherLoads[$teacher->id];
+
+                    $maxHours =
+                        $teacher->max_hours ?? 30;
+
+                    if (
+                        $currentLoad >=
+                        $maxHours
+                    ) {
+                        continue;
+                    }
+
+                    $room =
+                        $this->findAvailableRoom(
+                            $timeslot->id,
+                            $rooms,
+                            $subject,
+                            $versionId
+                        );
+
+                    if (!$room) {
+                        continue;
+                    }
+
+                    $tempSchedules[] = [
+                        'schedule_version_id' =>
+                        $versionId,
+
+                        'section_id' =>
+                        $section->id,
+
+                        'subject_id' =>
+                        $subject->id,
+
+                        'teacher_id' =>
+                        $teacher->id,
+
+                        'room_id' =>
+                        $room->id,
+
+                        'timeslot_id' =>
+                        $timeslot->id,
+
+                        'created_at' => now(),
+
+                        'updated_at' => now(),
+                    ];
+
+                    $scheduledUnits++;
+
+                    $teacherLoads[$teacher->id]++;
+
+                    $tempLoadAdded++;
+                }
+
+                if (
+                    $scheduledUnits >=
+                    $unitsToSchedule
+                ) {
+
+                    DB::table('schedules')
+                        ->insert($tempSchedules);
+
+                    $success = true;
+
+                    break;
+                }
+
+                $teacherLoads[$teacher->id] -=
+                    $tempLoadAdded;
+            }
+
+            if (!$success) {
+
+                throw new \Exception(
+                    "Could not fully schedule {$subject->name}"
+                );
+            }
+
+            DB::commit();
+
+            return true;
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            throw $e;
+        }
+    }
     /**
      * ROOM FINDER
      */

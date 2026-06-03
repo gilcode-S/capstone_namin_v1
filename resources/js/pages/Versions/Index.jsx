@@ -186,30 +186,42 @@ export default function VersionHistory({ versions, filters }) {
                             {/* Right Side: Action Buttons */}
                             <div className="flex w-full flex-col gap-3 sm:flex-row md:w-auto">
                                 {/* Uses router.get to navigate to the Schedule Viewer (Page 8), passing the version ID */}
-                              {version.status == "Active" && (
-                                  <button
-                                  onClick={() =>
-                                      router.get('/schedules/viewer', {
-                                          version: version.id,
-                                      })
-                                  }
-                                  className="rounded-lg bg-black px-6 py-2.5 text-sm font-bold whitespace-nowrap text-white transition hover:bg-gray-800"
-                              >
-                                  View Schedule
-                              </button>
-                              )}
-                             {version.status !== 'Active' && (
-                                   <button
-                                   onClick={() =>
-                                       router.get('/schedules/viewer', {
-                                           version: version.id,
-                                       })
-                                   }
-                                   className="rounded-lg bg-black px-6 py-2.5 text-sm font-bold whitespace-nowrap text-white transition hover:bg-gray-800"
-                               >
-                                   Restore Schedule
-                               </button>
-                             )}
+                                {version.status == 'Active' && (
+                                    <button
+                                        onClick={() =>
+                                            router.get('/schedules/viewer', {
+                                                version: version.id,
+                                            })
+                                        }
+                                        className="rounded-lg bg-black px-6 py-2.5 text-sm font-bold whitespace-nowrap text-white transition hover:bg-gray-800"
+                                    >
+                                        View Schedule
+                                    </button>
+                                )}
+                                {version.status === 'Draft' && (
+                                    <button
+                                        onClick={() =>
+                                            router.get('/schedules/viewer', {
+                                                version: version.id,
+                                            })
+                                        }
+                                        className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-blue-700"
+                                    >
+                                        Continue Editing
+                                    </button>
+                                )}{' '}
+                                {version.status === 'Archived' && (
+                                    <button
+                                        onClick={() =>
+                                            router.get('/schedules/viewer', {
+                                                version: version.id,
+                                            })
+                                        }
+                                        className="rounded-lg bg-black px-6 py-2.5 text-sm font-bold text-white hover:bg-gray-800"
+                                    >
+                                        Restore Schedule
+                                    </button>
+                                )}
                                 {/* Uses router.get to navigate to the Audit Logs (Page 12), filtering by this specific version/timeframe */}
                                 <button
                                     onClick={() => router.get('/audit-logs')}
@@ -217,7 +229,7 @@ export default function VersionHistory({ versions, filters }) {
                                 >
                                     View Logs
                                 </button>
-                                {version.status !== 'Active' && (
+                                {version.status == 'Draft' && (
                                     <button
                                         onClick={() => {
                                             if (

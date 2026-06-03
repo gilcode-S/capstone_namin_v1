@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 
 
 use App\Models\AuditLog;
+use App\Models\CurriculumSubject;
 use App\Models\Schedule;
 use App\Models\ScheduleVersion;
 use App\Models\Room;
 use App\Models\TimeSlot;
 use App\Models\Teacher;
 use App\Models\Section;
+use App\Models\Subject;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 
@@ -82,6 +84,9 @@ class ScheduleController extends Controller
             'sections' => Section::orderBy('name')->get(),
             'timeslots' => TimeSlot::orderBy('start_time')->get(),
             'versions' => ScheduleVersion::orderByDesc('created_at')->get(),
+            'subjects' => Subject::orderBy('name')->get(),
+            'curriculumSubjects' => CurriculumSubject::with('subject')->get(),
+            'versionStatus' => $activeVersion?->status,
             // Keeps the React state in sync
         ]);
     }
