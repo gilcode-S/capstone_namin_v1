@@ -1039,6 +1039,7 @@ export default function Index() {
                                             <option value="C">Building C</option>
                                             <option value="F">Building F</option>
                                             <option value="V">Building V</option>
+                                            <option value="E">Building E</option>
                                         </select>
 
                                         <select
@@ -1053,6 +1054,7 @@ export default function Index() {
                                             <option value="2">Floor 2</option>
                                             <option value="3">Floor 3</option>
                                             <option value="4">Floor 4</option>
+                                            <option value="5">Floor 5</option>
                                         </select>
                                     </div>
                                 </div>

@@ -6,6 +6,8 @@ use App\Models\Conflict;
 use App\Models\Schedule;
 use App\Models\Room;
 use App\Models\ScheduleVersion;
+use App\Models\Section;
+use App\Models\Teacher;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
@@ -52,6 +54,9 @@ class ConflictController extends Controller
 
     public function scan()
     {
+
+
+        set_time_limit(300);
         // Get active schedule version
         $activeVersion = \App\Models\ScheduleVersion::where(
             'status',
@@ -73,6 +78,9 @@ class ConflictController extends Controller
             'schedule_version_id',
             $activeVersion->id
         )->get();
+        logger()->info('Schedule Count', [
+            'count' => $schedules->count()
+        ]);
 
         $newConflicts = 0;
 
@@ -151,6 +159,129 @@ class ConflictController extends Controller
                 }
             }
         }
+
+
+        /*
+|--------------------------------------------------------------------------
+| TEACHER NO SCHEDULE
+|--------------------------------------------------------------------------
+*/
+
+        $teachersWithoutSchedule = Teacher::whereDoesntHave(
+            'schedules',
+            function ($query) use ($activeVersion) {
+                $query->where(
+                    'schedule_version_id',
+                    $activeVersion->id
+                );
+            }
+        )->get();
+
+        foreach ($teachersWithoutSchedule as $teacher) {
+
+            Conflict::create([
+                'conflict_type' => 'Teacher No Schedule',
+                'notes' => "{$teacher->name} has no assigned schedule.",
+            ]);
+
+            $newConflicts++;
+        }
+
+        /*
+|--------------------------------------------------------------------------
+| SECTION NO SCHEDULE
+|--------------------------------------------------------------------------
+*/
+
+        $sectionsWithoutSchedule = Section::whereDoesntHave(
+            'schedules',
+            function ($query) use ($activeVersion) {
+                $query->where(
+                    'schedule_version_id',
+                    $activeVersion->id
+                );
+            }
+        )->get();
+
+        foreach ($sectionsWithoutSchedule as $section) {
+
+            Conflict::create([
+                'conflict_type' => 'Section No Schedule',
+                'notes' => "{$section->name} has no generated schedule.",
+            ]);
+
+            $newConflicts++;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | NO ASSIGNED TEACHER
+        |--------------------------------------------------------------------------
+        */
+
+        $missingTeachers = Schedule::where(
+            'schedule_version_id',
+            $activeVersion->id
+        )
+            ->whereNull('teacher_id')
+            ->get();
+
+        foreach ($missingTeachers as $schedule) {
+
+            Conflict::create([
+                'schedule_id_a' => $schedule->id,
+                'conflict_type' => 'No Assigned Teacher',
+                'notes' => 'Subject has no assigned teacher.',
+            ]);
+
+            $newConflicts++;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | EXCEED UNITS
+        |--------------------------------------------------------------------------
+        */
+
+        // $groupedSchedules = Schedule::where(
+        //     'schedule_version_id',
+        //     $activeVersion->id
+        // )
+        //     ->selectRaw('
+        //     section_id,
+        //     subject_id,
+        //     COUNT(*) as scheduled_units
+        // ')
+        //             ->groupBy(
+        //         'section_id',
+        //         'subject_id'
+        //     )
+        //     ->get();
+
+        // foreach ($groupedSchedules as $group) {
+
+        //     $subject = \App\Models\Subject::find(
+        //         $group->subject_id
+        //     );
+
+        //     if (!$subject) {
+        //         continue;
+        //     }
+
+        //     if (
+        //         $group->scheduled_units >
+        //         $subject->units
+        //     ) {
+
+        //         Conflict::create([
+        //             'conflict_type' => 'Exceed Units',
+        //             'notes' =>
+        //             "{$subject->name} scheduled {$group->scheduled_units} units but only {$subject->units} required.",
+        //         ]);
+
+        //         $newConflicts++;
+        //     }
+        // }
 
         return back()->with(
             'message',

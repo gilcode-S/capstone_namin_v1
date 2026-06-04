@@ -31,27 +31,42 @@ const PrintableSchedule = React.memo(
                 );
 
                 if (existing) {
-                    existing.sections += 1;
-                    existing.hours += s.subject?.units || 3;
+                    if (!existing.sectionIds.includes(s.section_id)) {
+                        existing.sectionIds.push(s.section_id);
+
+                        existing.sections += 1;
+
+                        // units × sections
+                        existing.hours = existing.units * existing.sections;
+                    }
                 } else {
+                    const units = s.subject?.units || 3;
+
                     summarySubjects.push({
                         code: s.subject?.code,
                         description: s.subject?.name,
-                        units: s.subject?.units || 3,
+
+                        units,
+
                         sections: 1,
-                        hours: s.subject?.units || 3,
+
+                        hours: units,
+
+                        sectionIds: [s.section_id],
                     });
                 }
             });
 
             const allTimes = Object.values(SHIFTS).flat();
 
-            const totalHours = teacherSchedules.length * 3;
+            const totalHours = summarySubjects.reduce(
+                (sum, subject) => sum + subject.hours,
+                0,
+            );
 
             const dayTotals = DAYS.map((day) => {
                 return teacherSchedules.filter(
-                    (s) =>
-                        s.timeslot?.day?.toLowerCase() === day.toLowerCase(),
+                    (s) => s.timeslot?.day?.toLowerCase() === day.toLowerCase(),
                 ).length;
             });
 
@@ -83,11 +98,21 @@ const PrintableSchedule = React.memo(
                                     borderRight: '2px solid black',
                                 }}
                             >
-                                <div style={{ fontSize: '26px', fontWeight: 'bold' }}>
+                                <div
+                                    style={{
+                                        fontSize: '26px',
+                                        fontWeight: 'bold',
+                                    }}
+                                >
                                     AISAT College - Dasmariñas
                                 </div>
 
-                                <div style={{ marginTop: '4px', fontSize: '15px' }}>
+                                <div
+                                    style={{
+                                        marginTop: '4px',
+                                        fontSize: '15px',
+                                    }}
+                                >
                                     Dasmariñas City, Cavite
                                 </div>
 
@@ -113,8 +138,15 @@ const PrintableSchedule = React.memo(
                                         gap: '10px',
                                     }}
                                 >
-                                    <div style={{ fontWeight: 'bold', fontSize: '16px' }}>
-                                        {type === 'teacher' ? 'Professor:' : 'Section:'}
+                                    <div
+                                        style={{
+                                            fontWeight: 'bold',
+                                            fontSize: '16px',
+                                        }}
+                                    >
+                                        {type === 'teacher'
+                                            ? 'Professor:'
+                                            : 'Section:'}
                                     </div>
 
                                     <div
@@ -223,7 +255,9 @@ const PrintableSchedule = React.memo(
 
                             <tbody>
                                 {allTimes.map((time, rowIndex) => {
-                                    const rowLetter = String.fromCharCode(65 + rowIndex);
+                                    const rowLetter = String.fromCharCode(
+                                        65 + rowIndex,
+                                    );
 
                                     return (
                                         <tr key={time}>
@@ -236,7 +270,11 @@ const PrintableSchedule = React.memo(
                                                 }}
                                             >
                                                 <div>{rowLetter}_</div>
-                                                <div style={{ marginTop: '6px' }}>{time}</div>
+                                                <div
+                                                    style={{ marginTop: '6px' }}
+                                                >
+                                                    {time}
+                                                </div>
                                             </td>
 
                                             {DAYS.map((day) => {
@@ -264,14 +302,16 @@ const PrintableSchedule = React.memo(
                                                             border: '2px solid black',
                                                             height: '105px',
                                                             padding: '0',
-                                                            verticalAlign: 'top',
+                                                            verticalAlign:
+                                                                'top',
                                                         }}
                                                     >
                                                         {sched && (
                                                             <div
                                                                 style={{
                                                                     height: '100%',
-                                                                    display: 'grid',
+                                                                    display:
+                                                                        'grid',
                                                                     gridTemplateRows:
                                                                         '42px 1fr',
                                                                 }}
@@ -281,22 +321,30 @@ const PrintableSchedule = React.memo(
                                                                     style={{
                                                                         borderBottom:
                                                                             '2px solid black',
-                                                                        display: 'flex',
+                                                                        display:
+                                                                            'flex',
                                                                         alignItems:
                                                                             'center',
                                                                         justifyContent:
                                                                             'center',
-                                                                        fontWeight: '900',
-                                                                        fontSize: '18px',
+                                                                        fontWeight:
+                                                                            '900',
+                                                                        fontSize:
+                                                                            '18px',
                                                                     }}
                                                                 >
-                                                                    {sched.subject?.code}
+                                                                    {
+                                                                        sched
+                                                                            .subject
+                                                                            ?.code
+                                                                    }
                                                                 </div>
 
                                                                 {/* LOWER */}
                                                                 <div
                                                                     style={{
-                                                                        display: 'grid',
+                                                                        display:
+                                                                            'grid',
                                                                         gridTemplateColumns:
                                                                             '1fr 1fr',
                                                                     }}
@@ -350,10 +398,17 @@ const PrintableSchedule = React.memo(
                                                                                 'bold',
                                                                         }}
                                                                     >
-                                                                        {type === 'section'
-                                                                            ? sched.teacher?.code ||
-                                                                              sched.teacher?.name
-                                                                            : sched.section?.name}
+                                                                        {type ===
+                                                                        'section'
+                                                                            ? sched
+                                                                                  .teacher
+                                                                                  ?.code ||
+                                                                              sched
+                                                                                  .teacher
+                                                                                  ?.name
+                                                                            : sched
+                                                                                  .section
+                                                                                  ?.name}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -432,19 +487,44 @@ const PrintableSchedule = React.memo(
                                 <tbody>
                                     {summarySubjects.map((sub, i) => (
                                         <tr key={i}>
-                                            <td style={{ border: '1px solid black', padding: '8px' }}>
+                                            <td
+                                                style={{
+                                                    border: '1px solid black',
+                                                    padding: '8px',
+                                                }}
+                                            >
                                                 {sub.code}
                                             </td>
-                                            <td style={{ border: '1px solid black', padding: '8px' }}>
+                                            <td
+                                                style={{
+                                                    border: '1px solid black',
+                                                    padding: '8px',
+                                                }}
+                                            >
                                                 {sub.description}
                                             </td>
-                                            <td style={{ border: '1px solid black', textAlign: 'center' }}>
+                                            <td
+                                                style={{
+                                                    border: '1px solid black',
+                                                    textAlign: 'center',
+                                                }}
+                                            >
                                                 {sub.units}
                                             </td>
-                                            <td style={{ border: '1px solid black', textAlign: 'center' }}>
+                                            <td
+                                                style={{
+                                                    border: '1px solid black',
+                                                    textAlign: 'center',
+                                                }}
+                                            >
                                                 {sub.sections}
                                             </td>
-                                            <td style={{ border: '1px solid black', textAlign: 'center' }}>
+                                            <td
+                                                style={{
+                                                    border: '1px solid black',
+                                                    textAlign: 'center',
+                                                }}
+                                            >
                                                 {sub.hours}
                                             </td>
                                         </tr>
@@ -467,7 +547,12 @@ const PrintableSchedule = React.memo(
                                     Updated as of {new Date().toLocaleString()}
                                 </div>
 
-                                <div style={{ borderLeft: '2px solid black', padding: '14px' }}>
+                                <div
+                                    style={{
+                                        borderLeft: '2px solid black',
+                                        padding: '14px',
+                                    }}
+                                >
                                     TOTAL SECTIONS:
                                     <br />
                                     {summarySubjects.reduce(
@@ -476,7 +561,12 @@ const PrintableSchedule = React.memo(
                                     )}
                                 </div>
 
-                                <div style={{ borderLeft: '2px solid black', padding: '14px' }}>
+                                <div
+                                    style={{
+                                        borderLeft: '2px solid black',
+                                        padding: '14px',
+                                    }}
+                                >
                                     TOTAL HOURS:
                                     <br />
                                     {totalHours}
@@ -486,8 +576,8 @@ const PrintableSchedule = React.memo(
                     </div>
                 </div>
             );
-        }),
-    )
-
+        },
+    ),
+);
 
 export default PrintableSchedule;

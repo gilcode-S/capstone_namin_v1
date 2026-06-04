@@ -53,4 +53,9 @@ class Section extends Model
             $section->name = $generatedName;
         });
     }
+
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class);
+    }
 }

@@ -122,6 +122,11 @@ class ScheduleGeneratorService
              * SKIP OVERLOADED
              */
             if ($currentLoad >= $maxHours) {
+                logger()->info('Teacher Full', [
+                    'teacher' => $teacher->name,
+                    'load' => $currentLoad,
+                    'max' => $maxHours,
+                ]);
                 continue;
             }
 
@@ -294,6 +299,10 @@ class ScheduleGeneratorService
                  * TRY TEACHERS
                  */
                 foreach ($rankedTeachers as $teacher) {
+                    logger()->info('Trying Teacher', [
+                        'subject' => $subject->name,
+                        'teacher' => $teacher->name,
+                    ]);
 
                     $tempSchedules = [];
 
@@ -341,7 +350,14 @@ class ScheduleGeneratorService
                                 $section->id,
                                 $versionId
                             )
+
+
                         ) {
+                            logger()->info('Conflict', [
+                                'subject' => $subject->name,
+                                'teacher' => $teacher->name,
+                                'timeslot' => $timeslot->id,
+                            ]);
                             continue;
                         }
 
@@ -373,6 +389,10 @@ class ScheduleGeneratorService
                             );
 
                         if (!$room) {
+                            logger()->info('No Room', [
+                                'subject' => $subject->name,
+                                'timeslot' => $timeslot->id,
+                            ]);
                             continue;
                         }
 
@@ -469,19 +489,12 @@ class ScheduleGeneratorService
                             Room::find($subject->req_room_id);
                     }
 
-                    logger()->warning(
-                        'Scheduling Failed',
-                        [
-                            'subject' => $subject->name,
-                            'section_id' => $section->id,
-                            'required_teacher' =>
-                            $requiredTeacher?->name,
-                            'required_room' =>
-                            $requiredRoom?->generated_name,
-                            'required_day' =>
-                            $requiredDay,
-                        ]
-                    );
+                    logger()->warning('Debug Schedule Failure', [
+                        'subject' => $subject->name,
+                        'units' => $unitsToSchedule,
+                        'ranked_teachers' => $rankedTeachers->count(),
+                        'available_timeslots' => $subjectTimeslots->count(),
+                    ]);
 
                     /**
                      * ALL HARD CONSTRAINTS FAILED
@@ -879,11 +892,12 @@ class ScheduleGeneratorService
                     str_contains(
                         strtolower($subject->name),
                         'programming'
-                    ) ||
-                    str_contains(
-                        strtolower($subject->name),
-                        'computer'
-                    )
+                    ) 
+                    // ||
+                    // str_contains(
+                    //     strtolower($subject->name),
+                    //     'computer'
+                    // )
                 ) &&
                 $room->type !== 'Lab'
             ) {

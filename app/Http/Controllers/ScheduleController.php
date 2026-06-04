@@ -81,7 +81,18 @@ class ScheduleController extends Controller
             'schedules' => $schedules,
             'rooms' => Room::orderBy('generated_name')->get(),
             'teachers' => $teachers,
-            'sections' => Section::orderBy('name')->get(),
+            'sections' => Section::where(function ($query) use ($activeVersion) {
+
+                $semesterNumber =
+                    $activeVersion->semester == '1st Semester'
+                    ? 1
+                    : 2;
+
+                $query->where('semester', $semesterNumber)
+                    ->orWhere('is_octoberian', 1);
+            })
+                ->orderBy('name')
+                ->get(),
             'timeslots' => TimeSlot::orderBy('start_time')->get(),
             'versions' => ScheduleVersion::orderByDesc('created_at')->get(),
             'subjects' => Subject::orderBy('name')->get(),
