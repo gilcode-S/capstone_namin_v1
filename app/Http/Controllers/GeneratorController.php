@@ -13,6 +13,8 @@ use App\Models\Timeslot;
 use App\Services\AuditLogService;
 use App\Services\ScheduleGeneratorService;
 use Illuminate\Http\Request;
+use App\Models\Programs;
+use App\Models\DeliveryModeRule;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -64,6 +66,19 @@ class GeneratorController extends Controller
             ];
         }
 
+        $summary = [
+            'sections' => Section::count(),
+
+            'subjects' => Subject::count(),
+
+            'teachers' => Teacher::count(),
+
+            'rooms' => Room::count(),
+
+            'curriculum_subjects' =>
+            DB::table('curriculum_subjects')->count(),
+        ];
+
         return Inertia::render(
             'Schedules/Generator',
             [
@@ -76,6 +91,13 @@ class GeneratorController extends Controller
                 ],
 
                 'warnings' => $warnings,
+
+                'programs' =>
+                Programs::orderBy('name')->get(),
+
+                'deliveryRules' =>
+                DeliveryModeRule::all(),
+                'summary' => $summary,
             ]
         );
     }
@@ -90,6 +112,8 @@ class GeneratorController extends Controller
 
         set_time_limit(300);
         ini_set('memory_limit', '1024M');
+
+
         /**
          * VALIDATE REQUEST
          */
@@ -366,6 +390,31 @@ class GeneratorController extends Controller
         return back()->with(
             'success',
             'Schedule version activated successfully.'
+        );
+    }
+
+
+
+    public function saveDeliveryRules(Request $request)
+    {
+        $rules = $request->rules;
+
+        foreach ($rules as $rule) {
+
+            DeliveryModeRule::updateOrCreate(
+                [
+                    'program_id' => $rule['program_id'],
+                    'year_level' => $rule['year_level'],
+                ],
+                [
+                    'delivery_mode' => $rule['delivery_mode'],
+                ]
+            );
+        }
+
+        return back()->with(
+            'success',
+            'Delivery rules saved successfully.'
         );
     }
 }

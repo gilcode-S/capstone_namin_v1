@@ -8,6 +8,8 @@ use App\Models\Subject;
 use App\Models\Room;
 use App\Models\Timeslot;
 use App\Models\CurriculumSubject;
+use App\Models\DeliveryModeRule;
+use App\Models\Schedule;
 use Illuminate\Support\Facades\DB;
 
 class ScheduleGeneratorService
@@ -168,6 +170,9 @@ class ScheduleGeneratorService
         $versionId,
         $semester
     ) {
+        logger()->info('START SECTION', [
+            'section' => $section->name
+        ]);
 
         DB::beginTransaction();
 
@@ -215,6 +220,20 @@ class ScheduleGeneratorService
             if ($curriculumSubjects->isEmpty()) {
                 return false;
             }
+
+            $deliveryRule = DeliveryModeRule::where(
+                'program_id',
+                $section->program_id
+            )
+                ->where(
+                    'year_level',
+                    $section->year_level
+                )
+                ->first();
+
+            $deliveryMode =
+                $deliveryRule?->delivery_mode
+                ?? 'FTF';
 
             /**
              * AVAILABLE TIMESLOTS
@@ -380,22 +399,25 @@ class ScheduleGeneratorService
                         /**
                          * ROOM CHECK
                          */
-                        $room =
-                            $this->findAvailableRoom(
-                                $timeslot->id,
-                                $rooms,
-                                $subject,
-                                $versionId
-                            );
+                        $room = null;
 
-                        if (!$room) {
-                            logger()->info('No Room', [
-                                'subject' => $subject->name,
-                                'timeslot' => $timeslot->id,
-                            ]);
-                            continue;
+                        if (
+                            $deliveryMode === 'FTF' ||
+                            $deliveryMode === 'Hybrid'
+                        ) {
+
+                            $room =
+                                $this->findAvailableRoom(
+                                    $timeslot->id,
+                                    $rooms,
+                                    $subject,
+                                    $versionId
+                                );
+
+                            if (!$room) {
+                                continue;
+                            }
                         }
-
                         /**
                          * TEMP STORE
                          */
@@ -412,8 +434,10 @@ class ScheduleGeneratorService
                             'teacher_id' =>
                             $teacher->id,
 
-                            'room_id' =>
-                            $room->id,
+                            'room_id' => $room?->id,
+
+                            'delivery_mode' =>
+                            $deliveryMode,
 
                             'timeslot_id' =>
                             $timeslot->id,
@@ -545,7 +569,20 @@ class ScheduleGeneratorService
                     );
                 }
             }
+            $count = Schedule::where(
+                'schedule_version_id',
+                $versionId
+            )
+                ->where(
+                    'section_id',
+                    $section->id
+                )
+                ->count();
 
+            logger()->info('END SECTION', [
+                'section' => $section->name,
+                'generated' => $count
+            ]);
             DB::commit();
 
             return true;
@@ -642,6 +679,21 @@ class ScheduleGeneratorService
             )
                 ->whereIn('day', $defaultGenerationDays)
                 ->get();
+
+
+            $deliveryRule = DeliveryModeRule::where(
+                'program_id',
+                $section->program_id
+            )
+                ->where(
+                    'year_level',
+                    $section->year_level
+                )
+                ->first();
+
+            $deliveryMode =
+                $deliveryRule?->delivery_mode
+                ?? 'FTF';
 
             /**
              * AVAILABLE ROOMS
@@ -747,16 +799,24 @@ class ScheduleGeneratorService
                         continue;
                     }
 
-                    $room =
-                        $this->findAvailableRoom(
-                            $timeslot->id,
-                            $rooms,
-                            $subject,
-                            $versionId
-                        );
+                    $room = null;
 
-                    if (!$room) {
-                        continue;
+                    if (
+                        $deliveryMode === 'FTF' ||
+                        $deliveryMode === 'Hybrid'
+                    ) {
+
+                        $room =
+                            $this->findAvailableRoom(
+                                $timeslot->id,
+                                $rooms,
+                                $subject,
+                                $versionId
+                            );
+
+                        if (!$room) {
+                            continue;
+                        }
                     }
 
                     $tempSchedules[] = [
@@ -773,7 +833,10 @@ class ScheduleGeneratorService
                         $teacher->id,
 
                         'room_id' =>
-                        $room->id,
+                        $room?->id,
+
+                        'delivery_mode' =>
+                        $deliveryMode,
 
                         'timeslot_id' =>
                         $timeslot->id,
@@ -892,7 +955,7 @@ class ScheduleGeneratorService
                     str_contains(
                         strtolower($subject->name),
                         'programming'
-                    ) 
+                    )
                     // ||
                     // str_contains(
                     //     strtolower($subject->name),

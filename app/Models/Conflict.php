@@ -19,7 +19,8 @@ class Conflict extends Model
         'conflict_type',
         'status',
         'resolution_method',
-        'resolved_at'
+        'resolved_at',
+        'notes'
     ];
 
     /**

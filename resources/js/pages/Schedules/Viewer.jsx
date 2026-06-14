@@ -37,6 +37,7 @@ export default function ScheduleViewer({
     console.log('ACTIVE VERSION ID:', activeVersionId);
     console.log('VERSIONS:', versions);
     console.log(schedules);
+    console.log(schedules[0]);
     const [activeTab, setActiveTab] = useState('grid');
     const [editingSchedule, setEditingSchedule] = useState(null);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -414,7 +415,7 @@ export default function ScheduleViewer({
             // Clone schedule for ONLINE override
             const cloned = { ...s };
 
-            if (sectionSet === 'Set B') {
+            if (cloned.delivery_mode === 'Hybrid' && sectionSet === 'Set B') {
                 cloned.room = {
                     ...s.room,
                     generated_name: 'ONLINE',
@@ -480,7 +481,7 @@ export default function ScheduleViewer({
         BO: 'bg-purple-100 border-purple-500 text-purple-900', // Office Admin
     };
     const getProgramColor = (program) => {
-        const code = program?.code; // THIS is the key
+        const code = program?.code;
 
         return (
             programColors[code] || 'bg-gray-100 border-gray-400 text-gray-800'
@@ -546,66 +547,28 @@ export default function ScheduleViewer({
 
     // --- RENDER: MASTER GRID TAB ---
 
-    const getDisplayRoom = (sched, mode = 'section') => {
+    const getDisplayRoom = (sched) => {
         if (!sched) return '';
 
-        const year = sched.section?.year_level;
+        const mode = sched.delivery_mode;
 
-        // =========================
-        // SECTION VIEW RULES
-        // =========================
-        if (mode === 'section') {
-            // FIRST YEAR
-            if (year === 1) {
-                // Set A = FTF
-                if (sectionSet === 'Set A') {
-                    return sched.room?.generated_name || sched.room?.name;
-                }
-
-                // Set B = ONLINE
-                return 'ONLINE';
-            }
-
-            // SECOND - FOURTH YEAR
-            if ([2, 3, 4].includes(year)) {
-                // Set B = FTF
-                if (sectionSet === 'Set B') {
-                    return sched.room?.generated_name || sched.room?.name;
-                }
-
-                // Set A = ONLINE
-                return 'ONLINE';
-            }
+        // Face-to-Face
+        if (mode === 'FTF') {
+            return sched.room?.generated_name || sched.room?.name;
         }
 
-        // =========================
-        // TEACHER VIEW RULES
-        // =========================
-        if (mode === 'teacher') {
-            // FIRST YEAR
-            if (year === 1) {
-                // Set A = FTF
-                if (sectionSet === 'Set A') {
-                    return sched.room?.generated_name || sched.room?.name;
-                }
-
-                // Set B = ONLINE
-                return 'ONLINE';
-            }
-
-            // SECOND - FOURTH YEAR
-            if ([2, 3, 4].includes(year)) {
-                // Set B = FTF
-                if (sectionSet === 'Set B') {
-                    return sched.room?.generated_name || sched.room?.name;
-                }
-
-                // Set A = ONLINE
-                return 'ONLINE';
-            }
+        // Fully Online
+        if (mode === 'Online') {
+            return 'ONLINE';
         }
 
-        // fallback
+        // Hybrid
+        if (mode === 'Hybrid') {
+            return sectionSet === 'Set A'
+                ? sched.room?.generated_name || sched.room?.name
+                : 'ONLINE';
+        }
+
         return sched.room?.generated_name || sched.room?.name;
     };
 
@@ -739,7 +702,6 @@ export default function ScheduleViewer({
                                                             <div className="font-semibold text-gray-700">
                                                                 {getDisplayRoom(
                                                                     sched,
-                                                                    'section',
                                                                 )}{' '}
                                                                 •{' '}
                                                                 {
@@ -747,6 +709,29 @@ export default function ScheduleViewer({
                                                                         .teacher
                                                                         ?.name
                                                                 }
+                                                            </div>
+
+                                                            <div className="mt-1">
+                                                                {sched.delivery_mode ===
+                                                                    'FTF' && (
+                                                                    <span className="rounded bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">
+                                                                        FTF
+                                                                    </span>
+                                                                )}
+
+                                                                {sched.delivery_mode ===
+                                                                    'Online' && (
+                                                                    <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                                                                        ONLINE
+                                                                    </span>
+                                                                )}
+
+                                                                {sched.delivery_mode ===
+                                                                    'Hybrid' && (
+                                                                    <span className="rounded bg-yellow-100 px-2 py-0.5 text-[10px] font-bold text-yellow-700">
+                                                                        HYBRID
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -889,13 +874,35 @@ export default function ScheduleViewer({
                                                         <div className="font-semibold text-gray-700">
                                                             {getDisplayRoom(
                                                                 sched,
-                                                                'teacher',
                                                             )}{' '}
                                                             •{' '}
                                                             {
                                                                 sched.section
                                                                     ?.name
                                                             }
+                                                        </div>
+
+                                                        <div className="mt-1">
+                                                            {sched.delivery_mode ===
+                                                                'FTF' && (
+                                                                <span className="rounded bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">
+                                                                    FTF
+                                                                </span>
+                                                            )}
+
+                                                            {sched.delivery_mode ===
+                                                                'Online' && (
+                                                                <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                                                                    ONLINE
+                                                                </span>
+                                                            )}
+
+                                                            {sched.delivery_mode ===
+                                                                'Hybrid' && (
+                                                                <span className="rounded bg-yellow-100 px-2 py-0.5 text-[10px] font-bold text-yellow-700">
+                                                                    HYBRID
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 )}

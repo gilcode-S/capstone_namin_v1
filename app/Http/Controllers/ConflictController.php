@@ -74,90 +74,142 @@ class ConflictController extends Controller
         Conflict::where('status', 'Unresolved')->delete();
 
         // ONLY SCAN ACTIVE VERSION
-        $schedules = Schedule::where(
-            'schedule_version_id',
-            $activeVersion->id
-        )->get();
-        logger()->info('Schedule Count', [
-            'count' => $schedules->count()
-        ]);
+
 
         $newConflicts = 0;
 
-        foreach ($schedules as $s1) {
+        $conflictsToInsert = [];
+        $roomClashes = Schedule::query()
+            ->from('schedules as s1')
+            ->join('timeslots as t1', 's1.timeslot_id', '=', 't1.id')
+            ->join('schedules as s2', function ($join) {
 
-            foreach ($schedules as $s2) {
+                $join->on('s1.room_id', '=', 's2.room_id')
+                    ->whereRaw('s1.id < s2.id');
+            })
+            ->join('timeslots as t2', 's2.timeslot_id', '=', 't2.id')
+            ->whereColumn('t1.day', 't2.day')
+            ->whereColumn('t1.start_time', 't2.start_time')
+            ->whereColumn('t1.end_time', 't2.end_time')
+            ->where('s1.schedule_version_id', $activeVersion->id)
+            ->where('s2.schedule_version_id', $activeVersion->id)
+            ->select(
+                's1.id as schedule_a',
+                's2.id as schedule_b'
+            )
+            ->get();
 
-                if ($s1->id >= $s2->id) {
-                    continue;
-                }
+        $scheduleLookup = Schedule::with('section')
+            ->where('schedule_version_id', $activeVersion->id)
+            ->get()
+            ->keyBy('id');
+        logger()->info('Schedule Count', [
+            'count' => $scheduleLookup->count()
+        ]);
+        foreach ($roomClashes as $clash) {
 
-                $isSameTime =
-                    $s1->timeslot_id == $s2->timeslot_id &&
-                    $s1->day == $s2->day;
+            $scheduleA = $scheduleLookup[$clash->schedule_a];
+            $scheduleB = $scheduleLookup[$clash->schedule_b];
 
-                if (!$isSameTime) {
-                    continue;
-                }
+            $yearA = $scheduleA->section->year_level;
+            $yearB = $scheduleB->section->year_level;
 
-                /*
-            |--------------------------------------------------------------------------
-            | ROOM CLASH
-            |--------------------------------------------------------------------------
-            */
-                if ($s1->room_id == $s2->room_id) {
+            $isAllowedSharing =
+                ($yearA == 1 && in_array($yearB, [2, 3, 4])) ||
+                ($yearB == 1 && in_array($yearA, [2, 3, 4]));
 
-                    $yearA = $s1->section->year_level;
-                    $yearB = $s2->section->year_level;
-
-                    $isAllowedSharing =
-                        ($yearA == 1 && in_array($yearB, [2, 3, 4])) ||
-                        ($yearB == 1 && in_array($yearA, [2, 3, 4]));
-
-                    if (!$isAllowedSharing) {
-
-                        Conflict::create([
-                            'schedule_id_a' => $s1->id,
-                            'schedule_id_b' => $s2->id,
-                            'conflict_type' => 'Room Clash',
-                        ]);
-
-                        $newConflicts++;
-                    }
-                }
-
-                /*
-            |--------------------------------------------------------------------------
-            | TEACHER OVERLAP
-            |--------------------------------------------------------------------------
-            */
-                if ($s1->teacher_id == $s2->teacher_id) {
-
-                    Conflict::create([
-                        'schedule_id_a' => $s1->id,
-                        'schedule_id_b' => $s2->id,
-                        'conflict_type' => 'Teacher Overlap',
-                    ]);
-
-                    $newConflicts++;
-                }
-
-                /*
-            |--------------------------------------------------------------------------
-            | SECTION DOUBLE BOOK
-            |--------------------------------------------------------------------------
-            */
-                if ($s1->section_id == $s2->section_id) {
-
-                    Conflict::create([
-                        'schedule_id_a' => $s1->id,
-                        'schedule_id_b' => $s2->id,
-                        'conflict_type' => 'Section Double-Book',
-                    ]);
-
-                    $newConflicts++;
-                }
+            if ($isAllowedSharing) {
+                continue;
             }
+
+
+            $conflictsToInsert[] = [
+                'schedule_id_a' => $clash->schedule_a,
+                'schedule_id_b' => $clash->schedule_b,
+                'conflict_type' => 'Room Clash',
+                'status' => 'Unresolved',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+
+            $newConflicts++;
+        }
+
+        $teacherOverlaps = Schedule::query()
+            ->from('schedules as s1')
+            ->join('timeslots as t1', 's1.timeslot_id', '=', 't1.id')
+
+            ->join('schedules as s2', function ($join) {
+                $join->on('s1.teacher_id', '=', 's2.teacher_id')
+                    ->whereRaw('s1.id < s2.id');
+            })
+
+            ->join('timeslots as t2', 's2.timeslot_id', '=', 't2.id')
+
+            ->whereColumn('t1.day', 't2.day')
+            ->whereColumn('t1.start_time', 't2.start_time')
+            ->whereColumn('t1.end_time', 't2.end_time')
+
+            ->whereNotNull('s1.teacher_id')
+
+            ->where('s1.schedule_version_id', $activeVersion->id)
+            ->where('s2.schedule_version_id', $activeVersion->id)
+
+            ->select(
+                's1.id as schedule_a',
+                's2.id as schedule_b'
+            )
+            ->get();
+
+        foreach ($teacherOverlaps as $clash) {
+
+            $conflictsToInsert[] = [
+                'schedule_id_a' => $clash->schedule_a,
+                'schedule_id_b' => $clash->schedule_b,
+                'conflict_type' => 'Teacher Overlap',
+                'status' => 'Unresolved',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+
+            $newConflicts++;
+        }
+        $sectionClashes = Schedule::query()
+            ->from('schedules as s1')
+            ->join('timeslots as t1', 's1.timeslot_id', '=', 't1.id')
+
+            ->join('schedules as s2', function ($join) {
+                $join->on('s1.section_id', '=', 's2.section_id')
+                    ->whereRaw('s1.id < s2.id');
+            })
+
+            ->join('timeslots as t2', 's2.timeslot_id', '=', 't2.id')
+
+            ->whereColumn('t1.day', 't2.day')
+            ->whereColumn('t1.start_time', 't2.start_time')
+            ->whereColumn('t1.end_time', 't2.end_time')
+
+            ->where('s1.schedule_version_id', $activeVersion->id)
+            ->where('s2.schedule_version_id', $activeVersion->id)
+
+            ->select(
+                's1.id as schedule_a',
+                's2.id as schedule_b'
+            )
+            ->get();
+
+        foreach ($sectionClashes as $clash) {
+
+            $conflictsToInsert[] = [
+                'schedule_id_a' => $clash->schedule_a,
+                'schedule_id_b' => $clash->schedule_b,
+                'conflict_type' => 'Section Double-Book',
+                'status' => 'Unresolved',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+
+            $newConflicts++;
         }
 
 
@@ -179,10 +231,15 @@ class ConflictController extends Controller
 
         foreach ($teachersWithoutSchedule as $teacher) {
 
-            Conflict::create([
+            $conflictsToInsert[] = [
+                'schedule_id_a' => null,
+                'schedule_id_b' => null,
                 'conflict_type' => 'Teacher No Schedule',
                 'notes' => "{$teacher->name} has no assigned schedule.",
-            ]);
+                'status' => 'Unresolved',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
 
             $newConflicts++;
         }
@@ -193,22 +250,41 @@ class ConflictController extends Controller
 |--------------------------------------------------------------------------
 */
 
-        $sectionsWithoutSchedule = Section::whereDoesntHave(
-            'schedules',
-            function ($query) use ($activeVersion) {
-                $query->where(
-                    'schedule_version_id',
-                    $activeVersion->id
-                );
-            }
-        )->get();
+        // $sectionsWithoutSchedule = Section::whereDoesntHave(
+        //     'schedules',
+        //     function ($query) use ($activeVersion) {
+        //         $query->where(
+        //             'schedule_version_id',
+        //             $activeVersion->id
+        //         );
+        //     }
+        // )->get();
+        $sectionsWithoutSchedule = Section::where(
+            'semester',
+            $activeVersion->semester
+        )
+            ->whereDoesntHave(
+                'schedules',
+                function ($query) use ($activeVersion) {
+                    $query->where(
+                        'schedule_version_id',
+                        $activeVersion->id
+                    );
+                }
+            )
+            ->get();
 
         foreach ($sectionsWithoutSchedule as $section) {
 
-            Conflict::create([
+            $conflictsToInsert[] = [
+                'schedule_id_a' => null,
+                'schedule_id_b' => null,
                 'conflict_type' => 'Section No Schedule',
                 'notes' => "{$section->name} has no generated schedule.",
-            ]);
+                'status' => 'Unresolved',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
 
             $newConflicts++;
         }
@@ -228,11 +304,15 @@ class ConflictController extends Controller
 
         foreach ($missingTeachers as $schedule) {
 
-            Conflict::create([
+            $conflictsToInsert[] = [
                 'schedule_id_a' => $schedule->id,
+                'schedule_id_b' => null,
                 'conflict_type' => 'No Assigned Teacher',
                 'notes' => 'Subject has no assigned teacher.',
-            ]);
+                'status' => 'Unresolved',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
 
             $newConflicts++;
         }
@@ -282,6 +362,11 @@ class ConflictController extends Controller
         //         $newConflicts++;
         //     }
         // }
+
+        if (!empty($conflictsToInsert)) {
+
+            Conflict::insert($conflictsToInsert);
+        }
 
         return back()->with(
             'message',
@@ -336,10 +421,6 @@ class ConflictController extends Controller
                     ->where(
                         'timeslot_id',
                         $conflict->scheduleA->timeslot_id
-                    )
-                    ->where(
-                        'day',
-                        $conflict->scheduleA->day
                     )
                     ->pluck('room_id');
 

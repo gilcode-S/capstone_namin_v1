@@ -19,6 +19,9 @@ export default function GeneratorDashboard({
     readiness,
     warnings,
     academicYears,
+    programs,
+    deliveryRules,
+    summary,
 }) {
     const { data, setData, post, processing } = useForm({
         academic_year: '2026-2027',
@@ -26,6 +29,21 @@ export default function GeneratorDashboard({
     });
     const hasErrors = warnings && warnings.length > 0;
     const { props } = usePage();
+    const [rules, setRules] = useState(() => {
+        const map = {};
+
+        programs.forEach((program) => {
+            [1, 2, 3, 4].forEach((year) => {
+                const existing = deliveryRules.find(
+                    (r) => r.program_id === program.id && r.year_level === year,
+                );
+
+                map[`${program.id}-${year}`] = existing?.delivery_mode ?? 'FTF';
+            });
+        });
+
+        return map;
+    });
     useEffect(() => {
         if (props.flash?.success) {
             toast.success(props.flash.success);
@@ -92,6 +110,32 @@ export default function GeneratorDashboard({
                 }
             },
         });
+    };
+
+    const saveRules = () => {
+        const payload = [];
+
+        Object.entries(rules).forEach(([key, mode]) => {
+            const [programId, year] = key.split('-');
+
+            payload.push({
+                program_id: Number(programId),
+                year_level: Number(year),
+                delivery_mode: mode,
+            });
+        });
+
+        router.post(
+            '/delivery-rules/save',
+            {
+                rules: payload,
+            },
+            {
+                onSuccess: () => {
+                    toast.success('Delivery rules saved!');
+                },
+            },
+        );
     };
 
     return (
@@ -205,6 +249,184 @@ export default function GeneratorDashboard({
                         </ul>
                     </div>
                 )}
+
+                <div className="mb-6 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                    <div className="mb-6 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <h2 className="mb-4 text-xl font-bold">
+                            Generation Summary
+                        </h2>
+
+                        <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+                            <div>
+                                <div className="text-sm text-gray-500">
+                                    Sections
+                                </div>
+
+                                <div className="text-2xl font-bold">
+                                    {summary.sections}
+                                </div>
+                            </div>
+
+                            <div>
+                                <div className="text-sm text-gray-500">
+                                    Subjects
+                                </div>
+
+                                <div className="text-2xl font-bold">
+                                    {summary.subjects}
+                                </div>
+                            </div>
+
+                            <div>
+                                <div className="text-sm text-gray-500">
+                                    Teachers
+                                </div>
+
+                                <div className="text-2xl font-bold">
+                                    {summary.teachers}
+                                </div>
+                            </div>
+
+                            <div>
+                                <div className="text-sm text-gray-500">
+                                    Rooms
+                                </div>
+
+                                <div className="text-2xl font-bold">
+                                    {summary.rooms}
+                                </div>
+                            </div>
+
+                            <div>
+                                <div className="text-sm text-gray-500">
+                                    Curriculum Subjects
+                                </div>
+
+                                <div className="text-2xl font-bold">
+                                    {summary.curriculum_subjects}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="mb-5">
+                        <h2 className="text-xl font-bold text-gray-900">
+                            Delivery Mode Configuration
+                        </h2>
+
+                        <p className="mt-1 text-sm text-gray-500">
+                            Configure how schedules are generated for every
+                            program and year level.
+                        </p>
+                    </div>
+
+                    <div className="mb-4 flex flex-wrap gap-3">
+                        <div className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+                            FTF = Requires Physical Room
+                        </div>
+
+                        <div className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                            Online = No Room Required
+                        </div>
+
+                        <div className="rounded-full bg-yellow-50 px-3 py-1 text-xs font-semibold text-yellow-700">
+                            Hybrid = Mixed Delivery
+                        </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="w-full overflow-hidden rounded-xl border">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="p-3 text-left font-bold">
+                                        Program
+                                    </th>
+
+                                    <th className="p-3 text-center font-bold">
+                                        1st Year
+                                    </th>
+
+                                    <th className="p-3 text-center font-bold">
+                                        2nd Year
+                                    </th>
+
+                                    <th className="p-3 text-center font-bold">
+                                        3rd Year
+                                    </th>
+
+                                    <th className="p-3 text-center font-bold">
+                                        4th Year
+                                    </th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {programs.map((program) => (
+                                    <tr
+                                        key={program.id}
+                                        className="border-t hover:bg-gray-50"
+                                    >
+                                        <td className="p-3 font-semibold">
+                                            {program.name}
+                                        </td>
+
+                                        {[1, 2, 3, 4].map((year) => {
+                                            const value =
+                                                rules[`${program.id}-${year}`];
+
+                                            return (
+                                                <td
+                                                    key={year}
+                                                    className="p-3 text-center"
+                                                >
+                                                    <select
+                                                        value={value}
+                                                        onChange={(e) =>
+                                                            setRules({
+                                                                ...rules,
+                                                                [`${program.id}-${year}`]:
+                                                                    e.target
+                                                                        .value,
+                                                            })
+                                                        }
+                                                        className={`rounded-lg border px-3 py-2 font-semibold shadow-sm ${
+                                                            value === 'FTF'
+                                                                ? 'border-green-200 bg-green-50 text-green-700'
+                                                                : value ===
+                                                                    'Online'
+                                                                  ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                                                  : 'border-yellow-200 bg-yellow-50 text-yellow-700'
+                                                        } `}
+                                                    >
+                                                        <option value="FTF">
+                                                            FTF
+                                                        </option>
+
+                                                        <option value="Online">
+                                                            Online
+                                                        </option>
+
+                                                        <option value="Hybrid">
+                                                            Hybrid
+                                                        </option>
+                                                    </select>
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="mt-5 flex justify-end">
+                        <button
+                            onClick={saveRules}
+                            className="rounded-lg bg-black px-6 py-3 font-bold text-white shadow-sm transition hover:bg-gray-800"
+                        >
+                            Save Configuration
+                        </button>
+                    </div>
+                </div>
 
                 {/* Action Area */}
                 <div className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-6 shadow-sm">

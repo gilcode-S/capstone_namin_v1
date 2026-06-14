@@ -144,6 +144,11 @@ Route::middleware(['auth', 'role:super admin,staff'])->group(function () {
     Route::get('/conflicts', [ConflictController::class, 'index'])->name('conflicts.index');
     Route::post('/conflicts/scan', [ConflictController::class, 'scan'])->name('conflicts.scan');
     Route::post('/conflicts/auto-resolve', [ConflictController::class, 'autoResolve'])->name('conflicts.auto-resolve');
+
+    Route::post(
+        '/delivery-rules/save',
+        [GeneratorController::class, 'saveDeliveryRules']
+    );
 });
 
 // Route::get('/conflicts', function () {

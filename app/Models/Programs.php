@@ -21,4 +21,8 @@ class Programs extends Model
     {
         return $this->hasMany(Section::class);
     }
+    public function deliveryModeRules()
+    {
+        return $this->hasMany(DeliveryModeRule::class);
+    }
 }

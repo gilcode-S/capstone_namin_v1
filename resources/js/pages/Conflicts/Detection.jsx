@@ -124,15 +124,7 @@ export default function ConflictDetection({
                                             </th>
 
                                             <th className="px-6 py-4 text-[11px] font-black tracking-wider text-gray-500 uppercase">
-                                                Schedule A
-                                            </th>
-
-                                            <th className="px-6 py-4 text-[11px] font-black tracking-wider text-gray-500 uppercase">
-                                                Schedule B
-                                            </th>
-
-                                            <th className="px-6 py-4 text-[11px] font-black tracking-wider text-gray-500 uppercase">
-                                                Room
+                                                Notes
                                             </th>
 
                                             <th className="px-6 py-4 text-[11px] font-black tracking-wider text-gray-500 uppercase">
@@ -159,43 +151,13 @@ export default function ConflictDetection({
                                                         </span>
                                                     </td>
 
-                                                    {/* SCHEDULE A */}
                                                     <td className="px-6 py-4">
-                                                        <div className="font-bold">
-                                                            {c.scheduleA
-                                                                ?.teacher
-                                                                ?.name || 'N/A'}
+                                                        <div className="max-w-lg">
+                                                            <p className="text-sm font-medium text-gray-700">
+                                                                {c.notes ||
+                                                                    'No additional details'}
+                                                            </p>
                                                         </div>
-
-                                                        <div className="text-xs text-gray-500">
-                                                            Room:{' '}
-                                                            {c.scheduleA?.room
-                                                                ?.generated_name ||
-                                                                'N/A'}
-                                                        </div>
-                                                    </td>
-
-                                                    {/* SCHEDULE B */}
-                                                    <td className="px-6 py-4">
-                                                        <div className="font-bold">
-                                                            {c.scheduleB
-                                                                ?.teacher
-                                                                ?.name || 'N/A'}
-                                                        </div>
-
-                                                        <div className="text-xs text-gray-500">
-                                                            Room:{' '}
-                                                            {c.scheduleB?.room
-                                                                ?.generated_name ||
-                                                                'N/A'}
-                                                        </div>
-                                                    </td>
-
-                                                    {/* ROOM */}
-                                                    <td className="px-6 py-4 text-sm text-gray-600">
-                                                        {c.scheduleA?.room
-                                                            ?.generated_name ||
-                                                            '—'}
                                                     </td>
 
                                                     {/* STATUS */}
